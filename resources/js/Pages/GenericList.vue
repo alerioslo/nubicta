@@ -1,0 +1,198 @@
+<script setup>
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import PageHeader from '../Components/PageHeader.vue';
+import Pager from '../Components/Pager.vue';
+import EmptyState from '../Components/EmptyState.vue';
+
+/*
+ * Listado generico. Celdas: texto o {text, href, badge, align, truncate, button, post, confirm, download, select, split: {text, download|href}, menu: [{text, href|post}]}.
+ * Botones: {label, href | post | download | upload | menu: [{label, href}] | selection: 'open'|'post', url, confirm}.
+ */
+const props = defineProps({
+    view: { type: Object, required: true },
+    rows: { type: [Array, Object], default: () => [] },
+    tabs: { type: Array, required: true },
+    filters: { type: Object, default: () => ({}) },
+});
+
+const thisYear = new Date().getFullYear();
+const f = reactive({ q: '', desde: '', hasta: '', sub: props.view.subtabs?.[0] ?? '', anio: String(thisYear), ...Object.fromEntries((props.view.selects ?? []).map((s) => [s.name, ''])), ...props.filters });
+const paginator = computed(() => (Array.isArray(props.rows) ? null : props.rows));
+const list = computed(() => (Array.isArray(props.rows) ? props.rows : props.rows.data));
+const columns = computed(() => props.view.subtab_columns?.[f.sub] ?? props.view.columns);
+const cell = (c) => (c !== null && typeof c === 'object' ? c : { text: c ?? '' });
+const badgeClass = { ok: 's-badge-ok', warn: 's-badge-warn', danger: 's-badge-danger', off: '' };
+
+const selected = ref([]);
+const selectable = computed(() => list.value.map((r) => r.find((c) => c?.select)?.select).filter(Boolean));
+const allSelected = computed(() => selectable.value.length > 0 && selectable.value.every((id) => selected.value.includes(id)));
+const toggleAll = () => (selected.value = allSelected.value ? [] : [...selectable.value]);
+const busy = ref(false);
+const menuOpen = ref(null);
+const closeMenu = () => (menuOpen.value = null);
+onMounted(() => document.addEventListener('click', closeMenu));
+onBeforeUnmount(() => document.removeEventListener('click', closeMenu));
+
+function reload(extra = {}) {
+    Object.assign(f, extra);
+    const params = Object.fromEntries(Object.entries(f).filter(([, v]) => v));
+    if (params.sub === props.view.subtabs?.[0]) delete params.sub;
+    if (params.anio === String(thisYear)) delete params.anio;
+    selected.value = [];
+    router.get(props.view.url, params, { preserveState: true, replace: true });
+}
+
+function post(url, data = {}, confirmText = null) {
+    if (confirmText && !window.confirm(confirmText)) return;
+    busy.value = true;
+    router.post(url, data, { preserveScroll: true, onFinish: () => (busy.value = false), onSuccess: () => (selected.value = []) });
+}
+
+function runButton(b) {
+    if (b.selection) {
+        if (!selected.value.length) return window.alert('Selecciona al menos un comprobante de la lista.');
+        if (b.selection === 'open') return window.open(`${b.url}?ids=${selected.value.join(',')}`, '_blank');
+        return post(b.url, { ids: selected.value }, b.confirm?.replace(':n', selected.value.length));
+    }
+    if (b.post) post(b.post, {}, b.confirm);
+}
+function upload(b, file) {
+    if (!file) return;
+    busy.value = true;
+    router.post(b.upload, { file }, { forceFormData: true, preserveScroll: true, onError: (e) => window.alert(Object.values(e)[0]), onFinish: () => (busy.value = false) });
+}
+const year = computed(() => f.anio);
+const fill = (s) => String(s ?? '').replace(':anio', year.value);
+function downloadHref(b) {
+    const qs = new URLSearchParams(Object.fromEntries(Object.entries(f).filter(([, v]) => v))).toString();
+    const url = fill(b.download);
+    return qs ? `${url}${url.includes('?') ? '&' : '?'}${qs}` : url;
+}
+</script>
+
+<template>
+    <Head :title="view.title" />
+    <PageHeader :title="view.title" :tabs="tabs" :active="view.tab" />
+
+    <div v-if="view.heading" class="mt-[26px] px-[22px]">
+        <h2 class="text-[22px] font-semibold text-primary">{{ view.heading }}</h2>
+        <p v-if="view.intro" class="mt-[10px] text-[13px] text-ink">{{ view.intro }}</p>
+    </div>
+
+    <div v-if="view.info" class="mx-[22px] mt-[16px] flex gap-3 rounded border border-[#b9dcf3] bg-[#eaf5fc] px-4 py-3 text-[13px] text-ink">
+        <Icon icon="circle-info" class="mt-[2px] text-primary" />
+        <p>{{ view.info }}</p>
+    </div>
+
+    <section class="s-card mt-[18px]">
+        <div v-if="view.subtabs" class="flex gap-6 border-b border-line px-[16px]">
+            <button v-for="s in view.subtabs" :key="s" type="button" class="-mb-px border-b-[3px] py-3 text-[14px] font-semibold"
+                :class="f.sub === s ? 'border-primary text-primary' : 'border-transparent text-ink-soft'" @click="reload({ sub: s })">{{ s }}</button>
+        </div>
+
+        <form class="flex flex-wrap items-end gap-3 px-[16px] py-[16px]" @submit.prevent="reload()">
+            <label v-if="view.year" class="flex flex-col text-[12px] text-ink-soft">Año
+                <select v-model="f.anio" class="s-input w-[140px]" @change="reload()">
+                    <option v-for="y in 6" :key="y" :value="String(thisYear - y + 1)">{{ thisYear - y + 1 }}</option>
+                </select>
+            </label>
+            <label v-if="view.search" class="flex flex-col text-[12px] text-ink-soft">{{ view.search_label ?? '' }}
+                <span class="relative w-[300px]">
+                    <Icon icon="magnifying-glass" class="absolute left-3 top-[10px] text-muted" />
+                    <input v-model="f.q" class="s-input pl-9" :placeholder="view.search" />
+                </span>
+            </label>
+            <template v-if="view.dates">
+                <label class="flex flex-col text-[12px] text-ink-soft">Fecha desde<input v-model="f.desde" type="date" class="s-input w-[160px]" /></label>
+                <label class="flex flex-col text-[12px] text-ink-soft">Fecha hasta<input v-model="f.hasta" type="date" class="s-input w-[160px]" /></label>
+            </template>
+            <label v-for="s in view.selects ?? []" :key="s.name" class="flex flex-col text-[12px] text-ink-soft">{{ s.label }}
+                <select v-model="f[s.name]" class="s-input w-[170px]" @change="reload()">
+                    <option value="">Todos</option>
+                    <option v-for="o in s.options" :key="o" :value="o">{{ o }}</option>
+                </select>
+            </label>
+            <span v-for="c in view.chips ?? []" :key="c.text ?? c" class="inline-flex items-center gap-2 rounded-full bg-[#e3f1fb] px-3 py-[6px] text-[12px] text-primary">{{ c.text ?? c }}
+                <Link v-if="c.clear" :href="c.clear" title="Quitar filtro"><Icon icon="circle-xmark" /></Link>
+            </span>
+            <Link v-if="(view.chips ?? []).some((c) => c.clear)" :href="view.chips.find((c) => c.clear).clear" class="pb-[6px] text-[12px] text-primary">Limpiar filtros</Link>
+            <button v-if="(view.search && !view.search_only) || view.dates" type="submit" class="s-btn s-btn-outline"><Icon icon="sliders" /> Más filtros</button>
+            <div class="ml-auto flex items-center gap-2">
+                <span v-if="selected.length" class="text-[12px] text-muted">{{ selected.length }} seleccionado(s)</span>
+                <template v-for="b in view.buttons ?? []" :key="b.label">
+                    <div v-if="b.menu" class="relative" @click.stop>
+                        <button type="button" class="s-btn" :class="b.style === 'outline' ? 's-btn-outline' : 's-btn-primary'" @click="menuOpen = menuOpen === b.label ? null : b.label">
+                            <Icon v-if="b.icon" :icon="b.icon" /> {{ b.label }} <Icon icon="caret-down" />
+                        </button>
+                        <div v-if="menuOpen === b.label" class="absolute right-0 top-[40px] z-30 min-w-[240px] rounded-[6px] bg-white py-[6px] shadow-lg">
+                            <Link v-for="m in b.menu" :key="m.label" :href="fill(m.href)" class="block whitespace-nowrap px-[14px] py-[8px] text-[13px] text-ink hover:bg-[#f0f7fd]">{{ m.label }}</Link>
+                        </div>
+                    </div>
+                    <Link v-else-if="b.href" :href="fill(b.href)" class="s-btn" :class="b.style === 'outline' ? 's-btn-outline' : 's-btn-primary'">
+                        <Icon v-if="b.icon" :icon="b.icon" /> {{ b.label }}
+                    </Link>
+                    <label v-else-if="b.upload" class="s-btn cursor-pointer" :class="b.style === 'outline' ? 's-btn-outline' : 's-btn-primary'">
+                        <Icon v-if="b.icon" :icon="b.icon" /> {{ b.label }}
+                        <input type="file" class="hidden" :accept="b.accept" :disabled="busy" @change="upload(b, $event.target.files[0]); $event.target.value = ''" />
+                    </label>
+                    <a v-else-if="b.download" :href="downloadHref(b)"
+                        class="s-btn" :class="b.style === 'outline' ? 's-btn-outline' : 's-btn-primary'">
+                        <Icon v-if="b.icon" :icon="b.icon" /> {{ b.label }}
+                    </a>
+                    <button v-else type="button" class="s-btn disabled:opacity-60" :class="b.style === 'outline' ? 's-btn-outline' : 's-btn-primary'" :disabled="busy" @click="runButton(b)">
+                        <Icon v-if="b.icon" :icon="b.icon" /> {{ b.label }}
+                    </button>
+                </template>
+            </div>
+        </form>
+
+        <div class="overflow-x-auto">
+            <table class="s-table w-full">
+                <thead>
+                    <tr>
+                        <th v-for="c in columns" :key="c">
+                            <input v-if="c === '#select'" type="checkbox" :checked="allSelected" title="Seleccionar todos" @change="toggleAll" />
+                            <template v-else>{{ c }}</template>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(r, i) in list" :key="i">
+                        <td v-for="(raw, j) in r" :key="j" :class="['whitespace-nowrap', cell(raw).align === 'right' && 'text-right', cell(raw).truncate && 'max-w-[220px] truncate']" :title="cell(raw).truncate ? cell(raw).text : null">
+                            <input v-if="cell(raw).select" v-model="selected" type="checkbox" :value="cell(raw).select" />
+                            <span v-else-if="cell(raw).badge" class="s-badge" :class="badgeClass[cell(raw).badge]">{{ cell(raw).text }}</span>
+                            <div v-else-if="cell(raw).split" class="relative inline-flex" @click.stop>
+                                <a v-if="cell(raw).split.download" :href="cell(raw).split.download" class="rounded-l-[4px] border border-primary px-[34px] py-[4px] text-[12px] text-primary hover:bg-[#f0f7fd]">{{ cell(raw).split.text }}</a>
+                                <Link v-else :href="cell(raw).split.href" class="rounded-l-[4px] border border-primary px-[34px] py-[4px] text-[12px] text-primary hover:bg-[#f0f7fd]">{{ cell(raw).split.text }}</Link>
+                                <button type="button" class="rounded-r-[4px] border border-l-0 border-primary px-[8px] text-primary hover:bg-[#f0f7fd] disabled:opacity-40" :disabled="!cell(raw).menu?.length" @click="menuOpen = menuOpen === `row${i}` ? null : `row${i}`"><Icon icon="caret-down" /></button>
+                                <div v-if="menuOpen === `row${i}`" class="absolute right-0 top-[30px] z-30 min-w-[170px] rounded-[6px] bg-white py-[6px] text-left shadow-lg">
+                                    <template v-for="a in cell(raw).menu" :key="a.text">
+                                        <Link v-if="a.href" :href="a.href" class="block px-[14px] py-[7px] text-[13px] hover:bg-[#f0f7fd]">{{ a.text }}</Link>
+                                        <button v-else type="button" class="block w-full px-[14px] py-[7px] text-left text-[13px] hover:bg-[#f0f7fd]" :disabled="busy" @click="menuOpen = null; post(a.post, a.data ?? {}, a.confirm)">{{ a.text }}</button>
+                                    </template>
+                                </div>
+                            </div>
+                            <template v-else-if="cell(raw).actions">
+                                <template v-for="a in cell(raw).actions" :key="a.text">
+                                    <Link v-if="a.href" :href="a.href" class="mr-3 font-semibold text-primary hover:underline">{{ a.text }}</Link>
+                                    <a v-else-if="a.download" :href="a.download" class="mr-3 font-semibold text-primary hover:underline">{{ a.text }}</a>
+                                    <button v-else-if="a.post" type="button" class="mr-3 font-semibold hover:underline" :class="a.danger ? 'text-[#c62828]' : 'text-primary'" :disabled="busy" @click="post(a.post, a.data ?? {}, a.confirm)">{{ a.text }}</button>
+                                </template>
+                            </template>
+                            <Link v-else-if="cell(raw).href" :href="cell(raw).href" class="font-semibold text-primary hover:underline">{{ cell(raw).text }}</Link>
+                            <a v-else-if="cell(raw).download" :href="cell(raw).download" class="font-semibold text-primary hover:underline">{{ cell(raw).text }}</a>
+                            <button v-else-if="cell(raw).post" type="button" class="font-semibold text-primary hover:underline" :disabled="busy" @click="post(cell(raw).post, cell(raw).data ?? {}, cell(raw).confirm)">{{ cell(raw).text }}</button>
+                            <template v-else>{{ cell(raw).text }}</template>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <EmptyState v-if="!list.length" v-bind="view.empty ? { title: view.empty[0], text: view.empty[1] } : {}" />
+        <div v-if="!list.length && view.empty_button" class="-mt-[10px] pb-[24px] text-center">
+            <Link :href="view.empty_button.href" class="s-btn s-btn-primary">{{ view.empty_button.label }}</Link>
+        </div>
+        <Pager v-if="paginator" :paginator="paginator" />
+    </section>
+</template>

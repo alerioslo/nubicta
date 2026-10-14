@@ -1,0 +1,167 @@
+@import 'tailwindcss';
+
+@source '../js/**/*.vue';
+
+/* Tokens tomados de Siigo Nube (docs/siigo/styles.json) */
+@theme {
+    --font-sans: 'Nunito Sans', Helvetica, Arial, sans-serif;
+    --color-primary: #009dff;
+    --color-primary-dark: #0084d6;
+    --color-primary-light: #e5f5ff;
+    --color-ink: #131920;
+    --color-ink-soft: #212529;
+    --color-muted: #6c757d;
+    --color-placeholder: #9c9ea1;
+    --color-line: #dee2e6;
+    --color-surface: #f3f6f9;
+    --color-th: #f5f6f7;
+    --color-ok: #00b67a;
+    --color-warn: #ffb020;
+    --color-danger: #e5484d;
+}
+
+html, body {
+    font-size: 13px;
+    color: var(--color-ink-soft);
+    background: var(--color-surface);
+}
+
+@layer components {
+.s-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    white-space: nowrap;
+    transition: background-color .15s, color .15s, border-color .15s;
+    cursor: pointer;
+}
+.s-btn:disabled { opacity: .55; cursor: not-allowed; }
+.s-btn-primary { background: var(--color-primary); color: #fff; }
+.s-btn-primary:hover:not(:disabled) { background: var(--color-primary-dark); }
+.s-btn-outline { border: 1px solid var(--color-primary); color: var(--color-primary); background: #fff; }
+.s-btn-outline:hover:not(:disabled) { background: var(--color-primary-light); }
+.s-btn-link { color: var(--color-primary); padding: 0 6px; height: auto; }
+
+.s-input {
+    width: 100%;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 13px;
+    background: #fff;
+    color: var(--color-ink-soft);
+}
+.s-input::placeholder { color: var(--color-placeholder); }
+.s-input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 2px rgb(0 157 255 / 15%); }
+.s-input.is-invalid { border-color: var(--color-danger); }
+textarea.s-input { height: auto; padding: 8px 10px; }
+
+.s-label { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 600; color: var(--color-ink); }
+.s-label .req { color: #ff8a00; }
+.s-error { margin-top: 3px; font-size: 12px; color: var(--color-danger); }
+
+.s-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgb(0 0 0 / 6%); }
+
+.s-table { width: 100%; border-collapse: collapse; }
+.s-table th {
+    background: var(--color-th);
+    font-weight: 700;
+    text-align: left;
+    padding: 12px 14px;
+    color: var(--color-ink);
+    border-left: 1px solid transparent;
+    white-space: nowrap;
+}
+.s-table th + th { box-shadow: inset 1px 0 0 #c9ced3; }
+.s-table td { padding: 10px 14px; border-bottom: 1px solid #edf0f2; }
+.s-table tbody tr:hover { background: #f8fbff; }
+
+.s-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--color-primary); }
+.s-tab {
+    padding: 10px 14px;
+    font-weight: 700;
+    color: #3a4651;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    margin-bottom: -1px;
+    white-space: nowrap;
+}
+.s-tab.active { color: var(--color-primary); border-color: var(--color-primary); background: #fff; }
+.s-tab:not(.active):hover { color: var(--color-primary); }
+
+.s-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+.s-badge-ok { background: #e3f8f0; color: #008a5c; }
+.s-badge-off { background: #f1f3f5; color: #6c757d; }
+.s-badge-warn { background: #fff4de; color: #a86b00; }
+.s-badge-danger { background: #fdecec; color: #c62828; }
+
+/* Inputs subrayados del formulario "Crear un tercero" de Siigo */
+.s-line {
+    width: 100%;
+    height: 30px;
+    border: none;
+    border-bottom: 1px solid #a7adb3;
+    background: transparent;
+    font-size: 13px;
+    color: var(--color-ink-soft);
+}
+.s-line::placeholder { color: #5e6870; }
+.s-line:focus { outline: none; border-bottom-color: var(--color-primary); }
+.s-line.is-invalid { border-bottom-color: var(--color-danger); }
+.s-line-label { display: block; font-size: 11px; color: #7cb342; }
+.s-line-label.blue { color: var(--color-primary); }
+
+.s-section-title { font-size: 15px; font-weight: 700; color: var(--color-ink); }
+
+.s-switch { position: relative; display: inline-block; width: 28px; height: 16px; flex: none; }
+.s-switch input { opacity: 0; width: 0; height: 0; }
+.s-switch span { position: absolute; inset: 0; border-radius: 16px; background: #c4c9ce; transition: .15s; cursor: pointer; }
+.s-switch span::before { content: ''; position: absolute; width: 12px; height: 12px; left: 2px; top: 2px; border-radius: 50%; background: #fff; transition: .15s; }
+.s-switch input:checked + span { background: var(--color-primary); }
+.s-switch input:checked + span::before { transform: translateX(12px); }
+
+.s-subtabs { display: flex; gap: 6px; border-bottom: 1px solid #edf0f2; }
+.s-subtab { padding: 8px 12px; font-size: 13px; color: var(--color-ink); border-bottom: 2px solid transparent; }
+.s-subtab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+
+.s-btn-green { background: #7ac142; color: #fff; border-radius: 16px; }
+.s-btn-green:hover:not(:disabled) { background: #69ad35; }
+.s-btn-cancel { border: 1px solid #e5484d; color: #e5484d; background: #fff; border-radius: 16px; }
+
+/* Documentos clasicos de Siigo (factura, compra, inventario): hoja con esquina doblada */
+.doc-sheet { position: relative; max-width: 756px; margin: 0 auto; background: #fff; box-shadow: 0 2px 6px rgb(0 0 0 / 25%); font-size: 12px; color: #333; }
+.doc-sheet::after { content: ''; position: absolute; top: 0; right: 0; border-style: solid; border-width: 0 18px 18px 0; border-color: var(--color-surface) var(--color-surface) #dcdfe2 #dcdfe2; }
+.doc-body { padding: 30px 14px 20px 21px; }
+/* Pantallas clasicas de Siigo (orden de compra): ancho completo, etiquetas a la derecha y totales en cajas. */
+.classic-doc { font-size: 12px; color: #333; }
+.classic-doc .doc-label { text-align: right; color: #666; font-size: 10.5px; }
+.classic-doc [class*='grid-cols-[76px_1fr]'] { grid-template-columns: 150px 260px !important; }
+.classic-doc dl select { width: 100px !important; }
+.classic-doc dl { background: #fff; padding: 4px 0; }
+.classic-doc dl dd { min-width: 90px; border: 1px solid #ccc; background: #fff; padding: 0 4px; text-align: right; font-weight: 700; }
+.doc-title { font-size: 21px; font-weight: 400; color: #22a3ec; }
+.doc-label { font-size: 11.5px; color: #333; line-height: 1.35; }
+.doc-input { height: 25px; width: 100%; border: 1px solid #ccc; border-radius: 2px; background: #fff; padding: 0 6px; font-size: 11.5px; color: #333; }
+.doc-input:focus { outline: none; border-color: #66afe9; }
+.doc-input.is-invalid { border-color: var(--color-danger); }
+.doc-input:disabled, .doc-input[readonly] { background: #eceeef; }
+.doc-input.req { border-left: 3px solid #2e7d32; }
+.doc-num { text-align: right; }
+.doc-grid th { background: #dcdcdc; font-size: 10.5px; font-weight: 700; color: #333; padding: 6px 4px; text-align: left; }
+.doc-grid.blue th { background: #0b84d8; color: #fff; }
+.doc-grid td { padding: 3px 2px; vertical-align: top; }
+.doc-footer { display: flex; justify-content: center; gap: 4px; background: #eef1f4; padding: 8px; border-top: 1px solid #e1e5e8; }
+.doc-btn { height: 24px; padding: 0 7px; font-size: 11.5px; color: #fff; border-radius: 1px; }
+.doc-btn-blue { background: #00a3e8; }
+.doc-btn-green { background: #79c143; }
+.doc-btn:hover { filter: brightness(.95); }
+.doc-link { color: #62b82d; text-decoration: underline; font-size: 11px; }
+.doc-section { font-size: 15px; font-weight: 600; color: #22a3ec; }
+}
