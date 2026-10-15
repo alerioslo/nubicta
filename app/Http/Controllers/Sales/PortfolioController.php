@@ -22,7 +22,7 @@ class PortfolioController extends Controller
 {
     private const SIDES = [
         'clientes' => ['model' => SalesDocument::class, 'table' => 'sales_documents', 'types' => ['FV', 'ND', 'SI', 'NC'], 'role' => 'is_customer', 'module' => 'ventas', 'tab' => 'Clientes', 'url' => '/ventas/clientes', 'party' => 'Cliente', 'total' => 'Total cartera', 'create' => '/terceros/crear?tipo=cliente', 'create_label' => 'Crear cliente'],
-        'proveedores' => ['model' => PurchaseDocument::class, 'table' => 'purchase_documents', 'types' => ['FC', 'DS', 'ND', 'SI'], 'role' => 'is_supplier', 'module' => 'compras', 'tab' => 'Proveedores', 'url' => '/compras/proveedores', 'party' => 'Proveedor', 'total' => 'Total saldo', 'create' => '/terceros/crear?tipo=proveedor', 'create_label' => 'Crear proveedor'],
+        'proveedores' => ['model' => PurchaseDocument::class, 'table' => 'purchase_documents', 'types' => ['FC', 'DS', 'ND', 'SI'], 'role' => 'is_supplier', 'module' => 'compras', 'tab' => 'Proveedores', 'url' => '/compras/proveedores', 'party' => 'Proveedor', 'total' => 'Total saldo', 'create' => '/terceros/crear?tipo=proveedor', 'create_label' => 'Crear Proveedor', 'balance_label' => 'Saldo de proveedor', 'action_label' => 'Ver cuentas por pagar'],
     ];
 
     public function customers(Request $request): Response
@@ -86,7 +86,7 @@ class PortfolioController extends Controller
 
         return Inertia::render('Portfolio/Index', [
             'side' => $side,
-            'cfg' => collect($cfg)->only(['party', 'total', 'url', 'create', 'create_label', 'tab'])->all(),
+            'cfg' => collect($cfg)->only(['party', 'total', 'url', 'create', 'create_label', 'tab', 'balance_label', 'action_label'])->all(),
             'rows' => $rows,
             'tabs' => DashboardController::tabs($cfg['module']),
             'filters' => ['q' => $request->input('q', ''), 'estado' => $estado, 'saldo' => $saldo],

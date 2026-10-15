@@ -86,7 +86,7 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                 </div>
             </div>
             <div v-if="open" class="mt-3 flex flex-wrap items-end gap-3">
-                <label><span class="s-label">Saldo de cartera</span>
+                <label><span class="s-label">{{ cfg.balance_label ?? 'Saldo de cartera' }}</span>
                     <select v-model="f.saldo" class="s-input w-[190px]" @change="reload">
                         <option v-for="(n, k) in SALDO" :key="k" :value="k">{{ n }}</option>
                     </select>
@@ -98,7 +98,7 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                 </label>
             </div>
             <div class="flex flex-wrap items-center gap-2 py-3 text-[12px]">
-                <span class="inline-flex items-center gap-[6px] rounded-full border border-line bg-[#f5f6f7] px-2 py-[2px]">Saldo de cartera: {{ SALDO[f.saldo] }}
+                <span class="inline-flex items-center gap-[6px] rounded-full border border-line bg-[#f5f6f7] px-2 py-[2px]">{{ cfg.balance_label ?? 'Saldo de cartera' }}: {{ SALDO[f.saldo] }}
                     <button type="button" class="grid h-[12px] w-[12px] place-items-center rounded-full bg-[#9aa5ae] text-[8px] text-white" title="Quitar filtro" @click="f.saldo = 'todos'; reload()"><Icon icon="xmark" /></button></span>
                 <span class="inline-flex items-center gap-[6px] rounded-full border border-line bg-[#f5f6f7] px-2 py-[2px]">Estado de {{ party }}: {{ ESTADO[f.estado] }}
                     <button type="button" class="grid h-[12px] w-[12px] place-items-center rounded-full bg-[#9aa5ae] text-[8px] text-white" title="Quitar filtro" @click="f.estado = 'activo'; reload()"><Icon icon="xmark" /></button></span>
@@ -133,7 +133,7 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                     <td v-if="visible.active">{{ r.active ? 'Activo' : 'Inactivo' }}</td>
                     <td>
                         <div class="relative flex">
-                            <Link :href="`${cfg.url}/${r.id}`" class="s-btn s-btn-outline h-[28px] flex-1 rounded-r-none text-[12px]">Ver estado de cuenta</Link>
+                            <Link :href="`${cfg.url}/${r.id}`" class="s-btn s-btn-outline h-[28px] flex-1 rounded-r-none text-[12px]">{{ cfg.action_label ?? 'Ver estado de cuenta' }}</Link>
                             <button type="button" class="s-btn s-btn-outline h-[28px] rounded-l-none border-l-0 px-2" @click="menu = menu === r.id ? null : r.id"><Icon icon="caret-down" /></button>
                             <div v-if="menu === r.id" class="absolute right-0 top-[30px] z-20 w-[230px] rounded border border-line bg-white py-1 shadow-lg">
                                 <Link :href="adjustUrl(r)" class="block px-3 py-2 text-[13px] hover:bg-[#f5f6f7]">Ajuste de cartera y proveedores</Link>
