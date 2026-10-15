@@ -37,6 +37,19 @@ class SiigoClient
         return $this->request($path, $query)->json() ?? [];
     }
 
+    /** Un solo intento con tiempo corto, para consultas hechas mientras el usuario espera; null si Siigo no responde. */
+    public function getOnce(string $path, int $timeout = 8): ?array
+    {
+        try {
+            $response = Http::withHeaders(['Authorization' => $this->token(), 'Partner-Id' => $this->partnerId])
+                ->acceptJson()->timeout($timeout)->get(self::BASE.'/'.ltrim($path, '/'));
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $response->successful() ? $response->json() : null;
+    }
+
     /** Recorre todas las paginas de un endpoint paginado y entrega cada registro. */
     public function paginate(string $path, array $query = [], int $pageSize = 100): Generator
     {

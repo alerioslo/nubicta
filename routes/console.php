@@ -13,3 +13,4 @@ if (config('services.siigo.auto_sync')) {
     \Illuminate\Support\Facades\Schedule::command('siigo:sync')->hourlyAt(15)->between('06:00', '22:00')->withoutOverlapping()->runInBackground();
     \Illuminate\Support\Facades\Schedule::command('siigo:sync --dias=7 --completo')->dailyAt('02:30')->withoutOverlapping()->runInBackground();
 }
+\Illuminate\Support\Facades\Schedule::command('siigo:orden-lineas --limite=1500')->hourlyAt(35)->withoutOverlapping()->runInBackground();

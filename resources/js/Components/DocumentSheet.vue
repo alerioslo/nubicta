@@ -2,14 +2,28 @@
 import { onMounted, ref } from 'vue';
 import QRCode from 'qrcode';
 
-/* Representacion grafica de un documento de venta (impresion individual, por lotes y PDF del correo). */
+/* Representacion grafica de un documento de venta con el formato de Siigo (impresion individual, por lotes y PDF del correo). */
 const props = defineProps({ doc: Object, company: Object, resolution: Object });
 const d = props.doc;
+const c = props.company ?? {};
 const qr = ref('');
-const money = (v) => Number(v || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const qty = (v) => Number(v || 0).toLocaleString('es-CO', { maximumFractionDigits: 4 });
+const money = (v) => Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const qty = (v) => Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+const dots = (v) => String(v ?? '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+const nit = (id, dv) => (id ? dots(id) + (dv !== null && dv !== undefined && dv !== '' ? `-${dv}` : '') : '');
 const TITLES = { FV: 'Factura electrónica de venta', NC: 'Nota crédito electrónica', ND: 'Nota débito electrónica', CT: 'Cotización', RM: 'Remisión' };
 const title = (d.dian ? TITLES[d.type] : TITLES[d.type]?.replace(' electrónica', '')) ?? d.type_name;
+const paid = d.type === 'FV' && d.status !== 'annulled' && Number(d.totals.balance) === 0;
+const r = props.resolution;
+const ymd = (v) => String(v ?? '').slice(0, 10).replaceAll('-', '');
+const months = (() => {
+    if (!r?.valid_from || !r?.valid_to) return null;
+    const [a, b] = [new Date(r.valid_from), new Date(r.valid_to)];
+    return (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth();
+})();
+const software = d.source === 'siigo'
+    ? 'Fabricante Software y Proveedor tecnológico: Siigo SAS - NIT 830.048.145-8, Nombre Software: Siigo Nube. Firma electrónica: ver en el XML'
+    : `Fabricante Software y Proveedor tecnológico: ${c.name ?? ''} - NIT ${nit(c.nit_number, c.dv)}, Nombre Software: Friigo. Firma electrónica: ver en el XML`;
 
 onMounted(async () => {
     if (d.dian?.qr) qr.value = await QRCode.toDataURL(d.dian.qr, { margin: 0, width: 140 });
@@ -18,92 +32,117 @@ onMounted(async () => {
 
 <template>
     <article class="sheet">
+        <div v-if="paid" class="ribbon"><span>Pagada</span></div>
+        <p v-if="d.dian" class="side">{{ software }}</p>
+
         <header class="top">
-            <div class="brand">
-                <img v-if="company?.logo" :src="company.logo" alt="" class="logo" />
-                <div>
-                    <h1>{{ company?.trade_name || company?.name }}</h1>
-                    <p v-if="company?.trade_name">{{ company.name }}</p>
-                    <p>NIT {{ company?.nit }}</p>
-                    <p>{{ company?.address }}<span v-if="company?.city"> - {{ company.city }}</span></p>
-                    <p>{{ company?.phone }} {{ company?.email }}</p>
-                </div>
+            <img v-if="c.logo" :src="c.logo" alt="" class="logo" />
+            <div class="company">
+                <b>{{ c.trade_name || c.name }}</b>
+                <p>Nit {{ nit(c.nit_number, c.dv) }}</p>
+                <p>{{ c.address }}</p>
+                <p>{{ c.city }}<span v-if="c.phone"> - Tel. ({{ c.phone }})</span><span v-if="c.phone2 && c.phone2 !== c.phone"> {{ c.phone2 }}</span></p>
+                <p>{{ c.email }}</p>
             </div>
-            <div class="docbox">
-                <p class="t">{{ title }}</p>
-                <p class="n">No. {{ d.name }}</p>
-                <img v-if="qr" :src="qr" alt="QR DIAN" class="qr" />
-            </div>
+            <img v-if="qr" :src="qr" alt="QR DIAN" class="qr" />
         </header>
 
+        <section class="title">
+            <p>{{ title }}</p>
+            <p>No. {{ d.number_label ?? d.name }}</p>
+        </section>
         <section v-if="d.status === 'annulled'" class="annul">DOCUMENTO ANULADO</section>
 
-        <section class="grid">
-            <div><b>Señor(es):</b> {{ d.contact?.name }}</div>
-            <div><b>Fecha de expedición:</b> {{ d.date }}</div>
-            <div><b>NIT / C.C.:</b> {{ d.contact?.identification }}</div>
-            <div><b>Fecha de vencimiento:</b> {{ d.due_date }}</div>
-            <div><b>Dirección:</b> {{ d.contact?.address }}</div>
-            <div><b>Teléfono:</b> {{ d.contact?.phone }}</div>
-            <div><b>Email:</b> {{ d.contact?.email }}</div>
-            <div v-if="d.seller"><b>Vendedor:</b> {{ d.seller }}</div>
-            <div v-if="d.related"><b>Documento referencia:</b> {{ d.related }}</div>
-        </section>
+        <table class="info">
+            <tr><td>Fecha</td><td>{{ d.date }}</td></tr>
+            <tr v-if="d.due_date && d.due_date !== d.date"><td>Vencimiento</td><td>{{ d.due_date }}</td></tr>
+            <tr v-if="d.seller"><td>Vendedor</td><td>{{ d.seller }}</td></tr>
+            <tr><td>Cliente</td><td>{{ d.contact?.name }}</td></tr>
+            <tr><td>Nit / C.C.</td><td>{{ nit(d.contact?.identification, d.contact?.dv) }}</td></tr>
+            <tr><td>Dirección</td><td>{{ d.contact?.address }}</td></tr>
+            <tr v-if="d.related"><td>Documento referencia</td><td>{{ d.related }}</td></tr>
+        </table>
 
         <table class="items">
-            <thead><tr><th>Ítem</th><th>Código</th><th>Descripción</th><th class="r">Cantidad</th><th class="r">Vr. unitario</th><th class="r">Descuento</th><th>Impuestos</th><th class="r">Valor total</th></tr></thead>
+            <thead>
+                <tr><th class="w-bod">Bodega</th><th>Descripción</th><th class="w-um">Unidad de medida</th><th class="r w-n">Cant.</th><th class="w-vu">Vr. Unitario</th><th class="r w-n">Valor Impto.Cargo</th><th class="r w-n">Vr. Total</th></tr>
+            </thead>
             <tbody>
                 <tr v-for="(i, k) in d.items" :key="k">
-                    <td>{{ k + 1 }}</td><td>{{ i.code }}</td><td>{{ i.description }}</td><td class="r">{{ qty(i.quantity) }}</td>
-                    <td class="r">{{ money(i.price) }}</td><td class="r">{{ i.discount ? money(i.discount) : '' }}</td><td>{{ i.taxes }}</td><td class="r">{{ money(i.total) }}</td>
+                    <td>{{ i.warehouse }}</td><td>{{ i.description }}</td><td>{{ i.unit }}</td><td class="r">{{ qty(i.quantity) }}</td>
+                    <td class="r">{{ money(i.price) }}</td><td class="r">{{ money(i.tax_total) }}</td><td class="r">{{ money(i.total) }}</td>
                 </tr>
             </tbody>
         </table>
+        <table class="sums">
+            <tr v-if="d.totals.discount"><td></td><td>Descuentos</td><td class="r">{{ money(d.totals.discount) }}</td></tr>
+            <tr v-for="t in d.tax_lines" :key="t.name"><td></td><td>{{ t.name }}</td><td class="r">{{ money(t.value) }}</td></tr>
+            <tr v-for="t in d.retentions" :key="'r' + t.name"><td></td><td>{{ t.name }}</td><td class="r">-{{ money(t.value) }}</td></tr>
+            <tr class="b"><td>Total</td><td></td><td class="r">{{ money(d.totals.total) }}</td></tr>
+        </table>
 
-        <section class="bottom">
-            <div class="left">
-                <p v-if="d.payments?.length"><b>Formas de pago:</b> <span v-for="(p, k) in d.payments" :key="k">{{ p.name }} {{ money(p.value) }}{{ k < d.payments.length - 1 ? ', ' : '' }}</span></p>
-                <p v-if="d.observations"><b>Observaciones:</b> {{ d.observations }}</p>
-                <p v-if="resolution?.resolution_number" class="small">
-                    Resolución DIAN No. {{ resolution.resolution_number }} del {{ resolution.resolution_date }}, prefijo {{ resolution.prefix }} del {{ resolution.range_from }} al {{ resolution.range_to }}<span v-if="resolution.valid_to">, vigente hasta {{ resolution.valid_to }}</span>.
-                </p>
-                <p v-if="d.dian?.cufe" class="small cufe"><b>CUFE:</b> {{ d.dian.cufe }}</p>
-            </div>
-            <table class="totals">
-                <tr><td>Subtotal</td><td class="r">{{ money(d.totals.subtotal) }}</td></tr>
-                <tr v-if="d.totals.discount"><td>Descuentos</td><td class="r">{{ money(d.totals.discount) }}</td></tr>
-                <tr><td>Impuestos</td><td class="r">{{ money(d.totals.tax) }}</td></tr>
-                <tr v-if="d.totals.withholding"><td>Retenciones</td><td class="r">-{{ money(d.totals.withholding) }}</td></tr>
-                <tr class="tt"><td>Total</td><td class="r">{{ money(d.totals.total) }}</td></tr>
+        <section v-if="d.tax_summary?.length" class="block">
+            <p class="h">Resumen Impuestos</p>
+            <table class="summary">
+                <tr><td>Tarifa</td><td>Vr. Base</td><td>Valor</td></tr>
+                <tr v-for="t in d.tax_summary" :key="t.rate"><td class="r">{{ money(t.rate) }}%</td><td class="r">{{ money(t.base) }}</td><td class="r">{{ money(t.value) }}</td></tr>
             </table>
         </section>
-        <footer>Software propio de facturación electrónica · Representación gráfica del documento {{ d.name }}</footer>
+
+        <section v-if="d.payments?.length" class="block">
+            <p class="h">Forma de Pago</p>
+            <p v-for="(p, k) in d.payments" :key="k" class="pay"><span>{{ p.form }} - {{ p.name }}</span><span>{{ money(p.value) }}</span></p>
+        </section>
+
+        <section class="block legal">
+            <p v-if="d.observations" class="obs">{{ d.observations }}</p>
+            <p>
+                <template v-if="d.type === 'FV'">A esta factura de venta aplican las normas relativas a la letra de cambio (artículo 5 Ley 1231 de 2008). Con esta el Comprador declara haber recibido real y materialmente las mercancías o prestación de servicios descritos en este título - Valor. </template>
+                <b v-if="r?.resolution_number && d.dian">Número Autorización Electrónica {{ r.resolution_number }} aprobado en {{ ymd(r.resolution_date) }} prefijo {{ r.prefix }} desde el número {{ r.range_from }} al {{ r.range_to }}<template v-if="months"> Vigencia: {{ months }} Meses</template></b>
+            </p>
+            <p v-if="d.dian">{{ c.iva_responsible ? 'Responsable de IVA' : 'No responsable de IVA' }}<template v-if="c.ciiu"> - Actividad Económica {{ c.ciiu }}&nbsp; {{ c.ciiu_name }}</template> Tarifa</p>
+            <p v-if="d.dian?.cufe" class="cufe"><b>{{ d.type === 'FV' ? 'CUFE' : 'CUDE' }}:</b> {{ d.dian.cufe }}</p>
+        </section>
     </article>
 </template>
 
 <style scoped>
-.sheet { width: 816px; margin: 0 auto 30px; background: #fff; padding: 32px; font: 11px/1.4 Arial, sans-serif; color: #222; box-shadow: 0 0 6px #0002; }
-.top { display: flex; justify-content: space-between; gap: 20px; border-bottom: 2px solid #00a6e0; padding-bottom: 12px; }
-.brand { display: flex; gap: 12px; }
-.logo { max-height: 70px; max-width: 160px; object-fit: contain; }
-h1 { font-size: 16px; font-weight: bold; }
-.docbox { text-align: center; min-width: 200px; border: 1px solid #ccc; padding: 8px; }
-.docbox .t { font-weight: bold; font-size: 12px; }
-.docbox .n { font-size: 14px; font-weight: bold; color: #00a6e0; }
-.qr { width: 110px; height: 110px; margin: 6px auto 0; }
-.annul { margin-top: 10px; text-align: center; color: #c62828; font-weight: bold; font-size: 16px; border: 2px solid #c62828; padding: 4px; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 20px; margin: 12px 0; padding: 8px; border: 1px solid #ddd; }
-.items { width: 100%; border-collapse: collapse; }
-.items th { background: #00a6e0; color: #fff; text-align: left; padding: 4px; }
-.items td { border-bottom: 1px solid #eee; padding: 4px; vertical-align: top; }
+.sheet { position: relative; width: 980px; margin: 0 auto 30px; background: #fff; padding: 18px 40px 30px 4px; font: 12px/1.45 Arial, Helvetica, sans-serif; color: #222; overflow: hidden; }
+.ribbon { position: absolute; left: 0; top: 0; width: 80px; height: 80px; overflow: hidden; }
+.ribbon span { position: absolute; left: -32px; top: 22px; width: 130px; transform: rotate(-45deg); background: #ec407a; color: #fff; text-align: center; font-size: 11px; padding: 3px 0; box-shadow: 0 1px 2px #0003; }
+.side { position: absolute; right: 2px; top: 170px; writing-mode: vertical-rl; transform: rotate(180deg); font-size: 8px; color: #333; white-space: nowrap; }
+.top { display: flex; align-items: flex-start; justify-content: center; position: relative; min-height: 110px; }
+.logo { position: absolute; left: 70px; top: 10px; max-height: 80px; max-width: 160px; object-fit: contain; }
+.company { text-align: center; padding-top: 22px; }
+.company p { margin: 2px 0; }
+.qr { position: absolute; right: 18px; top: 10px; width: 136px; height: 136px; }
+.title { text-align: center; font-weight: bold; margin: 30px 0 18px; }
+.title p { margin: 2px 0; }
+.annul { text-align: center; color: #c62828; font-weight: bold; font-size: 16px; border: 2px solid #c62828; padding: 4px; margin-bottom: 10px; }
+.info { width: 100%; border-top: 1px solid #999; border-collapse: collapse; margin-top: 4px; }
+.info tr:first-child td { padding-top: 14px; }
+.info td { padding: 1px 2px; }
+.info td:first-child { width: 270px; }
+.info tr:last-child td { padding-bottom: 14px; }
+.items { width: 100%; border-collapse: collapse; border-top: 1px solid #999; }
+.items th { font-weight: normal; text-align: left; padding: 18px 2px 6px; vertical-align: bottom; }
+.items td { padding: 2px; vertical-align: top; }
+.items td:nth-child(2) { padding-left: 2px; }
+.w-bod { width: 46px; } .w-um { width: 44px; } .w-n { width: 64px; } .w-vu { width: 150px; }
 .r { text-align: right; }
-.bottom { display: flex; justify-content: space-between; gap: 20px; margin-top: 12px; }
-.left { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-.small { font-size: 9.5px; color: #555; }
+.sums { width: 100%; border-collapse: collapse; margin: 18px 0 30px; }
+.sums td:first-child { width: 470px; }
+.sums td { padding: 1px 2px; }
+.sums .b td { font-weight: bold; }
+.block { border-top: 1px solid #999; padding: 14px 0; }
+.h { text-align: center; font-weight: bold; margin-bottom: 4px; }
+.summary { width: 100%; border-collapse: collapse; }
+.summary tr:first-child td { text-align: center; }
+.summary td { width: 33%; padding: 1px 2px; }
+.pay { display: flex; justify-content: space-between; margin: 4px 0; }
+.legal { text-align: center; padding-bottom: 40px; border-bottom: 1px solid #999; }
+.legal p { margin: 0 0 2px; }
+.obs { text-align: left; margin-bottom: 10px !important; white-space: pre-line; }
 .cufe { word-break: break-all; }
-.totals { width: 260px; border-collapse: collapse; }
-.totals td { padding: 3px 4px; border-bottom: 1px solid #eee; }
-.totals .tt td { font-weight: bold; font-size: 13px; border-top: 2px solid #00a6e0; }
-footer { margin-top: 20px; text-align: center; font-size: 9px; color: #888; }
-@media print { .sheet { box-shadow: none; margin: 0; width: auto; page-break-after: always; } }
+@media print { .sheet { margin: 0; width: auto; page-break-after: always; } }
 </style>

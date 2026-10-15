@@ -7,6 +7,7 @@ use App\Models\JournalEntry;
 use App\Models\PurchaseDocument;
 use App\Models\Receipt;
 use App\Models\SalesDocument;
+use App\Models\Tax;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -77,12 +78,12 @@ class DocumentLocator
 
     public static function detail(Model $doc): array
     {
-        $contact = $doc->contact_id ? DB::table('contacts')->where('id', $doc->contact_id)->first(['identification', 'name', 'address', 'mobile as phone', 'email']) : null;
+        $contact = $doc->contact_id ? DB::table('contacts')->where('id', $doc->contact_id)->first(['identification', 'dv', 'name', 'address', 'mobile as phone', 'email']) : null;
         $header = [
             'id' => $doc->id, 'kind' => self::kind($doc), 'name' => $doc->name, 'type' => $doc->type ?? 'CC',
             'source' => $doc->source ?? 'erp', 'status' => $doc->status,
             'date' => substr((string) $doc->date, 0, 10), 'due_date' => isset($doc->due_date) ? substr((string) $doc->due_date, 0, 10) : null,
-            'contact' => $contact ? ['identification' => $contact->identification, 'name' => $contact->name, 'address' => $contact->address, 'phone' => $contact->phone, 'email' => $contact->email] : null,
+            'contact' => $contact ? ['identification' => $contact->identification, 'dv' => $contact->dv, 'name' => $contact->name, 'address' => $contact->address, 'phone' => $contact->phone, 'email' => $contact->email] : null,
             'observations' => $doc->observations,
             'type_name' => DB::table('document_types')->where('id', $doc->document_type_id)->value(DB::raw('coalesce(title, name)')),
             'annulled_at' => $doc->annulled_at ? substr((string) $doc->annulled_at, 0, 16) : null,
@@ -128,6 +129,11 @@ class DocumentLocator
         $items = $doc->items()->orderBy('position')->get();
         $taxes = DB::table($taxTable)->whereIn($fk, $items->pluck('id'))->get()->groupBy($fk);
         $payments = DB::table($sales ? 'sales_document_payments' : 'purchase_document_payments')->where($sales ? 'sales_document_id' : 'purchase_document_id', $doc->id)->get();
+        $units = DB::table('products')->whereIn('id', $items->pluck('product_id')->filter())->pluck('unit_label', 'id');
+        $warehouses = DB::table('warehouses')->whereIn('id', $items->pluck('warehouse_id')->filter())->pluck('name', 'id');
+        $methods = DB::table('payment_methods')->whereIn('id', $payments->pluck('payment_method_id')->filter())->pluck('type', 'id');
+        $lineTaxes = $taxes->flatten(1)->filter(fn ($t) => ! in_array($t->type ?? null, Tax::WITHHOLDINGS, true));
+        $bases = $items->keyBy('id');
         $retentions = $sales
             ? DB::table('sales_document_retentions')->where('sales_document_id', $doc->id)->get()
             : DB::table('purchase_document_retentions')->where('purchase_document_id', $doc->id)->get();
@@ -142,8 +148,17 @@ class DocumentLocator
                 'code' => $i->code, 'description' => $i->description, 'quantity' => (float) $i->quantity, 'price' => (float) $i->price,
                 'discount' => (float) $i->discount, 'subtotal' => (float) $i->subtotal, 'tax_total' => (float) $i->tax_total, 'total' => (float) $i->total,
                 'taxes' => ($taxes[$i->id] ?? collect())->map(fn ($t) => "{$t->name} ".number_format((float) $t->value, 2))->implode(', '),
+                'unit' => $units[$i->product_id] ?? null, 'warehouse' => $warehouses[$i->warehouse_id] ?? null,
             ]),
-            'payments' => $payments->map(fn ($p) => ['name' => $p->name, 'value' => (float) $p->value, 'due_date' => $p->due_date]),
+            'tax_lines' => $lineTaxes->groupBy('name')->map(fn ($g, $name) => ['name' => $name, 'rate' => (float) $g->first()->percentage, 'value' => (float) $g->sum('value')])->sortByDesc('rate')->values(),
+            'tax_summary' => $lineTaxes->groupBy(fn ($t) => (string) (float) $t->percentage)->map(fn ($g, $rate) => [
+                'rate' => (float) $rate, 'base' => (float) $g->sum(fn ($t) => $bases[$t->$fk]->subtotal ?? 0), 'value' => (float) $g->sum('value'),
+            ])->sortByDesc('rate')->values(),
+            'payments' => $payments->map(fn ($p) => ['name' => $p->name, 'value' => (float) $p->value, 'due_date' => $p->due_date,
+                'form' => ($methods[$p->payment_method_id] ?? null) === 'Cartera' ? 'Crédito' : 'Efectivo']),
+            'number_label' => $sales && $doc->prefix ? "{$doc->prefix} {$doc->number}" : null,
+            'created' => ['by' => $doc->created_by ? DB::table('users')->where('id', $doc->created_by)->value('name') : ($sales && $doc->seller_id ? DB::table('sellers')->where('id', $doc->seller_id)->value('name') : null),
+                'at' => $doc->created_at?->format('d/m/Y H:i')],
             'retentions' => $retentions->map(fn ($r) => ['name' => $r->name, 'value' => (float) $r->value]),
             'totals' => ['subtotal' => (float) $doc->subtotal, 'discount' => (float) $doc->discount, 'tax' => (float) $doc->tax_total,
                 'withholding' => (float) $doc->withholding_total, 'total' => (float) $doc->total, 'balance' => (float) $doc->balance],

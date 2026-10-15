@@ -23,6 +23,10 @@ class DocumentController extends Controller
             return Inertia::render('Documents/ReceiptShow', ['doc' => DocumentLocator::detail($doc), 'company' => self::company($doc->company_id)]);
         }
 
+        if ($doc instanceof \App\Models\SalesDocument) {
+            return Inertia::render('Documents/Show', self::sheet($doc) + ['company' => self::company($doc->company_id)]);
+        }
+
         return Inertia::render('Documents/Show', ['doc' => DocumentLocator::detail($doc)]);
     }
 
@@ -99,7 +103,7 @@ class DocumentController extends Controller
         $docs = \App\Models\SalesDocument::query()->whereIn('id', $ids)->orderBy('date')->orderBy('number')->get();
 
         return Inertia::render('Documents/Print', [
-            'docs' => $docs->map(fn ($d) => self::sheet($d))->all(),
+            'docs' => $docs->map(fn ($d) => self::sheet($d, false))->all(),
             'company' => self::company(\App\Support\CurrentCompany::id()),
         ]);
     }
@@ -114,8 +118,12 @@ class DocumentController extends Controller
     }
 
     /** @return array{doc: array, resolution: mixed} */
-    public static function sheet(\Illuminate\Database\Eloquent\Model $doc): array
+    public static function sheet(\Illuminate\Database\Eloquent\Model $doc, bool $fixLines = true): array
     {
+        if ($fixLines && $doc instanceof \App\Models\SalesDocument && \App\Services\Siigo\LineOrder::pending($doc)) {
+            \App\Services\Siigo\LineOrder::make()?->fix($doc);
+        }
+
         return [
             'doc' => DocumentLocator::detail($doc),
             'resolution' => \Illuminate\Support\Facades\DB::table('document_types')->where('id', $doc->document_type_id)
@@ -128,8 +136,10 @@ class DocumentController extends Controller
         $company = $id ? \App\Models\Company::query()->find($id) : null;
 
         return $company ? [
-            'name' => $company->business_name ?: trim("{$company->first_name} {$company->last_name}"), 'trade_name' => $company->trade_name,
+            'name' => $company->business_name ?: trim("{$company->first_name} {$company->last_name}"), 'trade_name' => $company->show_trade_name ? $company->trade_name : null,
             'nit' => $company->nit.($company->dv !== null ? "-{$company->dv}" : ''), 'address' => $company->address,
+            'nit_number' => $company->nit, 'dv' => $company->dv, 'ciiu' => $company->ciiu, 'ciiu_name' => config('ciiu.'.$company->ciiu),
+            'iva_responsible' => in_array('O-48', (array) $company->fiscal_responsibilities, true) || (string) $company->tax_regime === '48',
             'phone' => $company->phone, 'phone2' => $company->phone2, 'email' => $company->email, 'logo' => $company->logo_path ? '/storage/'.$company->logo_path : null,
             'city' => \Illuminate\Support\Facades\DB::table('municipalities')->where('code', $company->municipality_code)->value('name'),
         ] : null;

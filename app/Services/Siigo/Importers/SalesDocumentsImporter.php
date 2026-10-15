@@ -124,7 +124,30 @@ class SalesDocumentsImporter extends BaseImporter
 
     private function syncItems(SalesDocument $doc, array $items): void
     {
+        $key = fn ($code, $qty, $desc) => trim((string) $code).'|'.round((float) $qty, 4).'|'.$desc;
+        $confirmed = (int) $doc->lines_order === 1
+            ? SalesDocumentItem::where('sales_document_id', $doc->id)->orderBy('position')->get()->map(fn ($i) => $key($i->code, $i->quantity, $i->description))->all()
+            : null;
         SalesDocumentItem::where('sales_document_id', $doc->id)->delete();
+        if ($confirmed !== null) {
+            $incoming = array_map(fn ($i) => $key($i['code'] ?? '', $i['quantity'] ?? 0, mb_substr((string) ($i['description'] ?? $i['code'] ?? ''), 0, 500)), array_values($items));
+            $sorted = $incoming;
+            sort($sorted);
+            $previous = $confirmed;
+            sort($previous);
+            if ($sorted === $previous) {
+                $rank = [];
+                foreach ($confirmed as $pos => $k) {
+                    $rank[$k][] = $pos;
+                }
+                $items = collect(array_values($items))->sortBy(function ($i, $idx) use ($incoming, &$rank) {
+                    return array_shift($rank[$incoming[$idx]]);
+                })->values()->all();
+            } else {
+                $confirmed = null;
+            }
+        }
+        $doc->forceFill(['lines_order' => $confirmed !== null || count($items) < 2 ? 1 : 0])->saveQuietly();
         foreach (array_values($items) as $pos => $i) {
             $taxes = $i['taxes'] ?? [];
             $lineDiscount = $this->discountValue($i);
