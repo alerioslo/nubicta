@@ -1,4 +1,5 @@
 <script setup>
+import NumInput from '../../Components/Forms/NumInput.vue';
 import { ref } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 
@@ -92,9 +93,9 @@ const submit = () => form.put('/configuracion/nomina', { preserveScroll: true })
             <h3 class="mb-[12px] text-[16px] font-semibold text-ink">Datos de ley</h3>
             <div class="grid w-[640px] grid-cols-2 gap-[12px]">
                 <label class="block"><span class="text-[12px] text-muted">Año</span><input v-model.number="form.year" type="number" class="s-input mt-[4px] w-full" /></label>
-                <label class="block"><span class="text-[12px] text-muted">Salario mínimo mensual legal vigente</span><input v-model.number="form.minimum_wage" type="number" class="s-input mt-[4px] w-full" /></label>
-                <label class="block"><span class="text-[12px] text-muted">Auxilio de transporte</span><input v-model.number="form.transport_aid" type="number" class="s-input mt-[4px] w-full" /></label>
-                <label class="block"><span class="text-[12px] text-muted">Valor UVT</span><input v-model.number="form.uvt" type="number" class="s-input mt-[4px] w-full" /></label>
+                <label class="block"><span class="text-[12px] text-muted">Salario mínimo mensual legal vigente</span><NumInput v-model="form.minimum_wage" plain class="s-input mt-[4px] w-full" /></label>
+                <label class="block"><span class="text-[12px] text-muted">Auxilio de transporte</span><NumInput v-model="form.transport_aid" plain class="s-input mt-[4px] w-full" /></label>
+                <label class="block"><span class="text-[12px] text-muted">Valor UVT</span><NumInput v-model="form.uvt" plain class="s-input mt-[4px] w-full" /></label>
             </div>
         </section>
 

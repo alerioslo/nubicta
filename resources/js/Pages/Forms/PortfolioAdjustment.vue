@@ -1,4 +1,5 @@
 <script setup>
+import NumInput from '../../Components/Forms/NumInput.vue';
 import { computed, ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import DocSearch from '../../Components/Forms/DocSearch.vue';
@@ -63,8 +64,8 @@ const submit = () => doc.transform((d) => ({ ...d, items: d.items.filter((i) => 
                             <td>{{ idx + 1 }}</td>
                             <td><select v-model="i.concept" class="s-input h-[30px] w-full"><option value="">-</option><option v-for="c in CONCEPTS" :key="c">{{ c }}</option></select></td>
                             <td><input v-model="i.detail" class="s-input h-[30px] w-full" placeholder="-" /></td>
-                            <td><input v-model.number="i.base" type="number" step="any" class="s-input h-[30px] w-full text-right" /></td>
-                            <td><input v-model.number="i.value" type="number" step="any" class="s-input h-[30px] w-full text-right" /></td>
+                            <td><NumInput v-model="i.base" plain class="s-input h-[30px] w-full text-right" /></td>
+                            <td><NumInput v-model="i.value" plain class="s-input h-[30px] w-full text-right" /></td>
                             <td><button v-if="doc.items.length > 1" type="button" class="text-danger" @click="doc.items.splice(idx, 1)"><Icon icon="trash-can" /></button></td>
                         </tr>
                     </tbody>

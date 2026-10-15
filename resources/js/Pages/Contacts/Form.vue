@@ -1,4 +1,5 @@
 <script setup>
+import NumInput from '../../Components/Forms/NumInput.vue';
 import { computed, ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import Lookup from '../../Components/Lookup.vue';
@@ -239,7 +240,7 @@ const types = [
                         <select v-model="form.price_list_id" class="s-line"><option :value="null">Predeterminada</option><option v-for="l in priceLists" :key="l.id" :value="l.id">{{ l.name }}</option></select>
                     </label>
                     <div class="grid grid-cols-2 gap-3">
-                        <label><span class="s-line-label blue">Cupo de crédito</span><input v-model="form.credit_limit" type="number" min="0" class="s-line" /></label>
+                        <label><span class="s-line-label blue">Cupo de crédito</span><NumInput v-model="form.credit_limit" plain class="s-line" /></label>
                         <label><span class="s-line-label blue">Días de crédito</span><input v-model="form.credit_days" type="number" min="0" class="s-line" /></label>
                     </div>
                     <label class="flex items-center gap-2"><input v-model="form.active" type="checkbox" class="accent-primary" /> Tercero activo</label>

@@ -77,6 +77,19 @@ class TradeRegistrar
         });
     }
 
+    /**
+     * Base y total de una linea como Siigo: el total con impuesto se redondea una sola vez y el impuesto es la diferencia,
+     * asi un precio con IVA incluido (base a 6 decimales) da exactamente el precio de lista por la cantidad.
+     *
+     * @return array{float, float}
+     */
+    public static function split(float $net, float $rate, bool $included): array
+    {
+        return $included
+            ? [round($net / (1 + $rate), 2), round($net, 2)]
+            : [round($net, 2), round($net * (1 + $rate), 2)];
+    }
+
     /** Calculo de lineas, impuestos y retenciones (Trade.vue: lineCalc / totals). */
     public function calculate(array $data, bool $purchase): array
     {
@@ -97,7 +110,7 @@ class TradeRegistrar
             $disc = $percent ? $gross * (float) ($item['discount'] ?? 0) / 100 : (float) ($item['discount'] ?? 0);
             $charge = $taxes->get($item['tax_id'] ?? 0);
             $rate = $charge ? (float) $charge->percentage / 100 : 0;
-            $base = $included ? ($gross - $disc) / (1 + $rate) : $gross - $disc;
+            [$base, $total] = self::split($gross - $disc, $rate, $included);
             $wh = $taxes->get($item['withholding_id'] ?? 0);
             $product = $products->get($item['product_id'] ?? 0);
             $lines[] = [
@@ -111,9 +124,9 @@ class TradeRegistrar
                 'price' => $price,
                 'discount' => round($disc, 2),
                 'discount_base' => round($included ? $disc / (1 + $rate) : $disc, 2),
-                'base' => round($base, 2),
+                'base' => $base,
                 'charge' => $charge,
-                'tax' => round($base * $rate, 2),
+                'tax' => round($total - $base, 2),
                 'withholding' => $wh,
                 'withholding_value' => $wh ? round($base * Tax::rate($wh->type, $wh->percentage), 2) : 0.0,
             ];

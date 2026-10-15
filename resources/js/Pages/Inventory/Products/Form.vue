@@ -1,4 +1,5 @@
 <script setup>
+import NumInput from '../../../Components/Forms/NumInput.vue';
 import { computed, ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import Lookup from '../../../Components/Lookup.vue';
@@ -207,7 +208,7 @@ const isProduct = computed(() => form.type === 'Product');
             </div>
             <div class="mt-4 grid grid-cols-4 gap-4">
                 <label v-for="l in priceLists" :key="l.id"><span class="s-label">{{ l.name }}</span>
-                    <input v-model="form.prices[l.id]" type="number" min="0" step="any" class="s-input text-right" />
+                    <NumInput v-model="form.prices[l.id]" plain class="s-input text-right" />
                 </label>
             </div>
         </section>

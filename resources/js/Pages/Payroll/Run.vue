@@ -1,4 +1,5 @@
 <script setup>
+import NumInput from '../../Components/Forms/NumInput.vue';
 import { computed, ref } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
@@ -131,7 +132,7 @@ const byType = (d) => Object.keys(TYPES).map((t) => ({ type: t, items: d.items.f
                                         <input v-model="novelty.quantity" type="number" step="0.5" min="0" class="s-input h-[30px] w-[90px]" />
                                     </label>
                                     <label v-else class="flex flex-col gap-1">Valor
-                                        <input v-model="novelty.value" type="number" step="1" min="0" class="s-input h-[30px] w-[130px]" />
+                                        <NumInput v-model="novelty.value" plain min="0" class="s-input h-[30px] w-[130px]" />
                                     </label>
                                     <label class="flex flex-col gap-1">Observación <input v-model="novelty.notes" class="s-input h-[30px] w-[200px]" /></label>
                                     <button type="submit" class="s-btn s-btn-primary h-[30px]" :disabled="novelty.processing"><Icon icon="plus" /> Agregar</button>

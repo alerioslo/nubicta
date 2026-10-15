@@ -1,4 +1,5 @@
 <script setup>
+import NumInput from '../../Components/Forms/NumInput.vue';
 import { reactive } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
@@ -59,7 +60,7 @@ const submit = () => form.put(`/nomina/empleados/${e.id}`);
                 <label class="flex flex-col gap-1">Fecha de inicio <input v-model="form.start_date" type="date" class="s-input h-[32px]" /></label>
                 <label class="flex flex-col gap-1">Fecha de terminación <input v-model="form.end_date" type="date" class="s-input h-[32px]" /></label>
                 <label class="flex flex-col gap-1">Cargo <input v-model="form.position" class="s-input h-[32px]" /></label>
-                <label class="flex flex-col gap-1">Salario mensual <input v-model="form.salary" type="number" min="0" step="1" class="s-input h-[32px]" />
+                <label class="flex flex-col gap-1">Salario mensual <NumInput v-model="form.salary" plain class="s-input h-[32px]" />
                     <span v-if="form.salary && form.salary < minimumWage && form.pay_mode === 'nomina'" class="text-[11px] text-[#a86b00]">Inferior al salario mínimo ({{ Number(minimumWage).toLocaleString('es-CO') }})</span>
                 </label>
                 <label class="flex flex-col gap-1">Frecuencia de pago

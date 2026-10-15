@@ -70,10 +70,11 @@ function lineCalc(i) {
     const disc = percentDiscount.value ? (gross * Number(i.discount || 0)) / 100 : Number(i.discount || 0);
     const charge = taxById(i.tax_id, props.charges);
     const rate = rateOf(charge);
-    const base = taxIncluded.value ? (gross - disc) / (1 + rate) : gross - disc;
+    const net = gross - disc;
+    const [base, total] = taxIncluded.value ? [round(net / (1 + rate)), round(net)] : [round(net), round(net * (1 + rate))];
     const wh = taxById(i.withholding_id, props.withholdings);
 
-    return { gross, disc, base, tax: base * rate, charge, wh, withholding: base * rateOf(wh) };
+    return { gross, disc, base, tax: round(total - base), charge, wh, withholding: base * rateOf(wh) };
 }
 
 const totals = computed(() => {
@@ -160,7 +161,12 @@ async function pickRelated(d) {
 function netPrice(price, taxId, included) {
     const charge = taxById(taxId, props.charges);
     if (!included || !charge || taxIncluded.value) return Number(price);
-    return round(Number(price) / (1 + rateOf(charge)));
+    return Math.round((Number(price) / (1 + rateOf(charge)) + Number.EPSILON) * 1e6) / 1e6;
+}
+
+/* Si el producto trae el IVA en el precio y se cambia el impuesto de la linea, la base se recalcula desde el precio de lista. */
+function retax(row, taxId) {
+    if (row.tax_included && row.list_price) row.price = netPrice(row.list_price, taxId, true);
 }
 
 function pickItem(row, idx, item) {
@@ -173,7 +179,10 @@ function pickItem(row, idx, item) {
     row.stock_control = !!item.stock_control;
     if (item.tax_id) row.tax_id = item.tax_id;
     if (item.withholding_id && props.withholdings.some((w) => w.id === item.withholding_id && w.type === 'Retefuente')) row.withholding_id = item.withholding_id;
-    if (item.price !== undefined && Number(item.price) > 0) row.price = netPrice(item.price, row.tax_id, item.tax_included);
+    if (item.price !== undefined && Number(item.price) > 0) {
+        row.list_price = Number(item.price);
+        row.price = netPrice(item.price, row.tax_id, item.tax_included);
+    }
     if (idx === doc.items.length - 1) doc.items.push(blankItem());
 }
 
@@ -181,6 +190,7 @@ function pickItem(row, idx, item) {
 const priceMenu = ref(null);
 const priceOptions = (row) => Object.entries(row.prices ?? {}).map(([listId, value]) => ({ name: props.priceLists.find((l) => l.id === Number(listId))?.name ?? 'Lista', value }));
 function pickPrice(row, value) {
+    row.list_price = Number(value);
     row.price = netPrice(value, row.tax_id, row.tax_included);
     priceMenu.value = null;
 }
@@ -206,6 +216,7 @@ function openTaxes(row) {
     taxModal.value = { row, tax_id: row.tax_id, withholding_id: row.withholding_id, base: lineCalc(row).base };
 }
 function saveTaxes() {
+    if (taxModal.value.row.tax_id !== taxModal.value.tax_id) retax(taxModal.value.row, taxModal.value.tax_id);
     taxModal.value.row.tax_id = taxModal.value.tax_id;
     taxModal.value.row.withholding_id = taxModal.value.withholding_id;
     taxModal.value = null;
@@ -420,7 +431,7 @@ function submit(action) {
                                 </td>
                                 <td>
                                     <div class="relative flex">
-                                        <NumInput v-model="row.price" :class="{ req: f.purchase }" />
+                                        <NumInput v-model="row.price" :class="{ req: f.purchase }" @update:model-value="row.list_price = null" />
                                         <button v-if="sale && priceOptions(row).length > 1" type="button" class="w-[14px] border border-l-0 border-[#ccc] text-[8px]" title="Listas de precios" @click="priceMenu = priceMenu === idx ? null : idx"><Icon icon="chevron-down" /></button>
                                         <ul v-if="priceMenu === idx" class="absolute right-0 top-[26px] z-30 min-w-[180px] border border-[#ccc] bg-white text-[11px] shadow-lg">
                                             <li v-for="o in priceOptions(row)" :key="o.name"><button type="button" class="flex w-full justify-between gap-[10px] px-[8px] py-[3px] hover:bg-[#f2f2f2]" @click="pickPrice(row, o.value)"><span>{{ o.name }}</span><span>{{ money(o.value) }}</span></button></li>
@@ -429,7 +440,7 @@ function submit(action) {
                                 </td>
                                 <td><NumInput v-model="row.discount" /></td>
                                 <template v-if="f.item_taxes">
-                                    <td><select v-model="row.tax_id" class="doc-input px-[1px]"><option :value="null"></option><option v-for="t in itemCharges" :key="t.id" :value="t.id">{{ t.name }}</option></select></td>
+                                    <td><select v-model="row.tax_id" class="doc-input px-[1px]" @change="retax(row, row.tax_id)"><option :value="null"></option><option v-for="t in itemCharges" :key="t.id" :value="t.id">{{ t.name }}</option></select></td>
                                     <td v-if="f.classic"><input :value="money(lineCalc(row).base + lineCalc(row).tax)" readonly class="doc-input doc-num bg-[#f2f2f2]" /></td>
                                     <td><select v-model="row.withholding_id" class="doc-input px-[1px]"><option :value="null"></option><option v-for="t in itemWithholdings" :key="t.id" :value="t.id">{{ t.name }}</option></select></td>
                                 </template>

@@ -177,6 +177,9 @@ class DianService
         $valid = $r['valid'];
         [$responsePath, $attachedPath] = $this->storeResponse($r['xml'], $dir, substr($file, strlen(self::FILE_PREFIX[$doc->type] ?? 'fv')), $data, $xml, $built['key'], $valid);
         $message = (string) ($this->text($r['xml'], 'StatusMessage') ?? $this->text($r['xml'], 'StatusDescription') ?? ($this->nodes($r['xml'], 'ProcessedMessage')[0]->textContent ?? 'Sin respuesta de la DIAN'));
+        if (! $valid && ($rules = array_filter($this->errors($r['xml']), fn ($e) => str_contains($e, 'Rechazo')))) {
+            $message .= ' '.implode(' ', $rules);
+        }
         $status = $valid ? 'Accepted' : ($trackId ? 'Rejected' : 'Sent');
         $doc->forceFill(array_filter([
             $purchase ? 'cuds' : 'cufe' => $built['key'],
@@ -569,7 +572,7 @@ class DianService
         $response = $transport->call($operation, $params);
         $xml = $response->body;
         $valid = $this->text($xml, 'IsValid');
-        $errors = array_values(array_filter(array_map(fn ($n) => trim($n->textContent), $this->nodes($xml, 'ProcessedMessage'))));
+        $errors = $this->errors($xml);
 
         DianTransmission::create($log + [
             'user_id' => Auth::id(),
@@ -611,6 +614,14 @@ class DianService
         $node = $this->xpath($xml)?->query("//*[local-name()='$tag']")->item(0);
 
         return $node && $node->textContent !== '' ? trim($node->textContent) : null;
+    }
+
+    /** @return list<string> */
+    private function errors(string $xml): array
+    {
+        $nodes = [...$this->nodes($xml, 'ProcessedMessage'), ...($this->xpath($xml)?->query("//*[local-name()='ErrorMessage']/*") ?? [])];
+
+        return array_values(array_unique(array_filter(array_map(fn ($n) => trim($n->textContent), $nodes))));
     }
 
     /** @return list<\DOMElement> */

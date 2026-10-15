@@ -49,6 +49,11 @@ function annul() {
     if (!confirm(`¿Anular el documento ${d.name}? Se reversará su contabilización, inventario y saldos.`)) return;
     router.post(`/documentos/${d.kind}/${d.id}/anular`, {}, { preserveScroll: true });
 }
+const resending = ref(false);
+function resendDian() {
+    if (!confirm(`¿Reenviar ${d.name} a la DIAN?`)) return;
+    router.post(`/documentos/${d.kind}/${d.id}/dian`, {}, { preserveScroll: true, onStart: () => { resending.value = true; }, onFinish: () => { resending.value = false; } });
+}
 function sendMail() {
     const to = prompt('Correo del destinatario', d.contact?.email ?? '');
     if (to) router.post(`/documentos/${d.kind}/${d.id}/correo`, { to }, { preserveScroll: true });
@@ -175,7 +180,10 @@ function sendMail() {
             <Icon icon="triangle-exclamation" class="text-[#f7941d]" /> El documento fue aprobado por la DIAN y está pendiente por enviar a tu cliente.
             <button type="button" class="text-primary hover:underline" @click="sendMail">Enviar por email</button>
         </div>
-        <div v-else-if="d.dian?.status === 'Rejected'" class="mt-[10px] rounded-[2px] border border-[#e57373] bg-[#fdecea] px-4 py-2 text-[12px] text-[#c62828]">{{ d.dian.message || 'El documento fue rechazado por la DIAN.' }}</div>
+        <div v-else-if="['Rejected', 'Draft'].includes(d.dian?.status)" class="mt-[10px] flex items-start gap-[12px] rounded-[2px] border border-[#e57373] bg-[#fdecea] px-4 py-2 text-[12px] text-[#c62828]">
+            <span class="flex-1">{{ d.dian.message || (d.dian.status === 'Rejected' ? 'El documento fue rechazado por la DIAN.' : 'El documento está pendiente de envío a la DIAN.') }}</span>
+            <button type="button" class="s-btn s-btn-outline h-[28px] shrink-0 bg-white px-[12px] text-[12px] font-semibold" :disabled="resending" @click="resendDian"><Icon icon="paper-plane" class="mr-[6px]" />{{ resending ? 'Enviando…' : 'Reenviar a la DIAN' }}</button>
+        </div>
         <div v-if="error" class="mt-[10px] rounded-[2px] border border-[#e57373] bg-[#fdecea] px-4 py-2 text-[12px] text-[#c62828]">{{ error }}</div>
 
         <div class="mt-[10px]"><DocumentSheet :doc="d" :company="company" :resolution="resolution" /></div>

@@ -297,7 +297,7 @@ class DocumentFormController extends Controller
     }
 
     /** Envia a la DIAN; si falla el documento queda guardado como borrador electronico para reenviarlo. */
-    private function emit(SalesDocument|PurchaseDocument $doc): string
+    public function emit(SalesDocument|PurchaseDocument $doc): string
     {
         try {
             $dian = DianService::forCurrent();

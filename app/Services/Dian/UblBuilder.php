@@ -172,7 +172,7 @@ class UblBuilder
         $id = '<cbc:CompanyID '.self::DIAN.($p['id_type'] === '31' ? ' schemeID="'.$p['dv'].'"' : '').' schemeName="'.$p['id_type'].'">'.$this->e($p['id']).'</cbc:CompanyID>';
         $address = $this->address($p);
         $x = $this->el('cbc:AdditionalAccountID', $p['type']).'<cac:Party>';
-        if ($p['id_type'] !== '31' || $isDsSupplier) {
+        if ($p['id_type'] !== '31' || $isDsSupplier || (string) $p['type'] === '2') {
             $x .= '<cac:PartyIdentification><cbc:ID schemeName="'.$p['id_type'].'"'.($p['id_type'] === '31' ? ' schemeID="'.$p['dv'].'"' : '').'>'.$this->e($p['id']).'</cbc:ID></cac:PartyIdentification>';
         }
         $x .= '<cac:PartyName>'.$this->el('cbc:Name', $p['name']).'</cac:PartyName>';

@@ -1,4 +1,5 @@
 <script setup>
+import NumInput from '../../Components/Forms/NumInput.vue';
 import { computed, onMounted, ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import DocSearch from '../../Components/Forms/DocSearch.vue';
@@ -199,7 +200,7 @@ function submit() {
                 <div v-if="doc.mode === 'deuda'" class="mt-[18px] flex justify-end">
                     <label class="block w-[42%]">
                         <span class="text-[12px] text-ink">Ingresa el valor recibido*</span>
-                        <input v-model.number="doc.value" type="number" step="any" placeholder="0.00" class="s-input mt-[6px] w-full" :class="{ 'is-invalid': doc.errors.items }" @change="distribute()" />
+                        <NumInput v-model="doc.value" plain placeholder="0.00" class="s-input mt-[6px] w-full" :class="{ 'is-invalid': doc.errors.items }" @change="distribute()" />
                     </label>
                 </div>
             </div>
@@ -227,7 +228,7 @@ function submit() {
                                         <button type="button" class="text-[16px] text-primary" title="Agregar impuesto o descuento" @click="openDrawer(p)"><Icon icon="plus" /></button>
                                     </div>
                                 </td>
-                                <td><input v-model.number="p.pay" type="number" step="any" class="s-input w-full text-right" @focus="p.checked = true" @change="doc.value = applied" /></td>
+                                <td><NumInput v-model="p.pay" plain class="s-input w-full text-right" @focus="p.checked = true" @change="doc.value = applied" /></td>
                             </tr>
                         </tbody>
                     </table>
@@ -247,7 +248,7 @@ function submit() {
                     <p class="mb-[14px] text-ink">Ingresa el valor del anticipo. Este quedará como saldo a favor del cliente:</p>
                     <label class="block w-[32%]">
                         <span class="text-[12px] text-ink">Valor de anticipo*</span>
-                        <input v-model.number="doc.value" type="number" step="any" placeholder="0,00" class="s-input mt-[6px] w-full text-right" :class="{ 'is-invalid': doc.errors.items }" />
+                        <NumInput v-model="doc.value" plain placeholder="0.00" class="s-input mt-[6px] w-full text-right" :class="{ 'is-invalid': doc.errors.items }" />
                     </label>
                 </template>
                 <template v-else-if="tab === 'abonos'">
@@ -266,7 +267,7 @@ function submit() {
                         </label>
                         <label class="block">
                             <span class="text-[12px] text-ink">Valor*</span>
-                            <input v-model.number="doc.value" type="number" step="any" placeholder="0,00" class="s-input mt-[6px] w-full text-right" />
+                            <NumInput v-model="doc.value" plain placeholder="0.00" class="s-input mt-[6px] w-full text-right" />
                         </label>
                     </div>
                 </template>
@@ -300,8 +301,8 @@ function submit() {
                             </select>
                             <a href="/configuracion/impuestos" target="_blank" class="text-primary"><Icon icon="up-right-from-square" /></a>
                         </span>
-                        <input v-model.number="t.base" type="number" step="any" placeholder="0.00" class="s-input w-full" @change="changeBase(t)" />
-                        <input v-model.number="t.value" type="number" step="any" placeholder="0.00" class="s-input w-full" />
+                        <NumInput v-model="t.base" plain placeholder="0.00" class="s-input w-full" @change="changeBase(t)" />
+                        <NumInput v-model="t.value" plain placeholder="0.00" class="s-input w-full" />
                         <button type="button" class="text-[#e53935]" @click="drawer.taxes.splice(k, 1)"><Icon icon="trash-can" /></button>
                     </div>
                     <div class="px-[24px] py-[16px]">
@@ -318,7 +319,7 @@ function submit() {
                             </select>
                             <a href="/configuracion/gastos-frecuentes" target="_blank" class="text-primary"><Icon icon="up-right-from-square" /></a>
                         </span>
-                        <input v-model.number="d.value" type="number" step="any" placeholder="0.00" class="s-input w-full" />
+                        <NumInput v-model="d.value" plain placeholder="0.00" class="s-input w-full" />
                         <button type="button" class="text-[#e53935]" @click="drawer.discounts.splice(k, 1)"><Icon icon="trash-can" /></button>
                     </div>
                     <div class="px-[24px] py-[16px]">

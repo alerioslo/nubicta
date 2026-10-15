@@ -379,6 +379,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/favorito', [\App\Http\Controllers\DocumentController::class, 'favorite']);
         Route::post('/estado', [\App\Http\Controllers\DocumentController::class, 'quoteStatus']);
         Route::post('/correo', [\App\Http\Controllers\DocumentController::class, 'mail']);
+        Route::post('/dian', [\App\Http\Controllers\DocumentController::class, 'resendDian']);
         Route::post('/adjuntos', [\App\Http\Controllers\DocumentController::class, 'attach']);
         Route::get('/editar', [\App\Http\Controllers\DocumentFormController::class, 'edit']);
         Route::post('/editar', [\App\Http\Controllers\DocumentFormController::class, 'update']);

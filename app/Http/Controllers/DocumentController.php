@@ -111,6 +111,20 @@ class DocumentController extends Controller
         return back()->with('success', "Se envió {$doc->name} a {$request->input('to')}.");
     }
 
+    public function resendDian(string $kind, int $id): RedirectResponse
+    {
+        $doc = DocumentLocator::find($kind, $id);
+        abort_unless($doc instanceof \App\Models\SalesDocument || $doc instanceof \App\Models\PurchaseDocument, 404);
+        Gate::authorize(DocumentLocator::module($doc).'.editar');
+        if ($doc->status !== 'issued' || $doc->source !== 'erp' || ! in_array($doc->dian_status, ['Draft', 'Rejected', 'Pending'], true)
+            || ! \App\Models\DocumentType::query()->find($doc->document_type_id)?->isElectronic()) {
+            return back()->with('error', 'Este documento no está pendiente de envío a la DIAN.');
+        }
+        $message = app(DocumentFormController::class)->emit($doc);
+
+        return back()->with($doc->fresh()->dian_status === 'Accepted' ? 'success' : 'error', "{$doc->name}: $message");
+    }
+
     public function attach(\Illuminate\Http\Request $request, string $kind, int $id): RedirectResponse
     {
         $doc = DocumentLocator::find($kind, $id);
