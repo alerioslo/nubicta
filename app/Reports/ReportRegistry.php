@@ -2,6 +2,7 @@
 
 namespace App\Reports;
 
+use Carbon\Carbon;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -466,13 +467,12 @@ final class ReportRegistry
                     ->orderBy('codigo'),
             ],
             'valoracion-inventarios' => [
-                'title' => 'Valoración de inventarios', 'filters' => ['product', 'group'], 'primary' => ['product'], 'labels' => ['group' => 'Categoría'],
+                'title' => 'Valoración de inventarios', 'filters' => ['product', 'group', 'period'], 'primary' => ['product', 'group', 'period'],
+                'labels' => ['group' => 'Categoría', 'period' => 'Fecha'], 'note' => 'En el reporte solo se permiten visualizar productos inventariables',
                 'columns' => ['codigo' => ['Código producto', 'text'], 'producto' => ['Nombre producto', 'text'], 'referencia' => ['Referencia fábrica', 'text'],
                     'categoria' => ['Categoría', 'text'], 'existencia' => ['Saldo cantidades', 'qty'], 'valor' => ['Valor total', 'money']],
-                'totals' => ['existencia', 'valor'],
-                'query' => fn ($f) => self::stockProducts($f)->where('p.stock', '<>', 0)
-                    ->selectRaw("p.code codigo, p.name producto, coalesce(p.reference, '-') referencia, g.name categoria, p.stock existencia, round(p.stock * p.average_cost, 2) valor")
-                    ->orderBy('p.code'),
+                'totals' => ['valor'],
+                'query' => fn ($f) => self::valuation($f),
             ],
             'saldos-productos' => [
                 'title' => 'Saldos de productos', 'filters' => ['product', 'group'], 'primary' => ['product'], 'labels' => ['group' => 'Categoría'],
@@ -864,6 +864,33 @@ final class ReportRegistry
     {
         return DB::table('products as p')->leftJoin('account_groups as g', 'g.id', '=', 'p.account_group_id')->where('p.company_id', $f['cid'])->where('p.stock_control', true)
             ->when($f['product'] ?? null, fn ($q, $v) => $q->where('p.id', $v))->when($f['group'] ?? null, fn ($q, $v) => $q->where('p.account_group_id', $v));
+    }
+
+    /**
+     * Saldo en cantidad y valor de cada producto inventariable al cierre del mes: el último saldo de la historia importada hasta esa
+     * fecha más los movimientos propios de Friigo, con la misma continuidad que kardexLines.
+     */
+    private static function valuation(array $f): Builder
+    {
+        $cid = (int) $f['cid'];
+        $cut = DB::getPdo()->quote(Carbon::create($f['year'], $f['month'])->endOfMonth()->toDateString());
+        $balances = "select x.product_id, sum(x.q) q, sum(x.v) v from (
+                select h.product_id, h.balance_quantity q, h.balance_value v from inventory_history h
+                join (select product_id, max(position) position from inventory_history where company_id = $cid and date <= $cut group by product_id) l
+                    on l.product_id = h.product_id and l.position = h.position
+                where h.company_id = $cid
+                union all
+                select m.product_id, sum(m.quantity), sum(case when m.quantity >= 0 then abs(m.total_cost) else -abs(m.total_cost) end)
+                from inventory_movements m
+                where m.company_id = $cid and m.date <= $cut
+                    and (m.concept <> 'saldo_inicial' or not exists (select 1 from inventory_history e where e.company_id = $cid and e.product_id = m.product_id))
+                group by m.product_id
+            ) x group by x.product_id";
+
+        return self::stockProducts($f)->joinSub($balances, 'b', 'b.product_id', '=', 'p.id')
+            ->whereRaw('(b.q <> 0 or round(b.v, 2) <> 0)')
+            ->selectRaw("p.code codigo, p.name producto, coalesce(p.reference, '-') referencia, g.name categoria, b.q existencia, round(b.v, 2) valor")
+            ->orderByDesc('p.id');
     }
 
     /**

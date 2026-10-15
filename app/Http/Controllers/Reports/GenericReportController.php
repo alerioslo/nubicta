@@ -22,7 +22,7 @@ class GenericReportController extends Controller
 {
     /** Etiquetas de los filtros, como las muestra Siigo. */
     public const FILTER_LABELS = [
-        'range' => 'Fecha de elaboración', 'cutoff' => 'Fecha de corte', 'year' => 'Año', 'contact' => 'Cliente', 'product' => 'Producto',
+        'range' => 'Fecha de elaboración', 'cutoff' => 'Fecha de corte', 'year' => 'Año', 'period' => 'Periodo', 'contact' => 'Cliente', 'product' => 'Producto',
         'seller' => 'Vendedor', 'line' => 'Línea de producto', 'group' => 'Grupo inventario', 'cost_center' => 'Centro de costo',
         'module' => 'Tipo de cartera', 'level' => 'Nivel de cuenta', 'account' => 'Cuenta contable', 'doctype' => 'Tipo de comprobante',
         'dian' => 'Estado DIAN', 'q' => 'Buscar', 'nc' => 'Incluye nota crédito', 'pos' => 'Solo ventas pos', 'tax' => 'Incluye impuesto', 'payment' => 'Forma de pago',
@@ -132,6 +132,7 @@ class GenericReportController extends Controller
             'to' => $date('hasta', now()->endOfMonth()->toDateString()),
             'cutoff' => $date('corte', now()->toDateString()),
             'year' => min(max($request->integer('anio', (int) now()->year), 2000), 2100),
+            'month' => min(max($request->integer('mes', (int) now()->month), 1), 12),
             'contact' => $id('tercero'),
             'product' => $id('producto'),
             'seller' => $id('vendedor'),
@@ -187,6 +188,7 @@ class GenericReportController extends Controller
                 'range' => $d($f['from']).' a '.$d($f['to']),
                 'cutoff' => $d($f['cutoff']),
                 'year' => (string) $f['year'],
+                'period' => ucfirst(Carbon::create($f['year'], $f['month'])->locale('es')->translatedFormat('F Y')),
                 'contact' => $f['contact'] ? Contact::find($f['contact'])?->name : null,
                 'product' => $f['product'] ? Product::find($f['product'])?->name : null,
                 'seller' => $f['seller'] ? Seller::find($f['seller'])?->name : null,

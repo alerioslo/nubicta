@@ -131,7 +131,6 @@ class DocumentLocator
         $payments = DB::table($sales ? 'sales_document_payments' : 'purchase_document_payments')->where($sales ? 'sales_document_id' : 'purchase_document_id', $doc->id)->get();
         $units = DB::table('products')->whereIn('id', $items->pluck('product_id')->filter())->pluck('unit_label', 'id');
         $warehouses = DB::table('warehouses')->whereIn('id', $items->pluck('warehouse_id')->filter())->pluck('name', 'id');
-        $methods = DB::table('payment_methods')->whereIn('id', $payments->pluck('payment_method_id')->filter())->pluck('type', 'id');
         $lineTaxes = $taxes->flatten(1)->filter(fn ($t) => ! in_array($t->type ?? null, Tax::WITHHOLDINGS, true));
         $bases = $items->keyBy('id');
         $retentions = $sales
@@ -154,8 +153,8 @@ class DocumentLocator
             'tax_summary' => $lineTaxes->groupBy(fn ($t) => (string) (float) $t->percentage)->map(fn ($g, $rate) => [
                 'rate' => (float) $rate, 'base' => (float) $g->sum(fn ($t) => $bases[$t->$fk]->subtotal ?? 0), 'value' => (float) $g->sum('value'),
             ])->sortByDesc('rate')->values(),
-            'payments' => $payments->map(fn ($p) => ['name' => $p->name, 'value' => (float) $p->value, 'due_date' => $p->due_date,
-                'form' => ($methods[$p->payment_method_id] ?? null) === 'Cartera' ? 'Crédito' : 'Efectivo']),
+            // Siigo imprime "Efectivo" en todas las formas de pago y agrega el vencimiento en las de crédito.
+            'payments' => $payments->map(fn ($p) => ['name' => $p->name, 'value' => (float) $p->value, 'due_date' => $p->due_date, 'form' => 'Efectivo']),
             'number_label' => $sales && $doc->prefix ? "{$doc->prefix} {$doc->number}" : null,
             'created' => ['by' => $doc->created_by ? DB::table('users')->where('id', $doc->created_by)->value('name')
                     : ($sales && in_array($doc->type, ['CT', 'RM'], true) && $doc->seller_id ? DB::table('sellers')->where('id', $doc->seller_id)->value('name') : null),

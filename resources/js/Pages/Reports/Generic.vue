@@ -29,11 +29,12 @@ function detectPeriod(from, to) {
     }
     return 'rango';
 }
+const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const PERIODS = { mes: 'Este mes', trimestre: 'Este trimestre', semestre: 'Este semestre', anio: 'Este año', rango: 'Rango' };
 
 const initial = () => ({
     desde: props.filters.from, hasta: props.filters.to, periodo: props.filters.preset ?? detectPeriod(props.filters.from, props.filters.to),
-    periodo_anio: Number(String(props.filters.from).slice(0, 4)), corte: props.filters.cutoff, anio: props.filters.year,
+    periodo_anio: Number(String(props.filters.from).slice(0, 4)), corte: props.filters.cutoff, anio: props.filters.year, mes: props.filters.month,
     tercero: props.filters.contact, tercero_label: props.filters.contact_label ? `${props.filters.contact_label.identification} - ${props.filters.contact_label.name}` : '',
     producto: props.filters.product, producto_label: props.filters.product_label ? `${props.filters.product_label.code} - ${props.filters.product_label.name}` : '',
     vendedor: props.filters.seller ?? '', linea: props.filters.line ?? '', grupo: props.filters.group ?? '', centro: props.filters.cost_center ?? '',
@@ -56,6 +57,7 @@ function params(src = f) {
     if (has('range')) Object.assign(p, { desde: src.desde, hasta: src.hasta });
     if (has('cutoff')) p.corte = src.corte;
     if (has('year')) p.anio = src.anio;
+    if (has('period')) Object.assign(p, { anio: src.anio, mes: src.mes });
     if (has('contact')) put('tercero', src.tercero);
     if (has('product')) put('producto', src.producto);
     if (has('seller')) put('vendedor', src.vendedor);
@@ -204,7 +206,7 @@ function toggleFav() {
 
     <section class="s-card overflow-hidden">
         <div class="flex items-end gap-[12px] px-[14px] pt-[14px]">
-            <div v-for="k in primary" :key="k" class="w-[214px]">
+            <div v-for="k in primary" :key="k" :class="k === 'period' ? 'w-[280px]' : 'w-[214px]'">
                 <span class="mb-[4px] block text-[12px] text-[#5d6b78]">{{ label(k) }}</span>
                 <DocSearch v-if="k === 'contact'" v-model="f.tercero" v-model:label="f.tercero_label" url="/api/buscar/terceros" input-class="s-input w-full" placeholder="Buscar" @update:model-value="generate()" />
                 <DocSearch v-else-if="k === 'product'" v-model="f.producto" v-model:label="f.producto_label" url="/api/buscar/productos" input-class="s-input w-full" placeholder="Buscar" @update:model-value="generate()" />
@@ -219,6 +221,10 @@ function toggleFav() {
                 <input v-else-if="k === 'account'" v-model="f.cuenta" class="s-input w-full" placeholder="Buscar" @keyup.enter="generate()" />
                 <input v-else-if="k === 'cutoff'" v-model="f.corte" type="date" class="s-input w-full" @change="generate()" />
                 <select v-else-if="k === 'year'" v-model="f.anio" class="s-input w-full" @change="generate()"><option v-for="y in options.years" :key="y" :value="y">{{ y }}</option></select>
+                <div v-else-if="k === 'period'" class="grid grid-cols-[100px_1fr] gap-[8px]">
+                    <select v-model="f.anio" class="s-input w-full" @change="generate()"><option v-for="y in options.years" :key="y" :value="y">{{ y }}</option></select>
+                    <select v-model="f.mes" class="s-input w-full" @change="generate()"><option v-for="(m, i) in MONTHS" :key="m" :value="i + 1">{{ m }}</option></select>
+                </div>
             </div>
             <button v-if="extra.length" type="button" class="relative mb-[1px] inline-flex h-[32px] items-center gap-[6px] rounded-[4px] border border-primary px-[10px] text-[12.5px] text-primary hover:bg-primary-light" @click="openPanel">
                 <Icon icon="sliders" /> Más filtros

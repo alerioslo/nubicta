@@ -128,4 +128,24 @@ onMounted(async () => {
 .codes { text-align: center; font-size: 8px; }
 .codes p { margin: 2px 0; }
 @media print { .sheet { margin: 0; width: auto; page-break-after: always; } }
+/* Tirilla de impresora POS (80 mm): sin logo ni texto lateral, bloques uno debajo del otro. */
+@media (max-width: 480px) {
+    .sheet { width: auto; margin: 0; padding: 2px 6px 10px 8px; font: 11px/1.3 Arial, Helvetica, sans-serif; color: #000; }
+    .side, .logo { display: none; }
+    .top { flex-wrap: wrap; justify-content: space-between; gap: 4px; padding-left: 0; min-height: 0; }
+    .company { flex: 1; padding-top: 4px; }
+    .company p { margin: 0; }
+    .qr { width: 96px; height: 96px; margin-top: 0; }
+    .numbox { width: 100%; margin: 6px 0 0; padding: 4px 0; font-size: 12px; }
+    .mid { flex-direction: column; gap: 6px; }
+    .party, .dates, .totals { width: 100%; margin-top: 6px; }
+    .party th { width: 56px; }
+    .dates th, .dates td { height: auto; }
+    .box th, .box td { padding: 2px 3px; }
+    .w-i { width: 28px; } .w-q { width: 52px; } .w-t { width: 76px; }
+    .foot { flex-direction: column; gap: 6px; }
+    .pay { grid-template-columns: 1fr 10px 76px; }
+    .obs { margin: 8px 0 10px; }
+    .codes { word-break: break-all; }
+}
 </style>

@@ -95,7 +95,7 @@ onMounted(async () => {
 
         <section v-if="d.payments?.length" class="block">
             <p class="h">Forma de Pago</p>
-            <p v-for="(p, k) in d.payments" :key="k" class="pay"><span>{{ p.form }} - {{ p.name }}</span><span>{{ money(p.value) }}</span></p>
+            <p v-for="(p, k) in d.payments" :key="k" class="pay"><span>{{ p.form }} - {{ p.name }}<template v-if="p.due_date"> - {{ String(p.due_date).slice(0, 10) }}</template></span><span>{{ money(p.value) }}</span></p>
         </section>
 
         <section class="block legal">
@@ -150,4 +150,25 @@ onMounted(async () => {
 .obs { text-align: left; margin-bottom: 10px !important; white-space: pre-line; }
 .cufe { word-break: break-all; }
 @media print { .sheet { margin: 0; width: auto; page-break-after: always; } }
+/* Tirilla de impresora POS (80 mm): sin logo ni textos laterales, encabezado a la izquierda y QR a la derecha como la de Siigo. */
+@media (max-width: 480px) {
+    .sheet { width: auto; margin: 0; padding: 2px 6px 10px 8px; font: 11px/1.3 Arial, Helvetica, sans-serif; color: #000; }
+    .ribbon, .side, .logo { display: none; }
+    .top { justify-content: space-between; min-height: 0; gap: 4px; }
+    .company { flex: 1; padding-top: 4px; }
+    .company b { font-size: 12px; }
+    .company p { margin: 0; }
+    .qr { position: static; width: 96px; height: 96px; flex: none; }
+    .title { margin: 12px 0 6px; }
+    .info td:first-child { width: 36%; }
+    .info tr:first-child td { padding-top: 4px; }
+    .info tr:last-child td { padding-bottom: 4px; }
+    .items th { padding: 4px 1px 2px; font-size: 10px; line-height: 1.15; }
+    .items td { padding: 1px; }
+    .w-um { width: 38px; } .w-n { width: 48px; } .w-vu { width: 52px; }
+    .sums { margin: 6px 0 8px; }
+    .sums td:first-child { width: 30%; }
+    .block { padding: 6px 0; }
+    .legal { padding-bottom: 10px; }
+}
 </style>

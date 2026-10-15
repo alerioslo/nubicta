@@ -111,4 +111,22 @@ const number = d.name.split('-').pop();
 .total th, .total td { background: #ececec; border: 1px solid #d9d9d9; padding: 7px; font-weight: 700; text-align: left; }
 .total td { text-align: right; }
 @media print { .rs { border: 0; } }
+/* Tirilla de impresora POS (80 mm): una sola columna, sin logo. */
+@media (max-width: 480px) {
+    .rs { width: auto; margin: 0; padding: 2px 6px 10px 8px; border: 0; font: 11px/1.3 Arial, Helvetica, sans-serif; color: #000; }
+    .top { grid-template-columns: 1fr; gap: 6px; }
+    .logo { display: none; }
+    .company h1 { font-size: 12px; margin-bottom: 0; }
+    .docbox { padding: 4px; font-size: 12px; }
+    .party { grid-template-columns: 1fr; gap: 6px; margin-top: 8px; }
+    .who th, .who td, .items th, .items td { padding: 2px 3px; }
+    .who th { width: 48px; }
+    .when { display: flex; justify-content: space-between; }
+    .when .h, .when .v { padding: 2px 4px; border: 0; background: none; }
+    .when .h { font-weight: 700; }
+    .items { margin-top: 8px; }
+    .bottom { grid-template-columns: 1fr; margin-top: 8px; }
+    .pv { display: none; }
+    .obs { margin-top: 6px; }
+}
 </style>

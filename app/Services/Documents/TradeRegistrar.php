@@ -235,6 +235,10 @@ class TradeRegistrar
 
     private function createPurchase(string $kind, DocumentType $type, int $number, string $name, Contact $contact, array $calc, ?Model $related, array $data, float $credit, string $dueDate): PurchaseDocument
     {
+        if (! $contact->is_supplier) {
+            $contact->update(['is_supplier' => true]);
+        }
+
         return PurchaseDocument::create([
             'company_id' => CurrentCompany::id(), 'source' => 'erp', 'type' => $kind, 'document_type_id' => $type->id,
             'number' => $number, 'name' => $name, 'date' => $data['date'], 'due_date' => $dueDate, 'contact_id' => $contact->id,

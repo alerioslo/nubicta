@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * Reconstruye el kárdex anterior a la apertura del inventario en Friigo como lo muestra Siigo: ventas y notas crédito importadas
  * al costo de los comprobantes de costeo CC-3 del mes (repartido por unidad; esos comprobantes no se listan salvo que el mes no
- * tenga unidades vendidas), compras al subtotal y comprobantes de inventario por débito - crédito. La diferencia de unidades con
- * el saldo inicial (movimientos anteriores a la historia importada) queda como un renglón "Saldo inicial".
+ * tenga unidades vendidas), compras a cantidad x precio (Siigo lleva el descuento al ingreso 4210 y no al inventario) y comprobantes de inventario por débito - crédito. La diferencia de unidades con
+ * el saldo inicial (movimientos anteriores a la historia importada) queda como un renglón "Saldo inicial" sin valor, porque Siigo no le asigna costo.
  */
 class InventoryHistory extends Command
 {
@@ -56,7 +56,7 @@ class InventoryHistory extends Command
             select k.product_id, k.d, 3, 0, k.doc, 0, -k.c from ($costing) k where coalesce(k.q, 0) = 0 and k.c <> 0
             union all
             select i.product_id, d.date, 2, i.id, d.name, case when d.type in ('FC', 'DS') then i.quantity else -i.quantity end,
-                case when d.type in ('FC', 'DS') then i.subtotal else -i.subtotal end
+                case when d.type in ('FC', 'DS') then 1 else -1 end * i.quantity * i.price
             from purchase_documents d join purchase_document_items i on i.purchase_document_id = d.id
             where d.company_id = $cid and d.source <> 'erp' and d.type in ('FC', 'DS', 'ND', 'NA') and d.status <> 'annulled' and i.product_id is not null
             union all
@@ -66,7 +66,7 @@ class InventoryHistory extends Command
 
         return "$hist
             union all
-            select o.product_id, '2023-01-01', 0, o.id, 'Saldo inicial', o.q - coalesce(h.q, 0), (o.q - coalesce(h.q, 0)) * o.unit_cost
+            select o.product_id, '2023-01-01', 0, o.id, 'Saldo inicial', o.q - coalesce(h.q, 0), 0
             from (select product_id, min(id) id, sum(quantity) q, max(unit_cost) unit_cost from inventory_movements
                 where company_id = $cid and concept = 'saldo_inicial' group by product_id) o
             left join (select product_id, sum(q) q from ($hist) hh group by product_id) h on h.product_id = o.product_id

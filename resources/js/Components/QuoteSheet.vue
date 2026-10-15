@@ -94,4 +94,19 @@ const maker = d.source === 'siigo' ? 'Elaborado por Siigo S.A.S Nit: 830.048.145
 .sign { margin-top: 90px; font-size: 10px; }
 .sign p { margin: 1px 0; }
 @media print { .sheet { margin: 0; width: auto; border: 0; page-break-after: always; } }
+/* Tirilla de impresora POS (80 mm): sin logo ni texto lateral, encabezado arriba del número. */
+@media (max-width: 480px) {
+    .sheet { width: auto; margin: 0; padding: 2px 6px 10px 8px; border: 0; font: 11px/1.3 Arial, Helvetica, sans-serif; color: #000; }
+    .side, .logo { display: none; }
+    .top { flex-direction: column; min-height: 0; }
+    .company, .head { width: 100%; text-align: center; }
+    .head .t { margin-top: 6px; font-size: 14px; }
+    .box { margin-top: 6px; }
+    .items, .box, .sums, .obs, .sign { font-size: 11px; }
+    .items th, .items td { padding: 2px 3px; }
+    .w-i { width: 28px; } .w-q { width: 52px; } .w-t { width: 76px; }
+    .sums { width: 100%; margin-top: 6px; }
+    .sums th { width: auto; padding-right: 8px; }
+    .sign { margin-top: 30px; }
+}
 </style>

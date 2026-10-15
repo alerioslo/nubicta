@@ -293,8 +293,8 @@ function submit(action) {
                         <span class="doc-label">{{ partyLabel }}</span>
                         <div>
                             <div class="flex items-center gap-[18px]">
-                                <DocSearch v-model="doc.contact_id" v-model:label="doc.contact_label" :url="`/api/buscar/terceros?tipo=${f.party}`" :invalid="!!doc.errors.contact_id"
-                                    :columns="sale ? CONTACT_COLUMNS : null" :create-url="sale ? '/terceros/crear?tipo=cliente' : ''" :display="sale ? 'name' : 'label'" class="flex-1" @pick="(c) => pickContact(c)" />
+                                <DocSearch v-model="doc.contact_id" v-model:label="doc.contact_label" :url="sale ? `/api/buscar/terceros?tipo=${f.party}` : '/api/buscar/terceros'" :invalid="!!doc.errors.contact_id"
+                                    :columns="CONTACT_COLUMNS" :create-url="sale ? '/terceros/crear?tipo=cliente' : '/terceros/crear?tipo=proveedor'" :display="sale ? 'name' : 'label'" class="flex-1" @pick="(c) => pickContact(c)" />
                                 <a v-if="sale && doc.contact_id" :href="`/terceros/${doc.contact_id}/editar`" target="_blank" class="whitespace-nowrap text-[11px] text-[#7cb342] underline">Ver perfil</a>
                             </div>
                             <p v-if="doc.errors.contact_id" class="text-[10px] text-danger">{{ doc.errors.contact_id }}</p>
