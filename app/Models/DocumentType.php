@@ -27,6 +27,7 @@ class DocumentType extends Model
         'OC' => 'Orden de compra',
         'CC' => 'Comprobante contable',
         'NI' => 'Nómina electrónica',
+        'NE' => 'Nota de ensamble',
     ];
 
     public const ELECTRONIC_TYPES = [
@@ -50,6 +51,16 @@ class DocumentType extends Model
             'reteiva' => 'boolean',
             'reteica' => 'boolean',
             'self_withholding' => 'boolean',
+            'remission_crossing' => 'boolean',
+            'purchase_order_ref' => 'boolean',
+            'delivery_order_ref' => 'boolean',
+            'third_party_income' => 'boolean',
+            'copay' => 'boolean',
+            'aiu' => 'boolean',
+            'show_values' => 'boolean',
+            'phones' => 'array',
+            'charges' => 'array',
+            'print_columns' => 'array',
             'resolution_date' => 'date',
             'valid_from' => 'date',
             'valid_to' => 'date',

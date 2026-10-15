@@ -1,510 +1,153 @@
 <?php
 
-/* Generado por tools/gen_config_menu.py desde docs/siigo/crawl/config.json */
+/* Menu de Configuracion (engranaje), con los mismos grupos, textos y orden del menu de Siigo Nube. */
+
+$item = fn (string $label, string $url) => ['label' => $label, 'url' => $url];
+$sales = [
+    $item('Facturas de ventas', '/configuracion/documentos/facturas-venta'),
+    $item('Cotizaciones', '/configuracion/documentos/cotizaciones'),
+    $item('Remisiones', '/configuracion/documentos/remisiones'),
+    $item('Notas débito (Ventas)', '/configuracion/documentos/notas-debito'),
+    $item('Recibos de caja', '/configuracion/documentos/recibos-caja'),
+    $item('Notas crédito', '/configuracion/documentos/notas-credito'),
+];
+$purchases = [
+    $item('Compras y gastos', '/configuracion/documentos/compras'),
+    $item('Ordenes de compra', '/configuracion/documentos/ordenes-compra'),
+    $item('Documento soporte', '/configuracion/documentos/documento-soporte'),
+    $item('Nota débito / Nota de ajuste documento soporte', '/configuracion/documentos/notas-ajuste-soporte'),
+    $item('Recibo de pago / egreso', '/configuracion/documentos/recibos-pago'),
+];
+$reminders = $item('Configuración de recordatorios automáticos', '/configuracion/ajustes/recordatorios');
 
 return [
     'General' => [
-        [
-            'title' => 'Organización',
-            'column' => 0,
-            'items' => [
-                [
-                    'label' => 'Perfil de la organización',
-                    'url' => '/configuracion/empresa',
-                ],
-                [
-                    'label' => 'Logo para documentos',
-                    'url' => '/configuracion/empresa',
-                ],
-                [
-                    'label' => 'Contrato Siigo Nube',
-                    'url' => '/configuracion/ajustes/contrato',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Usuarios',
-            'column' => 0,
-            'items' => [
-                [
-                    'label' => 'Invita a tu contador',
-                    'url' => '/configuracion/usuarios/crear',
-                ],
-                [
-                    'label' => 'Administración de usuarios y permisos',
-                    'url' => '/configuracion/usuarios',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Seguridad',
-            'column' => 1,
-            'items' => [
-                [
-                    'label' => 'Bloqueo de transacciones por periodo',
-                    'url' => '/configuracion/bloqueo-periodos',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Regional',
-            'column' => 1,
-            'items' => [
-                [
-                    'label' => 'Ciudades',
-                    'url' => '/configuracion/ciudades',
-                ],
-            ],
-        ],
+        ['title' => 'Organización', 'column' => 0, 'items' => [
+            $item('Perfil de la organización', '/configuracion/empresa'),
+            $item('Logo para impresión de comprobantes', '/configuracion/empresa?seccion=logo'),
+            $item('Contrato Siigo nube', '/configuracion/ajustes/contrato'),
+        ]],
+        ['title' => 'Usuarios', 'column' => 0, 'items' => [
+            $item('Creación Usuarios', '/configuracion/usuarios/crear'),
+            $item('Invita a tu contador', '/configuracion/usuarios/crear?contador=1'),
+            $item('Usuarios administradores', '/configuracion/usuarios?perfil=administrador'),
+            $item('Roles', '/configuracion/perfiles'),
+            $item('Administración de usuarios y permisos', '/configuracion/usuarios'),
+        ]],
+        ['title' => 'Seguridad', 'column' => 1, 'items' => [
+            $item('Bloqueo fecha de transacciones', '/configuracion/bloqueo-periodos'),
+            $item('Bloqueo de transacciones por periodo', '/configuracion/bloqueo-periodos'),
+        ]],
+        ['title' => 'Regional', 'column' => 1, 'items' => [
+            $item('Ciudades', '/configuracion/ciudades'),
+        ]],
     ],
     'Habilitaciones DIAN' => [
-        [
-            'title' => 'Ventas',
-            'column' => 0,
-            'items' => [
-                [
-                    'label' => 'Facturación Electrónica',
-                    'url' => '/configuracion/facturacion-electronica',
-                ],
-                [
-                    'label' => 'Sincroniza tu resolución',
-                    'url' => '/configuracion/facturacion-electronica?tab=resoluciones',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Nómina',
-            'column' => 0,
-            'items' => [
-                [
-                    'label' => 'Nómina Electrónica',
-                    'url' => '/configuracion/facturacion-electronica',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Compras y gastos',
-            'column' => 1,
-            'items' => [
-                [
-                    'label' => 'Documento soporte',
-                    'url' => '/configuracion/facturacion-electronica',
-                ],
-                [
-                    'label' => 'Sincroniza tu resolución de documento soporte',
-                    'url' => '/configuracion/facturacion-electronica?tab=resoluciones',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Certificado digital',
-            'column' => 1,
-            'items' => [
-                [
-                    'label' => 'Seguimiento Certificado digital',
-                    'url' => '/configuracion/facturacion-electronica?tab=certificado',
-                ],
-            ],
-        ],
+        ['title' => 'Ventas', 'column' => 0, 'items' => [
+            $item('Facturación Electrónica', '/configuracion/facturacion-electronica?ambito=fe'),
+            $item('Sincroniza tu resolución', '/configuracion/facturacion-electronica?tab=resoluciones'),
+        ]],
+        ['title' => 'Nómina', 'column' => 0, 'items' => [
+            $item('Nómina Electrónica', '/configuracion/facturacion-electronica?ambito=nomina'),
+        ]],
+        ['title' => 'Compras y gastos', 'column' => 1, 'items' => [
+            $item('Documento soporte para no obligados a facturar', '/configuracion/facturacion-electronica?ambito=ds'),
+            $item('Sincroniza tu resolución de documento soporte', '/configuracion/facturacion-electronica?tab=resoluciones'),
+        ]],
+        ['title' => 'Certificado digital', 'column' => 1, 'items' => [
+            $item('Seguimiento Certificado digital', '/configuracion/facturacion-electronica?tab=certificado'),
+        ]],
     ],
     'Ventas' => [
-        [
-            'title' => 'Documentos',
-            'column' => 0,
-            'items' => [
-                [
-                    'label' => 'Facturas de ventas / Ingresos',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Cotizaciones',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Remisiones',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Notas débito (Ventas)',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Recibos de caja',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Notas Crédito',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Procesos',
-            'column' => 0,
-            'items' => [
-                [
-                    'label' => 'Renovación de numeración agotada o próxima a agotarse',
-                    'url' => '/configuracion/facturacion-electronica?tab=resoluciones',
-                ],
-                [
-                    'label' => 'Habilitación de numeración vencida o próxima a vencerse',
-                    'url' => '/configuracion/facturacion-electronica?tab=resoluciones',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Seguimiento',
-            'column' => 1,
-            'items' => [
-                [
-                    'label' => 'Tareas de seguimiento de cobranza',
-                    'url' => '/configuracion/ajustes/cobranza',
-                ],
-                [
-                    'label' => 'Tarea de seguimiento comercial',
-                    'url' => '/ventas/seguimiento-comercial',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Importación',
-            'column' => 1,
-            'items' => [
-                [
-                    'label' => 'Facturas de ventas / Ingresos',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Impresión, estilo y envío de documentos',
-            'column' => 1,
-            'items' => [
-                [
-                    'label' => 'Facturas de ventas / Ingresos',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Cotizaciones',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Remisiones',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Notas débito (Ventas)',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Recibos de caja',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Notas Crédito',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-            ],
-        ],
+        ['title' => 'Documentos', 'column' => 0, 'items' => $sales],
+        ['title' => 'Procesos', 'column' => 0, 'items' => [
+            $item('Renovación de numeración agotada o próxima a agotarse', '/configuracion/facturacion-electronica?tab=resoluciones'),
+            $item('Habilitación de numeración vencida o próxima a vencerse', '/configuracion/facturacion-electronica?tab=resoluciones'),
+        ]],
+        ['title' => 'Seguimientos', 'column' => 1, 'items' => [
+            $item('Tareas de seguimiento de cobranza', '/configuracion/ajustes/cobranza'),
+            $item('Tarea de seguimiento comercial', '/ventas/seguimiento-comercial'),
+        ]],
+        ['title' => 'Importación', 'column' => 1, 'items' => [
+            $item('Facturas de venta', '/configuracion/importacion-comprobantes?tipo=fv'),
+        ]],
+        ['title' => 'Impresión, estilo y envío de documentos', 'column' => 1, 'items' => $sales],
     ],
     'Compras y gastos' => [
-        [
-            'title' => 'Documentos',
-            'column' => 0,
-            'items' => [
-                [
-                    'label' => 'Compras y gastos',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Órdenes de compra',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Documento soporte',
-                    'url' => '/configuracion/facturacion-electronica',
-                ],
-                [
-                    'label' => 'Nota débito / Nota de ajuste documento soporte',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Recibo de Pago / Egreso',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Impresión, estilo y envío de documentos',
-            'column' => 1,
-            'items' => [
-                [
-                    'label' => 'Compras y gastos',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Órdenes de compra',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Documento soporte',
-                    'url' => '/configuracion/facturacion-electronica',
-                ],
-                [
-                    'label' => 'Nota débito / Nota de ajuste documento soporte',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Recibo de Pago / Egreso',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-            ],
-        ],
+        ['title' => 'Documentos', 'column' => 0, 'items' => $purchases],
+        ['title' => 'Impresión, estilo y envío de documentos', 'column' => 1, 'items' => $purchases],
     ],
     'Clientes y proveedores' => [
-        [
-            'title' => 'Generales',
-            'column' => 0,
-            'items' => [
-                [
-                    'label' => 'Campos libres de clientes, proveedores u otros',
-                    'url' => '/configuracion/campos-libres',
-                ],
-                [
-                    'label' => 'Desbloqueo de correos para envío de emails y notificaciones',
-                    'url' => '/configuracion/ajustes/correos',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Importación',
-            'column' => 0,
-            'items' => [
-                [
-                    'label' => 'Saldos iniciales cuentas por cobrar',
-                    'url' => '/configuracion/saldos-iniciales/cuentas-por-cobrar',
-                ],
-                [
-                    'label' => 'Saldos iniciales cuentas por pagar',
-                    'url' => '/configuracion/saldos-iniciales/cuentas-por-pagar',
-                ],
-                [
-                    'label' => 'Clientes, proveedores u otros',
-                    'url' => '/terceros',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Gestión de recaudo',
-            'column' => 1,
-            'items' => [
-                [
-                    'label' => 'Configuración de recordatorios automáticos',
-                    'url' => '/configuracion/ajustes/recordatorios',
-                ],
-            ],
-        ],
+        ['title' => 'Generales', 'column' => 0, 'items' => [
+            $item('Campos libres clientes, proveedores u otros', '/configuracion/campos-libres'),
+            $item('Desbloqueo de correos para envío de emails y notificaciaciones', '/configuracion/ajustes/correos'),
+        ]],
+        ['title' => 'Importación', 'column' => 0, 'items' => [
+            $item('Saldos iniciales cuentas por cobrar', '/configuracion/saldos-iniciales/cuentas-por-cobrar'),
+            $item('Saldos iniciales cuentas por pagar', '/configuracion/saldos-iniciales/cuentas-por-pagar'),
+            $item('Clientes, proveedores u otros', '/terceros'),
+        ]],
+        ['title' => 'Gestión de recaudo', 'column' => 1, 'items' => [$reminders]],
     ],
     'Productos y servicios' => [
-        [
-            'title' => 'Generales',
-            'column' => 0,
-            'items' => [
-                [
-                    'label' => 'Categorías de productos y servicios',
-                    'url' => '/configuracion/lineas-producto',
-                ],
-                [
-                    'label' => 'Listas de precios de venta',
-                    'url' => '/configuracion/listas-precios',
-                ],
-                [
-                    'label' => 'Configuración de bodegas',
-                    'url' => '/configuracion/bodegas',
-                ],
-                [
-                    'label' => 'Unidades de medida factura electrónica',
-                    'url' => '/configuracion/unidades-medida',
-                ],
-                [
-                    'label' => 'Configuración de inventarios',
-                    'url' => '/productos/costeo',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Documentos',
-            'column' => 1,
-            'items' => [
-                [
-                    'label' => 'Notas de ensamble',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Importación',
-            'column' => 1,
-            'items' => [
-                [
-                    'label' => 'Productos y servicios',
-                    'url' => '/productos',
-                ],
-                [
-                    'label' => 'Ajuste de inventario',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Saldos iniciales de inventario',
-                    'url' => '/configuracion/saldos-iniciales/inventario',
-                ],
-                [
-                    'label' => 'Conteo físico',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-            ],
-        ],
+        ['title' => 'Generales', 'column' => 0, 'items' => [
+            $item('Categorías de productos y servicios', '/configuracion/lineas-producto'),
+            $item('Movimiento de productos / Kárdex', '/reportes/movimiento-productos'),
+            $item('Lista de precios', '/configuracion/listas-precios'),
+            $item('Configuración de bodegas', '/configuracion/bodegas'),
+            $item('Unidades de medida factura electrónica', '/configuracion/unidades-medida'),
+            $item('Configuración inventario', '/productos/costeo'),
+        ]],
+        ['title' => 'Documentos', 'column' => 1, 'items' => [
+            $item('Notas de ensamble', '/configuracion/documentos/notas-ensamble'),
+        ]],
+        ['title' => 'Importación', 'column' => 1, 'items' => [
+            $item('Productos y servicios', '/productos/importar'),
+            $item('Ajuste de inventario', '/inventario/ajustes/crear'),
+            $item('Saldos iniciales de inventario', '/configuracion/saldos-iniciales/inventario'),
+            $item('Conteo físico', '/inventario/conteos/crear'),
+        ]],
     ],
     'Nómina' => [
-        [
-            'title' => 'Generales',
-            'column' => 0,
-            'items' => [
-                [
-                    'label' => 'Creación de cargos laborales',
-                    'url' => '/configuracion/cargos',
-                ],
-                [
-                    'label' => 'Configuración de nómina',
-                    'url' => '/configuracion/nomina',
-                ],
-                [
-                    'label' => 'Conceptos de nómina',
-                    'url' => '/configuracion/conceptos-nomina',
-                ],
-                [
-                    'label' => 'Parámetros contables de nómina',
-                    'url' => '/configuracion/parametros-nomina',
-                ],
-                [
-                    'label' => 'Configuración de prefijos',
-                    'url' => '/configuracion/facturacion-electronica?tab=resoluciones',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Importación',
-            'column' => 1,
-            'items' => [
-                [
-                    'label' => 'Empleados',
-                    'url' => '/nomina/empleados',
-                ],
-                [
-                    'label' => 'Contratos',
-                    'url' => '/nomina/empleados',
-                ],
-                [
-                    'label' => 'Acumulados iniciales',
-                    'url' => '/reportes/acumulados-iniciales-nomina',
-                ],
-                [
-                    'label' => 'Salarios',
-                    'url' => '/nomina/empleados',
-                ],
-            ],
-        ],
+        ['title' => 'Generales', 'column' => 0, 'items' => [
+            $item('Creación de cargos laborales', '/configuracion/cargos'),
+            $item('Configuración de nómina', '/configuracion/nomina'),
+            $item('Conceptos de nómina', '/configuracion/conceptos-nomina'),
+            $item('Parámetros contables de nómina', '/configuracion/parametros-nomina'),
+            $item('Configuración de prefijos', '/configuracion/facturacion-electronica?tab=resoluciones'),
+        ]],
+        ['title' => 'Importación', 'column' => 1, 'items' => [
+            $item('Empleados', '/configuracion/nomina/importacion/empleados'),
+            $item('Contratos', '/configuracion/nomina/importacion/contratos'),
+            $item('Acumulados iniciales', '/reportes/acumulados-iniciales-nomina'),
+            $item('Salarios', '/configuracion/nomina/importacion/salarios'),
+        ]],
     ],
     'Contabilidad' => [
-        [
-            'title' => 'Generales',
-            'column' => 0,
-            'items' => [
-                [
-                    'label' => 'Impuestos',
-                    'url' => '/configuracion/impuestos',
-                ],
-                [
-                    'label' => 'Centro de costos',
-                    'url' => '/configuracion/centros-costo',
-                ],
-                [
-                    'label' => 'Cuentas contables',
-                    'url' => '/contabilidad/cuentas',
-                ],
-                [
-                    'label' => 'Gastos / Costos frecuentes',
-                    'url' => '/configuracion/gastos-frecuentes',
-                ],
-                [
-                    'label' => 'Otros ingresos',
-                    'url' => '/configuracion/otros-ingresos',
-                ],
-                [
-                    'label' => 'Formas de pago en documentos',
-                    'url' => '/configuracion/formas-pago',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Documentos',
-            'column' => 0,
-            'items' => [
-                [
-                    'label' => 'Comprobantes contables',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Activos fijos',
-            'column' => 1,
-            'items' => [
-                [
-                    'label' => 'Grupos de activos',
-                    'url' => '/configuracion/grupos-activos',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Importación',
-            'column' => 1,
-            'items' => [
-                [
-                    'label' => 'Comprobantes contables',
-                    'url' => '/configuracion/tipos-documento',
-                ],
-                [
-                    'label' => 'Activos fijos',
-                    'url' => '/configuracion/activos-fijos',
-                ],
-                [
-                    'label' => 'Saldos iniciales de otras cuentas contables',
-                    'url' => '/contabilidad/cuentas',
-                ],
-            ],
-        ],
+        ['title' => 'Generales', 'column' => 0, 'items' => [
+            $item('Impuestos', '/configuracion/impuestos'),
+            $item('Centros de costo', '/configuracion/centros-costo'),
+            $item('Cuentas contables', '/contabilidad/cuentas'),
+            $item('Cuentas de gastos frecuentes', '/configuracion/gastos-frecuentes'),
+            $item('Otros ingresos', '/configuracion/otros-ingresos'),
+            $item('Formas de pago en documentos', '/configuracion/formas-pago'),
+        ]],
+        ['title' => 'Documentos', 'column' => 0, 'items' => [
+            $item('Comprobantes contables', '/configuracion/documentos/comprobantes-contables'),
+        ]],
+        ['title' => 'Activos fijos', 'column' => 1, 'items' => [
+            $item('Grupos de activos', '/configuracion/grupos-activos'),
+        ]],
+        ['title' => 'Importación', 'column' => 1, 'items' => [
+            $item('Comprobantes contables', '/configuracion/importacion-comprobantes?tipo=cc'),
+            $item('Activos fijos', '/contabilidad/activos-fijos/importar'),
+            $item('Saldos iniciales de otras cuentas contables', '/contabilidad/saldos-iniciales/otras-cuentas'),
+        ]],
     ],
     'Alianzas e integraciones' => [
-        [
-            'title' => 'Configuraciones e integraciones',
-            'column' => 0,
-            'items' => [
-                [
-                    'label' => 'Credenciales de integración a plataformas digitales (Siigo API)',
-                    'url' => '/configuracion/ajustes/api',
-                ],
-            ],
-        ],
-        [
-            'title' => 'Gestión de recaudo',
-            'column' => 1,
-            'items' => [
-                [
-                    'label' => 'Configuración de recordatorios automáticos',
-                    'url' => '/configuracion/ajustes/recordatorios',
-                ],
-            ],
-        ],
+        ['title' => 'Configuraciones e integraciones', 'column' => 0, 'items' => [
+            $item('Credenciales de integración a plataformas digitales (Siigo API)', '/configuracion/ajustes/api'),
+        ]],
+        ['title' => 'Gestión de recaudo', 'column' => 1, 'items' => [$reminders]],
     ],
 ];

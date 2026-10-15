@@ -84,7 +84,7 @@ class DocumentLocator
             'date' => substr((string) $doc->date, 0, 10), 'due_date' => isset($doc->due_date) ? substr((string) $doc->due_date, 0, 10) : null,
             'contact' => $contact ? ['identification' => $contact->identification, 'name' => $contact->name, 'address' => $contact->address, 'phone' => $contact->phone, 'email' => $contact->email] : null,
             'observations' => $doc->observations,
-            'type_name' => DB::table('document_types')->where('id', $doc->document_type_id)->value('name'),
+            'type_name' => DB::table('document_types')->where('id', $doc->document_type_id)->value(DB::raw('coalesce(title, name)')),
             'annulled_at' => $doc->annulled_at ? substr((string) $doc->annulled_at, 0, 16) : null,
             'attachments' => \App\Models\Attachment::listFor($doc),
         ];

@@ -6,6 +6,7 @@ import Field from '../../../Components/Field.vue';
 const props = defineProps({
     user: { type: Object, default: null },
     roles: { type: Array, required: true },
+    accountant: { type: Boolean, default: false },
 });
 
 const form = useForm({
@@ -16,7 +17,7 @@ const form = useForm({
     is_seller: props.user?.is_seller ?? false,
     active: props.user?.active ?? true,
     password: '',
-    roles: props.user?.roles ?? [],
+    roles: props.user?.roles ?? (props.accountant && props.roles.includes('Contador') ? ['Contador'] : []),
 });
 
 function submit() {
@@ -26,8 +27,8 @@ function submit() {
 </script>
 
 <template>
-    <Head :title="user ? 'Editar usuario' : 'Crear usuario'" />
-    <PageHeader :title="user ? 'Editar usuario' : 'Crear usuario'" back="/configuracion/usuarios">
+    <Head :title="user ? 'Editar usuario' : accountant ? 'Invita a tu contador' : 'Crear usuario'" />
+    <PageHeader :title="user ? 'Editar usuario' : accountant ? 'Invita a tu contador' : 'Crear usuario'" back="/configuracion/usuarios">
         <template #actions>
             <Link href="/configuracion/usuarios" class="s-btn s-btn-outline">Cancelar</Link>
             <button type="button" class="s-btn s-btn-primary" :disabled="form.processing" @click="submit">Guardar</button>

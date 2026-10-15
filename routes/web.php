@@ -103,6 +103,29 @@ Route::middleware('auth')->group(function () {
             Route::put('/impuestos/{id}', [\App\Http\Controllers\Settings\TaxController::class, 'update'])->whereNumber('id');
             Route::delete('/impuestos/{id}', [\App\Http\Controllers\Settings\TaxController::class, 'destroy'])->whereNumber('id');
 
+            $pi = \App\Http\Controllers\Payroll\PayrollImportController::class;
+            $piKinds = array_keys(\App\Http\Controllers\Payroll\PayrollImportController::KINDS);
+            Route::get('/nomina/importacion/{kind}', [$pi, 'show'])->whereIn('kind', $piKinds);
+            Route::get('/nomina/importacion/{kind}/plantilla', [$pi, 'template'])->whereIn('kind', $piKinds);
+            Route::post('/nomina/importacion/{kind}', [$pi, 'upload'])->whereIn('kind', $piKinds);
+            Route::post('/nomina/importacion/{kind}/confirmar', [$pi, 'confirm'])->whereIn('kind', $piKinds);
+
+            $vi = \App\Http\Controllers\Settings\VoucherImportController::class;
+            Route::get('/importacion-comprobantes', [$vi, 'show']);
+            Route::get('/importacion-comprobantes/plantilla', [$vi, 'template']);
+            Route::post('/importacion-comprobantes', [$vi, 'upload']);
+            Route::post('/importacion-comprobantes/confirmar', [$vi, 'confirm']);
+
+            $dc = \App\Http\Controllers\Settings\DocumentClassController::class;
+            $classes = array_keys(config('document_classes'));
+            Route::get('/documentos/{class}', [$dc, 'index'])->whereIn('class', $classes);
+            Route::get('/documentos/{class}/crear', [$dc, 'create'])->whereIn('class', $classes);
+            Route::post('/documentos/{class}', [$dc, 'store'])->whereIn('class', $classes);
+            Route::get('/documentos/{class}/{id}/editar', [$dc, 'edit'])->whereIn('class', $classes)->whereNumber('id');
+            Route::get('/documentos/{class}/{id}/vista-previa', [$dc, 'preview'])->whereIn('class', $classes)->whereNumber('id');
+            Route::put('/documentos/{class}/{id}', [$dc, 'update'])->whereIn('class', $classes)->whereNumber('id');
+            Route::delete('/documentos/{class}/{id}', [$dc, 'destroy'])->whereIn('class', $classes)->whereNumber('id');
+
             $catalogs = array_keys(config('catalogs'));
             Route::get('/{catalog}', [CatalogController::class, 'index'])->whereIn('catalog', $catalogs);
             Route::get('/{catalog}/crear', [CatalogController::class, 'create'])->whereIn('catalog', $catalogs);

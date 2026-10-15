@@ -22,6 +22,7 @@ class UserController extends Controller
                 ->where('name', 'like', "%$term%")
                 ->orWhere('email', 'like', "%$term%")
                 ->orWhere('identification', 'like', "%$term%")))
+            ->when($request->input('perfil'), fn ($q, $role) => $q->whereHas('roles', fn ($r) => $r->where('name', 'like', "%$role%")))
             ->with('roles:id,name')
             ->orderBy('name')
             ->paginate($request->integer('per_page', 20))
@@ -39,14 +40,15 @@ class UserController extends Controller
 
         return Inertia::render('Settings/Users/Index', [
             'users' => $users,
-            'filters' => $request->only('q'),
+            'filters' => $request->only('q', 'perfil'),
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
         return Inertia::render('Settings/Users/Form', [
             'user' => null,
+            'accountant' => $request->boolean('contador'),
             'roles' => Role::orderBy('name')->pluck('name'),
         ]);
     }

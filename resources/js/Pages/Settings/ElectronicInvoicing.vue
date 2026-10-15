@@ -21,6 +21,8 @@ const TABS = [
     { key: 'resoluciones', label: 'Resoluciones de numeración' },
     { key: 'envios', label: 'Historial de envíos' },
 ];
+const focus = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ambito') : null;
+if (focus) setTimeout(() => document.getElementById(`habilitacion-${focus}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
 const current = ref(TABS.some((t) => t.key === props.tab) ? props.tab : 'habilitacion');
 
 const s = props.settings;
@@ -138,7 +140,7 @@ const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('es-CO', { day:
         </section>
 
         <div class="grid grid-cols-3 gap-[18px]">
-            <section v-for="(h, key) in s.habilitation" :key="key" class="s-card flex flex-col p-[22px]">
+            <section v-for="(h, key) in s.habilitation" :id="`habilitacion-${key}`" :key="key" class="s-card flex flex-col p-[22px]" :class="{ 'ring-2 ring-primary': focus === key }">
                 <div class="mb-3 flex items-center justify-between">
                     <h3 class="s-section-title">{{ h.label }}</h3>
                     <span class="s-badge" :class="STATUS[h.status]?.[1]">{{ STATUS[h.status]?.[0] ?? h.status }}</span>

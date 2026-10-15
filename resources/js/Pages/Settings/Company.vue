@@ -52,6 +52,8 @@ const form = useForm({
 
 const towns = ref(props.municipalities);
 const preview = ref(props.logoUrl);
+const logoFocus = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('seccion') === 'logo';
+if (logoFocus) setTimeout(() => document.getElementById('logo')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
 const open = ref({ general: true, tributarios: true, moneda: true, representante: true });
 
 watch(
@@ -134,7 +136,7 @@ function submit() {
                     <label class="mt-1 flex items-center gap-2"><input v-model="form.show_trade_name" type="checkbox" class="accent-primary" /> Mostrar en representación gráfica de comprobantes electrónicos</label>
                 </div>
             </div>
-            <div class="s-row"><span>Logo para tus documentos</span>
+            <div id="logo" class="s-row" :class="{ 'rounded ring-2 ring-primary': logoFocus }"><span>Logo para tus documentos</span>
                 <div class="flex items-center gap-3">
                     <label class="cursor-pointer font-semibold text-primary">Cambiar logo <Icon icon="cloud" /><input type="file" accept="image/*" class="hidden" @change="onLogo" /></label>
                     <span class="text-ink-soft">Se mostrará en los diferentes documentos y facturas</span>
