@@ -86,7 +86,7 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                         <div class="text-ink">{{ c.identification }}<span v-if="c.branch_office" class="text-muted"> · Suc. {{ c.branch_office }}</span></div>
                         <div class="text-[11px] text-muted">{{ c.identification_type }}</div>
                     </td>
-                    <td><Link :href="`/terceros/${c.id}/editar`" class="text-primary">{{ c.name }}</Link></td>
+                    <td><Link :href="`/terceros/${c.id}`" class="text-primary">{{ c.name }}</Link></td>
                     <td>{{ c.roles }}</td>
                     <td>{{ c.city ?? '' }}</td>
                     <td>{{ c.phone ?? '' }}</td>

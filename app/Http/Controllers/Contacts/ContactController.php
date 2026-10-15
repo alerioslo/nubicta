@@ -83,6 +83,47 @@ class ContactController extends Controller
         return redirect($request->input('volver') ?: "/terceros/{$contact->id}/editar")->with('success', 'Tercero creado correctamente.');
     }
 
+    /** Perfil del tercero con las pestañas de Siigo: Perfil, Cuentas por cobrar, Cuentas por pagar, Contactos y Tareas. */
+    public function show(Request $request, Contact $contact): Response
+    {
+        $tab = in_array($request->input('pestana'), ['cobrar', 'pagar', 'contactos', 'tareas'], true) ? $request->input('pestana') : 'perfil';
+        $todos = $request->input('todos') === '1';
+        $city = Municipality::with('department')->find($contact->municipality_code);
+        $phone = fn ($ind, $num) => trim(($ind ? "$ind " : '').($num ?? ''));
+
+        return Inertia::render('Contacts/Profile', [
+            'tab' => $tab,
+            'todos' => $todos,
+            'contact' => [
+                'id' => $contact->id, 'name' => $contact->name, 'identification' => $contact->identificationLabel(), 'number' => $contact->identification,
+                'dv' => $contact->dv, 'branch' => (string) ($contact->branch_office ?? 0), 'active' => (bool) $contact->active,
+                'person' => $contact->person_type === 'juridica' ? 'Empresa' : 'Es persona',
+                'id_type' => config('erp.identification_types')[$contact->identification_type] ?? $contact->identification_type,
+                'business_name' => $contact->person_type === 'juridica' ? $contact->business_name : null,
+                'first_name' => $contact->first_name, 'last_name' => $contact->last_name, 'trade_name' => $contact->trade_name,
+                'city' => $city?->name, 'address' => $contact->address, 'phone_indicative' => $contact->phone_indicative, 'phone_number' => $contact->phone,
+                'phone_extension' => $contact->phone_extension, 'mobile' => $contact->mobile,
+                'phone' => $phone($contact->phone_indicative, $contact->phone), 'email' => $contact->email,
+                'billing_first_name' => $contact->billing_first_name, 'billing_last_name' => $contact->billing_last_name,
+                'regime' => $contact->vat_responsible ? 'Responsable de IVA' : 'No responsable de IVA', 'postal_code' => $contact->postal_code,
+                'responsibilities' => collect($contact->fiscal_responsibilities ?? [])->map(fn ($r) => $r.' - '.(config('erp.fiscal_responsibilities')[$r] ?? $r))->values(),
+                'seller' => $contact->seller?->name, 'collector' => $contact->collector?->name, 'observations' => $contact->observations,
+                'is_customer' => (bool) $contact->is_customer, 'is_supplier' => (bool) $contact->is_supplier, 'is_other' => (bool) ($contact->is_other || $contact->is_employee),
+                'created' => $contact->created_at?->format('j/m/Y H:i').' hrs', 'updated' => $contact->updated_at?->format('j/m/Y H:i').' hrs',
+            ],
+            'docs' => in_array($tab, ['cobrar', 'pagar'], true)
+                ? app(\App\Http\Controllers\Sales\PortfolioController::class)->dues($tab === 'cobrar' ? 'clientes' : 'proveedores', $contact, $todos) : [],
+            'people' => $tab === 'contactos' ? $contact->people()->orderBy('id')->get()->map(fn ($p) => [
+                'id' => $p->id, 'name' => trim("$p->first_name $p->last_name"), 'position' => $p->position, 'office' => null,
+                'mobile' => $p->phone ? '('.($p->phone_indicative ?: '000').') '.$p->phone : null, 'email' => $p->email,
+            ]) : [],
+            'tasks' => $tab === 'tareas' ? \App\Models\CrmTask::where('contact_id', $contact->id)->orderByDesc('id')->get()->map(fn ($t) => [
+                'id' => $t->id, 'category' => $t->category, 'stage' => $t->stage, 'description' => $t->description, 'due' => $t->due_date?->format('d/m/Y'),
+                'created' => $t->created_at?->format('d/m/Y'), 'updated' => $t->updated_at?->format('d/m/Y'), 'status' => $t->status,
+            ]) : [],
+        ]);
+    }
+
     public function edit(Contact $contact): Response
     {
         return $this->form($contact->load('people'), null);

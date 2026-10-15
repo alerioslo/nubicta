@@ -140,7 +140,7 @@ class PortfolioController extends Controller
     }
 
     /** Vencimientos del tercero con las columnas del estado de cuenta de Siigo (saldo negativo = valor a favor). */
-    private function dues(string $side, Contact $contact, bool $all): Collection
+    public function dues(string $side, Contact $contact, bool $all): Collection
     {
         $cfg = self::SIDES[$side];
         $today = now()->startOfDay();

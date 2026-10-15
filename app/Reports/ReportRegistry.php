@@ -25,7 +25,7 @@ final class ReportRegistry
                 'columns' => ['ident' => ['Identificación', 'text'], 'sucursal' => ['Sucursal', 'text'], 'cliente' => ['Cliente', 'text'], 'documentos' => ['Número de comprobantes', 'count'],
                     ...self::salesValueColumns('Descuentos por item'), 'cargos' => ['Cargo en totales', 'money'], 'descuentos_totales' => ['Descuento en totales', 'money'], 'total' => ['Total', 'money']],
                 'totals' => ['documentos', 'bruto', 'descuento', 'subtotal', 'cargo', 'retencion', 'cargos', 'descuentos_totales', 'total'],
-                'links' => ['cliente' => '/terceros/{contact_id}/editar', 'documentos' => '/reportes/movimiento-facturas-venta?tercero={contact_id}&desde={from}&hasta={to}'],
+                'links' => ['cliente' => '/terceros/{contact_id}', 'documentos' => '/reportes/movimiento-facturas-venta?tercero={contact_id}&desde={from}&hasta={to}'],
                 'query' => fn ($f) => self::salesDocs($f)->join('contacts as c', 'c.id', '=', 'd.contact_id')
                     ->selectRaw('c.id contact_id, '.self::ident('c').' ident, '.self::branch('c').' sucursal, c.name cliente, count(*) documentos, '.self::salesDocSums())
                     ->groupBy('c.id', 'c.identification', 'c.dv', 'c.branch_office', 'c.name')->orderByRaw('cast(c.identification as unsigned)'),
@@ -209,7 +209,7 @@ final class ReportRegistry
                     'sucursal' => ['Sucursal', 'text'], 'cliente' => ['Cliente', 'text'], 'cuenta' => ['Cuenta contable', 'text'], 'vence' => ['Vencimiento', 'text'],
                     'valor' => ['Valor', 'money'], 'forma' => ['Forma de pago', 'text']],
                 'totals' => ['valor'],
-                'links' => ['recibo' => '/documentos/recibos/{receipt_id}', 'cliente' => '/terceros/{contact_id}/editar'],
+                'links' => ['recibo' => '/documentos/recibos/{receipt_id}', 'cliente' => '/terceros/{contact_id}'],
                 'query' => fn ($f) => self::receipts($f, 'RC')
                     ->leftJoin('sales_documents as sd', 'sd.id', '=', 'ri.sales_document_id')->leftJoin('users as u', 'u.id', '=', 'r.created_by')
                     ->leftJoin('accounts as a', 'a.id', '=', 'ri.account_id')

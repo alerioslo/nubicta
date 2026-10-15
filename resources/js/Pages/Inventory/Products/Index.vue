@@ -144,7 +144,7 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                 <tr v-for="p in products.data" :key="p.id">
                     <td>{{ p.type }}</td>
                     <td>
-                        <Link :href="`/productos/${p.id}/editar`" class="text-primary">{{ p.name }}</Link>
+                        <Link :href="`/productos/${p.id}`" class="text-primary">{{ p.name }}</Link>
                         <div v-if="p.line" class="text-[11px] text-muted">{{ p.line }}</div>
                     </td>
                     <td>{{ p.code }}</td>

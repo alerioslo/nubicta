@@ -136,6 +136,42 @@ class ProductController extends Controller
             : redirect("/productos/{$product->id}/editar")->with('success', 'Producto creado correctamente.');
     }
 
+    /** Perfil del producto como en Siigo: datos generales, stock, lista de precios, impuestos y costo promedio mensual. */
+    public function show(Request $request, Product $product): Response
+    {
+        $product->load(['accountGroup:id,name', 'taxes:id,name,type', 'prices.priceList:id,name,position']);
+        $year = min(max($request->integer('anio', (int) now()->year), 2000), (int) now()->year);
+        $snap = DB::table('product_monthly_costs')->where('company_id', $product->company_id)->where('code', $product->code)
+            ->where('year', '<=', $year)->orderBy('year')->orderBy('month')->get(['year', 'month', 'average_cost']);
+        $last = null;
+        $months = [];
+        foreach (range(1, 12) as $m) {
+            $key = sprintf('%04d%02d', $year, $m);
+            $last = $snap->filter(fn ($s) => sprintf('%04d%02d', $s->year, $s->month) <= $key)->last()?->average_cost ?? $last;
+            $months[] = $key > now()->format('Ym') ? null : ($last !== null ? (float) $last : ($key === now()->format('Ym') ? (float) $product->average_cost : null));
+        }
+        $units = app(DianUnitCatalog::class)->options();
+
+        return Inertia::render('Inventory/Products/Profile', [
+            'product' => [
+                'id' => $product->id, 'code' => $product->code, 'name' => $product->name, 'type' => Product::TYPES[$product->type] ?? $product->type,
+                'stock' => $product->stock_control ? (float) $product->stock : null, 'unit' => $product->unit_label, 'active' => (bool) $product->active,
+                'inventoriable' => (bool) $product->stock_control, 'visible' => (bool) $product->visible_in_sales, 'group' => $product->accountGroup?->name,
+                'barcode' => $product->barcode, 'dian_unit' => $product->unit_code ? $product->unit_code.' - '.($product->unit_label ?: ($units[$product->unit_code] ?? '')) : null,
+                'reference' => $product->reference, 'min_stock' => (float) $product->min_stock, 'description' => $product->description,
+                'brand' => $product->brand, 'model' => $product->model, 'tariff' => $product->tariff,
+                'prices' => $product->prices->sortBy(fn ($p) => $p->priceList?->position)->map(fn ($p) => ['name' => $p->priceList?->name, 'value' => (float) $p->value, 'currency' => $p->currency ?: 'COP'])->values(),
+                'charge' => $product->taxes->whereIn('type', ['IVA', 'Impoconsumo'])->pluck('name')->implode(', ') ?: null,
+                'withholding' => $product->taxes->whereIn('type', ['Retefuente', 'ReteIVA', 'ReteICA'])->pluck('name')->implode(', ') ?: null,
+                'created' => $product->created_at?->format('d/m/Y H:i:s').' hrs', 'updated' => $product->updated_at?->format('d/m/Y H:i:s').' hrs',
+            ],
+            'costYear' => $year,
+            'costYears' => range((int) now()->year, max(2000, (int) ($snap->min('year') ?? now()->year))),
+            'costs' => $months,
+            'showCosts' => $request->has('anio'),
+        ]);
+    }
+
     public function edit(Product $product): Response
     {
         return $this->form($product->load(['taxes:id', 'prices', 'comboItems.product:id,code,name']), $product->type);

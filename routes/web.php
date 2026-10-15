@@ -151,6 +151,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/excel', [ContactController::class, 'export'])->middleware('can:terceros.exportar');
         Route::get('/crear', [ContactController::class, 'create'])->middleware('can:terceros.crear');
         Route::post('/', [ContactController::class, 'store'])->middleware('can:terceros.crear');
+        Route::get('/{contact}', [ContactController::class, 'show'])->whereNumber('contact');
         Route::get('/{contact}/editar', [ContactController::class, 'edit'])->whereNumber('contact');
         Route::put('/{contact}', [ContactController::class, 'update'])->whereNumber('contact')->middleware('can:terceros.editar');
     });
@@ -160,6 +161,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/excel', [ProductController::class, 'export'])->middleware('can:inventario.exportar');
         Route::get('/crear', [ProductController::class, 'create'])->middleware('can:inventario.crear');
         Route::post('/', [ProductController::class, 'store'])->middleware('can:inventario.crear');
+        Route::get('/{product}', [ProductController::class, 'show'])->whereNumber('product');
         Route::get('/{product}/editar', [ProductController::class, 'edit'])->whereNumber('product');
         Route::put('/{product}', [ProductController::class, 'update'])->whereNumber('product')->middleware('can:inventario.editar');
         Route::get('/{product}/kardex', [ProductController::class, 'kardex'])->whereNumber('product');
