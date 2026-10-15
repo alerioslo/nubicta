@@ -1,6 +1,6 @@
 <script setup>
-import { computed } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
 import EmptyState from '../../Components/EmptyState.vue';
 
@@ -14,30 +14,52 @@ const props = defineProps({
 });
 
 const money = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const totals = computed(() => ({
-    total: props.docs.reduce((s, d) => s + d.total, 0),
-    balance: props.docs.reduce((s, d) => s + d.balance, 0),
-    overdue: props.docs.filter((d) => d.days > 0).reduce((s, d) => s + d.balance, 0),
-}));
+const sum = (k) => props.docs.reduce((s, d) => s + d[k], 0);
+const totals = computed(() => ({ debt: sum('debt'), favor: sum('favor'), overdue: sum('overdue'), upcoming: sum('upcoming') }));
+const customers = props.side === 'clientes';
+const tiles = computed(() => [
+    { label: customers ? 'Deuda por cobrar' : 'Deuda por pagar', value: totals.value.debt, cls: 'bg-[#13a3a3]' },
+    { label: 'Valor a favor', value: totals.value.favor, cls: 'bg-[#6cc644]' },
+    { label: customers ? 'Saldo cartera' : 'Saldo proveedor', value: totals.value.debt + totals.value.favor, cls: 'bg-[#5aa82e]' },
+    { label: 'Vencido', value: totals.value.overdue, cls: 'bg-[#e74c3c]' },
+    { label: 'Por vencer', value: totals.value.upcoming, cls: 'bg-[#f39c12]' },
+]);
+const adjustUrl = `/contabilidad/ajustes-cartera/crear?modulo=${customers ? 'ventas' : 'compras'}&tercero=${props.contact.id}&nombre=${encodeURIComponent(`${props.contact.identification} - ${props.contact.name}`)}`;
+
+const sending = ref(false);
+const mail = useForm({ email: props.contact.email || '' });
+const send = () => mail.post(`${props.cfg.url}/${props.contact.id}/enviar`, { preserveScroll: true, onSuccess: () => (sending.value = false) });
 </script>
 
 <template>
     <Head :title="`Estado de cuenta ${contact.name}`" />
     <PageHeader :title="`Estado de cuenta`" :back="cfg.url" />
 
-    <section class="s-card mt-[18px] grid grid-cols-4 gap-4 p-[20px]">
-        <div class="col-span-2">
-            <div class="text-[16px] font-bold text-ink">{{ contact.name }}</div>
-            <div class="text-muted">{{ contact.identification }}</div>
-            <div class="text-[12px] text-muted">{{ contact.email }} {{ contact.phone }}</div>
+    <section class="s-card mt-[18px] p-[20px]">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <div class="text-[16px] font-bold text-ink">{{ contact.name }}</div>
+                <div class="text-muted">{{ contact.identification }}</div>
+                <div class="text-[12px] text-muted">{{ contact.email }} {{ contact.phone }}</div>
+            </div>
+            <div class="flex gap-2">
+                <Link :href="adjustUrl" class="s-btn s-btn-outline">Ajuste de cartera</Link>
+                <button v-if="customers" type="button" class="s-btn s-btn-primary" @click="sending = !sending">Enviar estado de cuenta</button>
+            </div>
         </div>
-        <div>
-            <div class="text-[12px] text-muted">Saldo vencido</div>
-            <div class="text-[18px] font-bold text-danger">{{ money(totals.overdue) }}</div>
-        </div>
-        <div>
-            <div class="text-[12px] text-muted">{{ side === 'clientes' ? 'Total cartera' : 'Total saldo' }}</div>
-            <div class="text-[18px] font-bold text-ink">{{ money(totals.balance) }}</div>
+        <form v-if="sending" class="mt-[14px] flex items-end gap-2" @submit.prevent="send">
+            <label class="flex-1 text-[12px] text-muted">Correo del cliente
+                <input v-model="mail.email" type="email" required class="s-input mt-[4px] w-full" />
+            </label>
+            <button class="s-btn s-btn-primary" :disabled="mail.processing">Enviar</button>
+        </form>
+        <p v-if="mail.errors.email" class="s-error">{{ mail.errors.email }}</p>
+        <div class="mt-[8px] text-center text-[12px] text-muted">Moneda: Peso colombiano</div>
+        <div class="mt-[6px] grid grid-cols-5 gap-[4px]">
+            <div v-for="t in tiles" :key="t.label" class="px-[10px] py-[8px] text-white" :class="t.cls">
+                <div class="text-[20px] font-bold">{{ money(t.value) }} <span class="text-[14px]">COP</span></div>
+                <div class="text-[12px]">{{ t.label }}</div>
+            </div>
         </div>
     </section>
 
@@ -45,35 +67,43 @@ const totals = computed(() => ({
         <div class="flex items-center gap-3 p-[16px]">
             <Link :href="`${cfg.url}/${contact.id}`" class="s-subtab" :class="{ active: !todos }">Documentos con saldo</Link>
             <Link :href="`${cfg.url}/${contact.id}?todos=1`" class="s-subtab" :class="{ active: todos }">Todos los documentos</Link>
+            <span class="ml-auto text-[12px] text-muted">Encontrados ({{ docs.length }})</span>
         </div>
         <table class="s-table">
             <thead>
                 <tr>
-                    <th>Comprobante</th>
+                    <th>Detalle vencimiento</th>
                     <th v-if="side === 'proveedores'">Factura proveedor</th>
-                    <th>Fecha elaboración</th>
                     <th>Fecha vencimiento</th>
-                    <th class="text-right">Días vencidos</th>
-                    <th class="text-right">Total</th>
-                    <th class="text-right">Saldo</th>
+                    <th class="text-right">Cuota</th>
+                    <th class="text-right">{{ customers ? 'Deuda por cobrar' : 'Deuda por pagar' }}</th>
+                    <th class="text-right">Valor a favor</th>
+                    <th class="text-right">Valor vencido</th>
+                    <th class="text-right">Valor por vencer</th>
+                    <th class="text-right">Días mora/Por vencer</th>
                 </tr>
             </thead>
             <tbody>
                 <tr v-for="d in docs" :key="d.id">
                     <td class="text-primary">{{ d.name }}</td>
                     <td v-if="side === 'proveedores'">{{ d.supplier_doc ?? '-' }}</td>
-                    <td>{{ d.date }}</td>
-                    <td>{{ d.due ?? '-' }}</td>
-                    <td class="text-right" :class="{ 'text-danger': d.days > 0 }">{{ d.days || '-' }}</td>
-                    <td class="text-right">{{ money(d.total) }}</td>
-                    <td class="text-right">{{ money(d.balance) }}</td>
+                    <td>{{ d.due ?? d.date }}</td>
+                    <td class="text-right">{{ d.quote }}</td>
+                    <td class="text-right">{{ money(d.debt) }}</td>
+                    <td class="text-right">{{ money(d.favor) }}</td>
+                    <td class="text-right" :class="{ 'text-danger': d.overdue > 0 }">{{ money(d.overdue) }}</td>
+                    <td class="text-right">{{ money(d.upcoming) }}</td>
+                    <td class="text-right" :class="{ 'text-danger': d.days > 0 }">{{ d.days ?? '-' }}</td>
                 </tr>
             </tbody>
             <tfoot v-if="docs.length">
                 <tr class="font-bold">
-                    <td :colspan="side === 'proveedores' ? 5 : 4" class="px-[14px] py-[10px] text-right">Totales</td>
-                    <td class="px-[14px] text-right">{{ money(totals.total) }}</td>
-                    <td class="px-[14px] text-right">{{ money(totals.balance) }}</td>
+                    <td :colspan="side === 'proveedores' ? 4 : 3" class="px-[14px] py-[10px] text-right">Totales</td>
+                    <td class="px-[14px] text-right">{{ money(totals.debt) }}</td>
+                    <td class="px-[14px] text-right">{{ money(totals.favor) }}</td>
+                    <td class="px-[14px] text-right">{{ money(totals.overdue) }}</td>
+                    <td class="px-[14px] text-right">{{ money(totals.upcoming) }}</td>
+                    <td></td>
                 </tr>
             </tfoot>
         </table>

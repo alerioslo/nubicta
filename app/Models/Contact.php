@@ -38,6 +38,9 @@ class Contact extends Model
             $c->name = $c->person_type === 'juridica'
                 ? trim((string) $c->business_name)
                 : trim(trim((string) $c->first_name).' '.trim((string) $c->last_name));
+            if ($c->name === '') {
+                $c->name = (string) $c->identification;
+            }
         });
     }
 

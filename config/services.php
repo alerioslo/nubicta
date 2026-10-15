@@ -33,6 +33,7 @@ return [
         'access_key' => env('SIIGO_ACCESS_KEY'),
         'partner_id' => env('SIIGO_PARTNER_ID', 'SistemaDeposito'),
         'pause_ms' => env('SIIGO_PAUSE_MS', 1000),
+        'auto_sync' => (bool) env('SIIGO_AUTO_SYNC', false),
     ],
 
     'slack' => [

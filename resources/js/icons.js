@@ -9,7 +9,7 @@ import {
     faRightFromBracket, faCheck, faTriangleExclamation, faCloud, faFileExcel, faPrint, faEnvelope,
     faEllipsisVertical, faFilter, faCircleInfo, faArrowLeft, faCircleCheck, faCircleXmark, faCircleExclamation, faCaretRight,
     faTrashCan, faPaperclip, faCirclePlus, faCloudArrowUp, faCalendarDays, faCaretDown, faUpRightAndDownLeftFromCenter,
-    faFileCode, faBan, faFileImport, faLink, faLinkSlash, faScaleBalanced, faCalculator, faPlay, faList, faArrowRightArrowLeft, faMoneyCheck, faCoins, faFilePdf, faCopy, faRotate, faArrowUp, faUpRightFromSquare, faFloppyDisk, faRotateLeft, faServer, faPaperPlane, faKey, faCertificate,
+    faFileCode, faBan, faFileImport, faLink, faLinkSlash, faScaleBalanced, faCalculator, faPlay, faList, faArrowRightArrowLeft, faMoneyCheck, faCoins, faFilePdf, faCopy, faRotate, faArrowUp, faUpRightFromSquare, faFloppyDisk, faRotateLeft, faServer, faPaperPlane, faKey, faCertificate, faTableColumns,
 } from '@fortawesome/free-solid-svg-icons';
 
 library.add(
@@ -22,5 +22,5 @@ library.add(
     faRightFromBracket, faCheck, faTriangleExclamation, faCloud, faFileExcel, faPrint, faEnvelope,
     faEllipsisVertical, faFilter, faCircleInfo, faArrowLeft, faCircleCheck, faCircleXmark, faCircleExclamation, faCaretRight,
     faTrashCan, faPaperclip, faCirclePlus, faCloudArrowUp, faCalendarDays, faCaretDown, faUpRightAndDownLeftFromCenter,
-    faFileCode, faBan, faFileImport, faLink, faLinkSlash, faScaleBalanced, faCalculator, faPlay, faList, faArrowRightArrowLeft, faMoneyCheck, faCoins, faFilePdf, faCopy, faRotate, faArrowUp, faUpRightFromSquare, faFloppyDisk, faRotateLeft, faServer, faPaperPlane, faKey, faCertificate,
+    faFileCode, faBan, faFileImport, faLink, faLinkSlash, faScaleBalanced, faCalculator, faPlay, faList, faArrowRightArrowLeft, faMoneyCheck, faCoins, faFilePdf, faCopy, faRotate, faArrowUp, faUpRightFromSquare, faFloppyDisk, faRotateLeft, faServer, faPaperPlane, faKey, faCertificate, faTableColumns,
 );

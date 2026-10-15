@@ -31,6 +31,18 @@ function clear() {
     reload();
 }
 const money = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const COLUMNS = { branch: 'Sucursal', overdue: 'Saldo vencido', current: 'Saldo por vencer', credit: 'Saldo a favor', total: props.cfg.total, active: 'Estado' };
+const storeKey = `portfolio-columns-${props.side}`;
+const saved = typeof localStorage !== 'undefined' ? JSON.parse(localStorage.getItem(storeKey) || 'null') : null;
+const visible = reactive(Object.fromEntries(Object.keys(COLUMNS).map((k) => [k, saved ? saved[k] !== false : true])));
+const columnsOpen = ref(false);
+const toggleColumn = (k) => {
+    visible[k] = !visible[k];
+    localStorage.setItem(storeKey, JSON.stringify(visible));
+};
+const menu = ref(null);
+const adjustUrl = (r) => `/contabilidad/ajustes-cartera/crear?modulo=${props.side === 'clientes' ? 'ventas' : 'compras'}&tercero=${r.id}&nombre=${encodeURIComponent(`${r.identification} - ${r.name}`)}`;
 </script>
 
 <template>
@@ -47,6 +59,14 @@ const money = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 
                 </div>
                 <button type="button" class="s-btn s-btn-outline" @click="open = !open"><Icon icon="sliders" /> Más filtros</button>
                 <div class="ml-auto flex gap-2">
+                    <div class="relative">
+                        <button type="button" class="s-btn s-btn-link" @click="columnsOpen = !columnsOpen"><Icon icon="table-columns" /> Columnas</button>
+                        <div v-if="columnsOpen" class="absolute right-0 z-20 mt-1 w-[200px] rounded border border-line bg-white p-2 shadow-lg">
+                            <label v-for="(n, k) in COLUMNS" :key="k" class="flex cursor-pointer items-center gap-2 px-2 py-1 text-[13px]">
+                                <input type="checkbox" :checked="visible[k]" @change="toggleColumn(k)" /> {{ n }}
+                            </label>
+                        </div>
+                    </div>
                     <a :href="`/terceros/excel?tipo=${party}`" class="s-btn s-btn-outline"><Icon icon="download" /> Descargar</a>
                     <Link href="/movimientos" class="s-btn s-btn-outline">Ver reportes <Icon icon="chevron-down" /></Link>
                     <Link :href="cfg.create" class="s-btn s-btn-primary">{{ cfg.create_label }}</Link>
@@ -75,29 +95,36 @@ const money = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 
             <thead>
                 <tr>
                     <th>{{ cfg.party }}</th>
-                    <th>Sucursal</th>
-                    <th class="text-right">Saldo vencido</th>
-                    <th class="text-right">Saldo por vencer</th>
-                    <th class="text-right">Saldo a favor</th>
-                    <th class="text-right">{{ cfg.total }}</th>
-                    <th>Estado</th>
-                    <th class="w-[170px]">Acciones</th>
+                    <th v-if="visible.branch">Sucursal</th>
+                    <th v-if="visible.overdue" class="text-right">Saldo vencido</th>
+                    <th v-if="visible.current" class="text-right">Saldo por vencer</th>
+                    <th v-if="visible.credit" class="text-right">Saldo a favor</th>
+                    <th v-if="visible.total" class="text-right">{{ cfg.total }}</th>
+                    <th v-if="visible.active">Estado</th>
+                    <th class="w-[200px]">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 <tr v-for="r in rows.data" :key="r.id">
                     <td class="max-w-[240px]">
-                        <Link :href="`/terceros/${r.id}/editar`" class="block truncate text-primary">{{ r.name }}</Link>
+                        <Link :href="`${cfg.url}/${r.id}`" class="block truncate text-primary">{{ r.name }}</Link>
                         <div class="text-[12px]">{{ r.identification }}</div>
                     </td>
-                    <td>{{ r.branch }}</td>
-                    <td class="text-right">{{ money(r.overdue) }}</td>
-                    <td class="text-right">{{ money(r.current) }}</td>
-                    <td class="text-right">{{ money(r.credit) }}</td>
-                    <td class="text-right">{{ money(r.total) }}</td>
-                    <td>{{ r.active ? 'Activo' : 'Inactivo' }}</td>
+                    <td v-if="visible.branch">{{ r.branch }}</td>
+                    <td v-if="visible.overdue" class="text-right">{{ money(r.overdue) }}</td>
+                    <td v-if="visible.current" class="text-right">{{ money(r.current) }}</td>
+                    <td v-if="visible.credit" class="text-right">{{ money(r.credit) }}</td>
+                    <td v-if="visible.total" class="text-right">{{ money(r.total) }}</td>
+                    <td v-if="visible.active">{{ r.active ? 'Activo' : 'Inactivo' }}</td>
                     <td>
-                        <Link :href="`${cfg.url}/${r.id}`" class="s-btn s-btn-outline h-[28px] w-full text-[12px]">Ver estado de cuenta</Link>
+                        <div class="relative flex">
+                            <Link :href="`${cfg.url}/${r.id}`" class="s-btn s-btn-outline h-[28px] flex-1 rounded-r-none text-[12px]">Ver estado de cuenta</Link>
+                            <button type="button" class="s-btn s-btn-outline h-[28px] rounded-l-none border-l-0 px-2" @click="menu = menu === r.id ? null : r.id"><Icon icon="caret-down" /></button>
+                            <div v-if="menu === r.id" class="absolute right-0 top-[30px] z-20 w-[230px] rounded border border-line bg-white py-1 shadow-lg">
+                                <Link :href="adjustUrl(r)" class="block px-3 py-2 text-[13px] hover:bg-[#f5f6f7]">Ajuste de cartera y proveedores</Link>
+                                <Link :href="`/terceros/${r.id}/editar`" class="block px-3 py-2 text-[13px] hover:bg-[#f5f6f7]">Editar</Link>
+                            </div>
+                        </div>
                     </td>
                 </tr>
             </tbody>

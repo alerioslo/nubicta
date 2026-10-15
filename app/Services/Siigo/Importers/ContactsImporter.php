@@ -39,6 +39,10 @@ class ContactsImporter extends BaseImporter
     {
         $isCompany = ($r['person_type'] ?? 'Person') === 'Company';
         $names = array_values(array_filter(array_map('trim', $r['name'] ?? [])));
+        if (! $names && ! empty($r['id'])) {
+            /* el listado de Siigo a veces trae el nombre en null; el detalle si lo tiene */
+            $names = array_values(array_filter(array_map('trim', $this->siigo->get("v1/customers/{$r['id']}")['name'] ?? [])));
+        }
         $city = $r['address']['city'] ?? [];
         $phone = $this->cleanPhone($r['phones'][0] ?? null);
         $mainContact = $r['contacts'][0] ?? [];

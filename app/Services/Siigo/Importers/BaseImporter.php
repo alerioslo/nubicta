@@ -98,6 +98,13 @@ abstract class BaseImporter
 
                 $attributes = ['company_id' => $this->companyId, ...$map($row)];
                 $model = $mapping ? $modelClass::withoutGlobalScopes()->find($mapping->local_id) : null;
+                if (array_key_exists('balance', $attributes) && in_array($modelClass, [\App\Models\SalesDocument::class, \App\Models\PurchaseDocument::class], true)) {
+                    $siigo = round((float) $attributes['balance'], 2);
+                    $attributes['balance'] = $model && $model->synced_balance !== null
+                        ? round((float) $model->balance + $siigo - (float) $model->synced_balance, 2)
+                        : $siigo;
+                    $attributes['synced_balance'] = $siigo;
+                }
 
                 if ($model) {
                     $model->fill($attributes)->save();

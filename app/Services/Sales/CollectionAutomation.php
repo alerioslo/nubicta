@@ -146,6 +146,9 @@ class CollectionAutomation
         $days = (int) $doc->due_date->copy()->startOfDay()->diffInDays($today, false);
         $after = (int) $s['after_days'];
         $repeat = (int) $s['repeat_days'];
+        if ((int) ($s['max_days'] ?? 0) > 0 && $days > (int) $s['max_days']) {
+            return null;
+        }
 
         return match (true) {
             (int) $s['before_days'] > 0 && $days === -(int) $s['before_days'] => 'antes',

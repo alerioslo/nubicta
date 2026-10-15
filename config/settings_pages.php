@@ -76,6 +76,7 @@ return [
                 ['key' => 'on_due', 'label' => 'Enviar el día del vencimiento', 'type' => 'toggle', 'default' => true],
                 ['key' => 'after_days', 'label' => 'Días después del vencimiento', 'type' => 'number', 'default' => 5],
                 ['key' => 'repeat_days', 'label' => 'Repetir cada (días) mientras siga vencida', 'type' => 'number', 'default' => 15],
+                ['key' => 'max_days', 'label' => 'Dejar de recordar después de (días vencida, 0 = sin límite)', 'type' => 'number', 'default' => 90],
                 ['key' => 'attach_pdf', 'label' => 'Adjuntar PDF de la factura', 'type' => 'toggle', 'default' => true],
                 ['key' => 'message', 'label' => 'Mensaje', 'type' => 'textarea', 'default' => 'Hola {cliente}, te recordamos que la factura {factura} por {saldo} vence el {vencimiento}.'],
             ]],

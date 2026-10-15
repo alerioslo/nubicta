@@ -400,6 +400,7 @@ Route::middleware('auth')->group(function () {
     Route::redirect('/contabilidad', '/contabilidad/cuentas');
     Route::get('/ventas/clientes', [PortfolioController::class, 'customers'])->middleware('can:ventas.ver');
     Route::get('/ventas/clientes/{contact}', [PortfolioController::class, 'customerStatement'])->whereNumber('contact')->middleware('can:ventas.ver');
+    Route::post('/ventas/clientes/{contact}/enviar', [PortfolioController::class, 'sendStatement'])->whereNumber('contact')->middleware('can:ventas.ver');
     Route::get('/compras/proveedores', [PortfolioController::class, 'suppliers'])->middleware('can:compras.ver');
     Route::get('/compras/proveedores/{contact}', [PortfolioController::class, 'supplierStatement'])->whereNumber('contact')->middleware('can:compras.ver');
 

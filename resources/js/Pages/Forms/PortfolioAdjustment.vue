@@ -11,7 +11,11 @@ const MODULES = { ventas: 'Cuentas por cobrar (clientes)', compras: 'Cuentas por
 const CONCEPTS = ['Descuento', 'Retención', 'Ajuste al peso', 'Diferencia en cambio', 'Castigo de cartera', 'Otro'];
 const blank = () => ({ concept: '', detail: '', base: 0, value: 0 });
 
-const doc = useForm({ date: props.today, module: '', contact_id: null, contact_label: '', document_id: null, items: [blank()] });
+const query = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+const doc = useForm({
+    date: props.today, module: MODULES[query.get('modulo')] ? query.get('modulo') : '', contact_id: Number(query.get('tercero')) || null,
+    contact_label: query.get('nombre') || '', document_id: null, items: [blank()],
+});
 const documents = ref([]);
 const current = computed(() => documents.value.find((d) => d.id === doc.document_id));
 const adjustments = computed(() => doc.items.reduce((a, i) => a + Number(i.value || 0), 0));
@@ -23,6 +27,8 @@ async function loadDocuments() {
     const res = await fetch(`/api/buscar/pendientes?modulo=${doc.module}&contact=${doc.contact_id}`, { headers: { Accept: 'application/json' } });
     documents.value = await res.json();
 }
+
+if (doc.module && doc.contact_id) loadDocuments();
 
 const submit = () => doc.transform((d) => ({ ...d, items: d.items.filter((i) => i.concept) })).post(f.url, { preserveScroll: true });
 </script>
