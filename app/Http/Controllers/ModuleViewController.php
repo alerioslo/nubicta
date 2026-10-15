@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\InventoryCosting;
 use App\Models\SalesDocument;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,17 +18,18 @@ class ModuleViewController extends Controller
     private const VIEWS = [
         'ventas/cotizaciones' => [
             'title' => 'Ventas', 'module' => 'ventas', 'tab' => 'Cotizaciones', 'search_label' => 'Usuario', 'search' => 'Usuario',
-            'dates' => true,
-            'buttons' => [['label' => 'Crear cotización', 'href' => '/ventas/cotizaciones/crear']],
+            'this_month' => true,
+            'buttons' => [
+                ['label' => 'Descargar', 'href' => '/ventas/cotizaciones/excel', 'style' => 'outline', 'icon' => 'download', 'external' => true],
+                ['label' => 'Crear cotización', 'href' => '/ventas/cotizaciones/crear'],
+            ],
             'columns' => ['Comprobante', 'Fecha elaboración', 'Identificación', 'Sucursal', 'Cliente', 'Total', 'Moneda'],
             'empty' => ['Aún no tienes cotizaciones en este periodo', 'Crea una cotización para enviarla a tu cliente'],
             'source' => 'quotes',
         ],
         'ventas/remisiones' => [
-            'title' => 'Ventas', 'module' => 'ventas', 'tab' => 'Remisiones', 'heading' => 'Remisiones', 'search_label' => 'Cliente', 'search' => 'Buscar por nombre o identificación',
-            'dates' => true,
-            'buttons' => [['label' => 'Crear remisión', 'href' => '/ventas/remisiones/crear']],
-            'columns' => ['Tipo transacción', 'Comprobante', 'Fecha elaboración', 'Identificación', 'Sucursal', 'Cliente', 'Estado envío de correo', 'Total', 'Moneda'],
+            'title' => 'Ventas', 'module' => 'ventas', 'tab' => 'Remisiones', 'search_label' => 'Cliente', 'classic' => true,
+            'columns' => ['Tipo de transacción', 'Comprobante', 'Fecha elaboración', 'Identificación', 'Sucursal', 'Cliente', 'Estado envío de correo', 'Total'],
             'source' => 'remissions',
         ],
         'productos/documentos' => [
@@ -106,13 +108,25 @@ class ModuleViewController extends Controller
             $request->merge(['desde' => now()->subDays($view['default_days'])->toDateString()]);
             $view['chips'] = [['text' => "Fecha elaboración: Últimos días: {$view['default_days']}", 'clear' => "/$key?todos=1"]];
         }
+        if (($view['this_month'] ?? false) && ! $request->hasAny(['desde', 'hasta', 'q', 'page', 'todos'])) {
+            $request->merge(['desde' => now()->startOfMonth()->toDateString(), 'hasta' => now()->endOfMonth()->toDateString(), 'q' => $request->user()?->name]);
+        }
+        if (($view['this_month'] ?? false) && $request->filled('desde') && $request->input('desde') === now()->startOfMonth()->toDateString() && $request->input('hasta') === now()->endOfMonth()->toDateString()) {
+            $view['chips'] = [['text' => 'Fecha elaboración: Este mes', 'clear' => "/$key?todos=1"]];
+        }
+        if (($view['classic'] ?? false) && ! $request->hasAny(['desde', 'hasta', 'q', 'page', 'todos', 'usuario'])) {
+            $request->merge(['desde' => now()->subDays(14)->toDateString(), 'hasta' => now()->toDateString(), 'usuario' => $request->user()?->name, 'rango' => 'Últimos 15 días']);
+        }
+        if (($view['classic'] ?? false) && $request->boolean('todos')) {
+            $request->merge(['desde' => now()->subDays(14)->toDateString(), 'hasta' => now()->toDateString(), 'rango' => 'Últimos 15 días']);
+        }
         $rows = isset($view['source']) ? $this->{$view['source']}($request) : [];
 
         return Inertia::render('GenericList', [
-            'view' => collect($view)->except(['source', 'default_days'])->all() + ['url' => '/'.$key],
+            'view' => collect($view)->except(['source', 'default_days', 'this_month'])->all() + ['url' => '/'.$key],
             'rows' => $rows,
             'tabs' => DashboardController::tabs($view['module'], $view['tab']),
-            'filters' => $request->only(['q', 'desde', 'hasta', 'sub', 'anio', ...collect($view['selects'] ?? [])->pluck('name')->all()]),
+            'filters' => $request->only(['q', 'desde', 'hasta', 'sub', 'anio', 'usuario', 'rango', ...collect($view['selects'] ?? [])->pluck('name')->all()]),
         ]);
     }
 
@@ -188,20 +202,24 @@ class ModuleViewController extends Controller
     /** Cotizaciones (CT) o remisiones (RM) con filtro de fechas y cliente. */
     private function salesList(Request $request, string $type)
     {
+        $all = $request->boolean('todos') && ! $request->hasAny(['desde', 'hasta']);
         $from = $request->input('desde', now()->subDays($type === 'RM' ? 15 : 30)->toDateString());
         $to = $request->input('hasta', now()->toDateString());
 
         return SalesDocument::query()->with('contact:id,name,identification,branch_office')
-            ->where('type', $type)->whereBetween('date', [$from, $to])
-            ->when($request->input('q'), fn ($q, $t) => $q->whereHas('contact', fn ($c) => $c->where('name', 'like', "%$t%")->orWhere('identification', 'like', "$t%")))
+            ->where('type', $type)->when(! $all, fn ($q) => $q->whereBetween('date', [$from, $to]))
+            ->when($request->input('q'), fn ($q, $t) => $type === 'CT'
+                ? $q->whereIn('created_by', DB::table('users')->where('name', 'like', "%$t%")->pluck('id'))
+                : $q->whereHas('contact', fn ($c) => $c->where('name', 'like', "%$t%")->orWhere('identification', 'like', "$t%")))
+            ->when($request->input('usuario'), fn ($q, $t) => $q->whereIn('created_by', DB::table('users')->where('name', 'like', "%$t%")->pluck('id')))
             ->orderByDesc('date')->orderByDesc('number')
-            ->paginate(20)->withQueryString()
+            ->paginate(min($request->integer('per_page', $type === 'CT' ? 50 : 20), 5000))->withQueryString()
             ->through(fn (SalesDocument $d) => array_values(array_filter([
                 $type === 'RM' ? 'Remisión' : null,
                 ['text' => $d->name.($d->status === 'annulled' ? ' (Anulada)' : ''), 'href' => "/documentos/ventas/{$d->id}"],
                 $d->date->format('d/m/Y'), $d->contact?->identification, $d->contact?->branch_office ?: '-', ['text' => $d->contact?->name, 'truncate' => true],
                 $type === 'RM' ? $d->mailBadge() : null,
-                ['text' => $this->money((float) $d->total), 'align' => 'right'], $d->currency ?? 'COP',
+                ['text' => $this->money((float) $d->total), 'align' => 'right'], $type === 'RM' ? null : ($d->currency ?? 'COP'),
             ], fn ($v) => $v !== null)));
     }
 

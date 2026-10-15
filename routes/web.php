@@ -438,6 +438,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/'.$uri, [\App\Http\Controllers\ModuleViewController::class, 'processes'])->middleware('can:'.explode('/', $uri)[0].'.ver');
     }
     Route::get('/productos/documentos/excel', [\App\Http\Controllers\ModuleViewController::class, 'excel'])->middleware('can:inventario.ver');
+    Route::get('/ventas/remisiones/excel', [\App\Http\Controllers\ModuleViewController::class, 'excel'])->middleware('can:ventas.ver');
+    Route::get('/ventas/cotizaciones/excel', [\App\Http\Controllers\ModuleViewController::class, 'excel'])->middleware('can:ventas.ver');
     foreach (\App\Http\Controllers\ModuleViewController::routes() as $uri) {
         Route::get('/'.$uri, [\App\Http\Controllers\ModuleViewController::class, 'show'])
             ->middleware('can:'.(['bandeja-dian' => 'compras', 'productos' => 'inventario'][explode('/', $uri)[0]] ?? explode('/', $uri)[0]).'.ver');
