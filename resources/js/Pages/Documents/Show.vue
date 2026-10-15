@@ -11,13 +11,20 @@ const d = props.doc;
 const sale = !!props.company;
 const SHORT = { FV: 'Factura de venta', NC: 'Nota crédito', ND: 'Nota débito', CT: 'Cotización', RM: 'Remisión' };
 const menu = ref('');
+const classic = d.type === 'NC';
+const allHistory = ref(false);
+const fileInput = ref(null);
+const upload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) router.post(`/documentos/${d.kind}/${d.id}/adjuntos`, { attachment: file }, { forceFormData: true, preserveScroll: true });
+};
 const showLedger = ref(false);
 const mailed = ['sent', 'read'].includes(d.mail_status);
 const steps = computed(() => d.dian ? [
     { label: 'Documento guardado', ok: true },
     { label: 'Enviado a la DIAN', ok: ['Sent', 'Accepted', 'Rejected'].includes(d.dian.status) },
     { label: d.dian.status === 'Rejected' ? 'Rechazado por la DIAN' : 'Aprobado por la DIAN', ok: d.dian.status === 'Accepted', error: d.dian.status === 'Rejected' },
-    { label: 'Enviado por Mail', ok: mailed, warn: !mailed },
+    { label: classic ? 'Enviado por email' : 'Enviado por Mail', ok: mailed, warn: !mailed },
 ] : []);
 const page = usePage();
 const error = computed(() => page.props.errors?.items);
@@ -41,9 +48,26 @@ function sendMail() {
 <template>
     <Head :title="d.name" />
     <div v-if="sale" class="mx-auto max-w-[1000px] pb-[30px]" @click="menu = ''">
-        <h1 class="text-[20px] font-bold text-ink">{{ SHORT[d.type] ?? d.type_name }} : {{ d.name }}</h1>
-        <p v-if="d.created?.by || d.created?.at" class="mt-[6px] text-[12px] text-ink">Creado: {{ d.created.by }} {{ d.created.at }} hrs.</p>
-        <div class="mt-[8px] flex items-center justify-between">
+        <h1 class="text-[20px] font-bold text-ink">{{ SHORT[d.type] ?? d.type_name }}{{ classic ? ':' : ' :' }} {{ d.name }}</h1>
+        <p class="mt-[6px] flex justify-between text-[12px] text-ink">
+            <span v-if="d.created?.at">Creado: {{ [d.created.by, d.created.at].filter(Boolean).join(' ') }} hrs.</span>
+            <span v-if="classic">Modificado: {{ d.modified_at }}</span>
+        </p>
+        <div v-if="classic" class="mt-[14px] flex gap-[12px] border-t border-line pt-[26px]" @click.stop>
+            <button type="button" class="s-btn h-[34px] bg-[#e0e0e0] px-[16px] text-[13px] font-semibold text-[#9e9e9e]" disabled><Icon icon="paper-plane" class="mr-[6px]" />Enviar a la DIAN</button>
+            <button v-if="d.mailable && !annulled" type="button" class="s-btn s-btn-outline h-[34px] px-[16px] text-[13px] font-semibold" @click="sendMail"><Icon icon="envelope" class="mr-[6px]" />Enviar por mail</button>
+            <a :href="`/documentos/${d.kind}/${d.id}/imprimir`" target="_blank" class="s-btn s-btn-outline h-[34px] px-[16px] text-[13px] font-semibold"><Icon icon="print" class="mr-[6px]" />Imprimir</a>
+            <div class="relative">
+                <button type="button" class="s-btn s-btn-outline h-[34px] px-[16px] text-[13px] font-semibold" @click="menu = menu === 'mas' ? '' : 'mas'">Más <Icon icon="caret-down" class="ml-[6px]" /></button>
+                <div v-if="menu === 'mas'" class="absolute left-0 top-[38px] z-20 min-w-[210px] rounded-[4px] border border-line bg-white py-[4px] text-[13px] shadow-lg">
+                    <Link v-if="d.copy_url" :href="d.copy_url" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Copiar</Link>
+                    <button v-if="!d.blocker && !annulled" type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff]" @click="annul">Anular</button>
+                    <button type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff]" @click="showLedger = !showLedger; menu = ''">{{ showLedger ? 'Ocultar contabilización' : 'Ver contabilización' }}</button>
+                    <a v-if="d.dian?.xml" :href="`/documentos/${d.kind}/${d.id}/xml`" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Descargar XML</a>
+                </div>
+            </div>
+        </div>
+        <div v-else class="mt-[8px] flex items-center justify-between">
             <div class="flex gap-[10px]">
                 <Link v-if="d.editable && !d.blocker" :href="`/documentos/${d.kind}/${d.id}/editar`" class="s-btn s-btn-outline h-[34px] px-[16px] text-[13px]">Editar</Link>
                 <div class="relative" @click.stop>
@@ -93,6 +117,9 @@ function sendMail() {
             </div>
         </div>
         <div v-if="annulled" class="mt-[10px] rounded-[2px] border border-[#e57373] bg-[#fdecea] px-4 py-2 text-[12px] text-[#c62828]">Documento anulado<span v-if="d.annulled_at"> el {{ d.annulled_at }}</span>.</div>
+        <div v-else-if="d.dian?.status === 'Accepted' && mailed" class="mt-[10px] flex items-center gap-[8px] rounded-[2px] border border-[#7cb342] bg-[#f1f8e9] px-[14px] py-[8px] text-[12px] text-ink">
+            <Icon icon="circle-check" class="text-[#43a047]" /> El documento electrónico fue aprobado por la DIAN y se envió con CUFE y QR a tu cliente de forma exitosa.
+        </div>
         <div v-else-if="d.dian?.status === 'Accepted' && !mailed && d.mailable" class="mt-[10px] flex items-center gap-[8px] rounded-[2px] border border-[#f7941d] bg-[#fff6ea] px-[14px] py-[8px] text-[12px] text-ink">
             <Icon icon="triangle-exclamation" class="text-[#f7941d]" /> El documento fue aprobado por la DIAN y está pendiente por enviar a tu cliente.
             <button type="button" class="text-primary hover:underline" @click="sendMail">Enviar por email</button>
@@ -101,6 +128,39 @@ function sendMail() {
         <div v-if="error" class="mt-[10px] rounded-[2px] border border-[#e57373] bg-[#fdecea] px-4 py-2 text-[12px] text-[#c62828]">{{ error }}</div>
 
         <div class="mt-[10px]"><DocumentSheet :doc="d" :company="company" :resolution="resolution" /></div>
+
+        <template v-if="!classic && d.history?.length">
+            <div v-for="h in (allHistory ? d.history : d.history.slice(0, 1))" :key="h.at + h.to" class="mt-[4px] flex justify-between rounded-[4px] border border-[#999] bg-[#f5f5f5] px-[38px] py-[3px] text-[10px] text-ink">
+                <span><b>Documento <span class="text-[#1a237e]">enviado</span> a {{ h.name }} ({{ h.to }})</b></span><span>{{ h.at }}</span>
+            </div>
+            <button v-if="d.history.length > 1" type="button" class="ml-auto block pt-[4px] text-[12px] text-ink hover:underline" @click="allHistory = !allHistory">{{ allHistory ? 'Ver menos' : 'Ver más' }}</button>
+        </template>
+        <template v-if="classic">
+            <section class="mt-[10px] rounded-[4px] bg-white p-[20px]">
+                <h2 class="text-[17px] font-semibold text-ink">Historial de acciones</h2>
+                <div v-for="h in d.history" :key="h.at + h.to" class="mt-[16px] flex rounded-[4px] border border-line text-[12px]">
+                    <span class="w-[130px] border-r border-line px-[16px] py-[14px] text-ink-soft">{{ h.at }}</span>
+                    <span class="px-[16px] py-[14px] font-semibold text-ink">{{ SHORT[d.type] }} {{ d.name }} <span class="text-[#1a237e]">enviada</span> a {{ h.name }} ({{ h.to }})</span>
+                </div>
+                <p v-if="!d.history?.length" class="mt-[16px] text-[12px] text-ink-soft">No hay acciones registradas.</p>
+            </section>
+            <div class="mt-[10px] grid grid-cols-[1fr_1fr] gap-[10px]">
+                <section class="rounded-[4px] bg-white p-[20px]">
+                    <h2 class="text-[17px] font-semibold text-ink">Información General</h2>
+                    <table class="mt-[16px] w-full border border-line text-[12px]">
+                        <tr><th class="w-[130px] p-[14px] text-left font-semibold">Cliente</th><td class="p-[14px]"><Link v-if="d.contact_id" :href="`/terceros/${d.contact_id}/editar`" class="font-semibold text-primary underline">{{ d.contact?.name }}</Link></td></tr>
+                        <tr class="bg-[#f5f5f5]"><th class="p-[14px] text-left font-semibold">Deuda Total cliente</th><td class="p-[14px]"><Link :href="`/reportes/cartera-detallada?tercero=${d.contact_id}`" class="font-semibold text-primary underline">{{ money(d.debt) }}</Link></td></tr>
+                        <tr><th class="p-[14px] text-left font-semibold">Comprobantes relacionados</th><td class="p-[14px]"><Link v-if="d.related_url" :href="d.related_url" class="font-semibold text-primary underline">{{ d.related }}</Link></td></tr>
+                    </table>
+                </section>
+                <section class="rounded-[4px] bg-white p-[20px]">
+                    <h2 class="text-[17px] font-semibold text-ink">Anexos</h2>
+                    <a v-for="a in d.attachments" :key="a.id" :href="a.url" class="mt-[10px] block text-[12px] text-primary hover:underline"><Icon icon="paperclip" /> {{ a.name }}</a>
+                    <button type="button" class="mt-[30px] px-[30px] text-[12px] text-ink" @click="fileInput.click()">Adjuntar archivo <Icon icon="paperclip" class="ml-[6px]" /></button>
+                    <input ref="fileInput" type="file" class="hidden" @change="upload" />
+                </section>
+            </div>
+        </template>
 
         <section v-if="showLedger" class="s-card mt-[14px]">
             <h2 class="px-4 pt-3 text-[13px] font-bold">Contabilización</h2>

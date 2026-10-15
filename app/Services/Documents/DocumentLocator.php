@@ -157,7 +157,7 @@ class DocumentLocator
             'payments' => $payments->map(fn ($p) => ['name' => $p->name, 'value' => (float) $p->value, 'due_date' => $p->due_date,
                 'form' => ($methods[$p->payment_method_id] ?? null) === 'Cartera' ? 'Crédito' : 'Efectivo']),
             'number_label' => $sales && $doc->prefix ? "{$doc->prefix} {$doc->number}" : null,
-            'created' => ['by' => $doc->created_by ? DB::table('users')->where('id', $doc->created_by)->value('name') : ($sales && $doc->seller_id ? DB::table('sellers')->where('id', $doc->seller_id)->value('name') : null),
+            'created' => ['by' => $doc->created_by ? DB::table('users')->where('id', $doc->created_by)->value('name') : null,
                 'at' => $doc->created_at?->format('d/m/Y H:i')],
             'retentions' => $retentions->map(fn ($r) => ['name' => $r->name, 'value' => (float) $r->value]),
             'totals' => ['subtotal' => (float) $doc->subtotal, 'discount' => (float) $doc->discount, 'tax' => (float) $doc->tax_total,
@@ -166,7 +166,45 @@ class DocumentLocator
                 'xml' => $doc->xml_path ? true : false, 'response' => (bool) $doc->dian_response_path, 'attached' => (bool) $doc->attached_path,
                 'qr' => $sales ? ($doc->qr_data ?: ($doc->cufe ? 'https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey='.$doc->cufe : null)) : null] : null,
             'printable' => $sales,
+        ] + ($sales ? self::salesExtra($doc) : []);
+    }
+
+    /** Datos que usan los formatos de impresion de notas (tercero completo, factura afectada, valor en letras). */
+    private static function salesExtra(SalesDocument $doc): array
+    {
+        $contact = DB::table('contacts as c')->leftJoin('municipalities as m', 'm.code', '=', 'c.municipality_code')->where('c.id', $doc->contact_id)
+            ->first(['c.phone_indicative', 'c.phone', 'c.mobile', 'c.phone_extension', 'm.name as city']);
+        $related = $doc->related_document_id ? DB::table('sales_documents')->where('id', $doc->related_document_id)->first(['prefix', 'number', 'name', 'cufe']) : null;
+
+        return [
+            'contact_extra' => [
+                'phone' => $contact ? trim('('.($contact->phone_indicative ?: '000').') '.($contact->phone ?: $contact->mobile).' - Ext. '.($contact->phone_extension ?: '000')) : null,
+                'city' => $contact?->city ? "{$contact->city} - Colombia" : null,
+            ],
+            'related_doc' => $related ? ['label' => $related->prefix ? "{$related->prefix}-{$related->number}" : $related->name, 'cufe' => $related->cufe] : null,
+            'type_code' => DB::table('document_types')->where('id', $doc->document_type_id)->value('code'),
+            'issued_at' => $doc->created_at?->format('d/m/Y, H:i'),
+            'words' => self::words((float) $doc->total),
+            'contact_id' => $doc->contact_id,
+            'debt' => $doc->contact_id ? (float) DB::table('sales_documents')->where('company_id', $doc->company_id)->where('contact_id', $doc->contact_id)->where('status', '!=', 'annulled')->sum('balance') : null,
+            'history' => DB::table('audit_logs')->where('auditable_type', SalesDocument::class)->where('auditable_id', $doc->id)->where('event', 'mail_sent')
+                ->orderByDesc('id')->get(['new_values', 'created_at'])->map(function ($l) {
+                    $v = json_decode((string) $l->new_values, true) ?: [];
+
+                    return ['at' => \Illuminate\Support\Carbon::parse($l->created_at)->locale('es')->translatedFormat('j M Y - H:i'), 'to' => $v['to'] ?? '', 'name' => $v['name'] ?? ''];
+                }),
+            'modified_at' => $doc->updated_at && $doc->updated_at->ne($doc->created_at) && $doc->source === 'erp' ? $doc->updated_at->format('d/m/Y H:i') : null,
         ];
+    }
+
+    /** Valor en letras como lo imprime Siigo: "Cuatrocientos cuarenta y seis mil quinientos pesos m/cte". */
+    public static function words(float $value): string
+    {
+        $words = new \NumberFormatter('es', \NumberFormatter::SPELLOUT);
+        $cents = (int) round(fmod($value, 1) * 100);
+        $w = str_replace("\u{AD}", '', $words->format((int) $value));
+
+        return mb_strtoupper(mb_substr($w, 0, 1)).mb_substr($w, 1).' pesos'.($cents ? ' con '.str_replace("\u{AD}", '', $words->format($cents)).' centavos' : '').' m/cte';
     }
 
     private static function receipt(Receipt $doc): array
@@ -175,8 +213,6 @@ class DocumentLocator
         $adjustments = DB::table('receipt_item_adjustments')->whereIn('receipt_item_id', $items->pluck('id'))->orderBy('id')->get()->groupBy('receipt_item_id');
         $contact = DB::table('contacts as c')->leftJoin('municipalities as m', 'm.code', '=', 'c.municipality_code')->where('c.id', $doc->contact_id)
             ->first(['c.dv', 'c.phone_indicative', 'c.phone', 'c.mobile', 'm.name as city']);
-        $words = new \NumberFormatter('es', \NumberFormatter::SPELLOUT);
-        $cents = (int) round(fmod((float) $doc->total, 1) * 100);
 
         return [
             'module_name' => $doc->type === 'RC' ? 'ventas' : 'compras',
@@ -191,7 +227,7 @@ class DocumentLocator
             ]),
             'contact_extra' => ['dv' => $contact?->dv, 'phone' => trim('('.($contact?->phone_indicative ?: '000').') '.($contact?->phone ?: $contact?->mobile)), 'city' => $contact?->city],
             'created' => trim((DB::table('users')->where('id', $doc->created_by)->value('name') ?? '').' '.$doc->created_at?->locale('es')->translatedFormat('j M Y H:i:s').' hrs'),
-            'words' => mb_strtoupper(mb_substr($w = str_replace("\u{AD}", '', $words->format((int) $doc->total)), 0, 1)).mb_substr($w, 1).' pesos'.($cents ? ' con '.str_replace("\u{AD}", '', $words->format($cents)).' centavos' : '').' m/cte',
+            'words' => self::words((float) $doc->total),
             'totals' => ['total' => (float) $doc->total, 'adjustments' => (float) $items->sum('adjustments')],
         ];
     }

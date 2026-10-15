@@ -370,6 +370,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/imprimir', [\App\Http\Controllers\DocumentController::class, 'print']);
         Route::post('/favorito', [\App\Http\Controllers\DocumentController::class, 'favorite']);
         Route::post('/correo', [\App\Http\Controllers\DocumentController::class, 'mail']);
+        Route::post('/adjuntos', [\App\Http\Controllers\DocumentController::class, 'attach']);
         Route::get('/editar', [\App\Http\Controllers\DocumentFormController::class, 'edit']);
         Route::post('/editar', [\App\Http\Controllers\DocumentFormController::class, 'update']);
     });

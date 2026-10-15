@@ -77,6 +77,16 @@ class DocumentController extends Controller
         return back()->with('success', "Se envió {$doc->name} a {$request->input('to')}.");
     }
 
+    public function attach(\Illuminate\Http\Request $request, string $kind, int $id): RedirectResponse
+    {
+        $doc = DocumentLocator::find($kind, $id);
+        Gate::authorize(DocumentLocator::module($doc).'.editar');
+        $request->validate(['attachment' => ['required', 'file', 'max:10240']], ['attachment.max' => 'El archivo adjunto no puede superar 10 MB']);
+        \App\Models\Attachment::store($doc, $request->file('attachment'));
+
+        return back()->with('success', 'Se adjuntó el archivo.');
+    }
+
     public function xml(string $kind, int $id): StreamedResponse
     {
         $doc = DocumentLocator::find($kind, $id);

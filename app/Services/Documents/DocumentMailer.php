@@ -58,6 +58,7 @@ class DocumentMailer
             $zip && @unlink($zip['path']);
         }
         $doc->forceFill(['mail_status' => 'sent'])->save();
+        \App\Models\AuditLog::record('mail_sent', $doc, [], ['to' => $to, 'name' => $doc->contact?->name]);
     }
 
     /** Genera el PDF con Chromium sin interfaz a partir de la vista de impresion firmada. */

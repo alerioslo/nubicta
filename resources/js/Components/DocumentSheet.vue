@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import QRCode from 'qrcode';
+import NoteSheet from './NoteSheet.vue';
 
 /* Representacion grafica de un documento de venta con el formato de Siigo (impresion individual, por lotes y PDF del correo). */
 const props = defineProps({ doc: Object, company: Object, resolution: Object });
@@ -31,7 +32,8 @@ onMounted(async () => {
 </script>
 
 <template>
-    <article class="sheet">
+    <NoteSheet v-if="d.type === 'NC'" :doc="d" :company="company" :software="software" />
+    <article v-else class="sheet">
         <div v-if="paid" class="ribbon"><span>Pagada</span></div>
         <p v-if="d.dian" class="side">{{ software }}</p>
 
