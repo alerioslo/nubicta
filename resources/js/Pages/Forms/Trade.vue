@@ -102,8 +102,15 @@ const totals = computed(() => {
 });
 
 const summaryOptions = (kind) => props.withholdings.filter((w) => w.type === kind);
-const itemCharges = computed(() => props.charges);
-const itemWithholdings = computed(() => props.withholdings.filter((w) => w.type !== 'ReteICA' || !f.retentions?.includes('ReteICA')));
+const byRate = (a, b) => b.percentage - a.percentage;
+const itemCharges = computed(() => (f.sorted_taxes
+    ? ['IVA', 'Impoconsumo'].flatMap((type) => props.charges.filter((c) => c.type === type && (type === 'IVA' || Number(c.percentage) > 0)).sort(byRate))
+    : props.charges));
+const itemWithholdings = computed(() => {
+    const list = props.withholdings.filter((w) => (f.item_withholdings ? f.item_withholdings.includes(w.type) : w.type !== 'ReteICA' || !f.retentions?.includes('ReteICA')));
+    return f.sorted_taxes ? [...list].sort(byRate) : list;
+});
+const itemTypes = f.item_types ?? Object.fromEntries(Object.keys(ITEM_URL).map((t) => [t, t]));
 const saleWithholdings = computed(() => props.withholdings.filter((w) => w.type === 'Retefuente'));
 
 function addDays(date, days) {
@@ -282,7 +289,7 @@ function submit(action) {
                             <p v-if="doc.errors.contact_id" class="text-[10px] text-danger">{{ doc.errors.contact_id }}</p>
                         </div>
                     </div>
-                    <div v-if="!f.related || f.party === 'cliente'" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
+                    <div v-if="!f.classic && (!f.related || f.party === 'cliente')" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
                         <span class="doc-label">Contacto <Icon icon="circle-info" class="text-[9px] text-primary" /></span>
                         <select v-model="doc.person_id" class="doc-input">
                             <option :value="null"></option>
@@ -300,7 +307,7 @@ function submit(action) {
                 </div>
 
                 <div class="space-y-[10px]">
-                    <div class="grid grid-cols-[76px_1fr] items-start gap-[8px]" :class="{ 'mt-[35px]': f.related }">
+                    <div class="grid grid-cols-[76px_1fr] items-start gap-[8px]" :class="{ 'mt-[35px]': f.related, 'mt-[34px]': f.classic }">
                         <span class="doc-label">Número <Icon icon="circle-info" class="text-[9px] text-primary" /></span>
                         <div class="flex items-start justify-between gap-[8px]">
                             <input v-if="editNumber || (f.purchase && !currentType)" v-model="doc.number" class="doc-input" :placeholder="currentType ? String(currentType.consecutive) : ''" />
@@ -308,6 +315,13 @@ function submit(action) {
                             <span v-else-if="currentType" class="text-[11.5px]">{{ currentType.consecutive }} (Numeración Automática)</span>
                             <button v-if="f.logo" type="button" class="doc-link whitespace-nowrap" @click="editNumber = !editNumber">Editar consecutivo</button>
                         </div>
+                    </div>
+                    <div v-if="f.classic" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
+                        <span class="doc-label">Contacto <Icon icon="circle-info" class="text-[9px] text-primary" /></span>
+                        <select v-model="doc.person_id" class="doc-input">
+                            <option :value="null"></option>
+                            <option v-for="p in people" :key="p.id" :value="p.id">{{ p.email ? `${p.name} (${p.email})` : p.name }}</option>
+                        </select>
                     </div>
                     <div v-if="f.supplier_number || f.supplier_number_readonly" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
                         <span class="doc-label">{{ typeof f.supplier_number === 'string' ? f.supplier_number : 'No. factura proveedor' }}</span>
@@ -343,9 +357,9 @@ function submit(action) {
                     <thead>
                         <tr>
                             <th class="w-[14px]">#</th>
-                            <th v-if="f.item_type" class="w-[62px]">Tipo</th>
-                            <th class="w-[120px]">{{ f.classic ? 'Ítem' : 'Producto' }}</th>
-                            <th>Descripción</th>
+                            <th v-if="f.item_type" :class="f.classic ? 'w-[78px]' : 'w-[62px]'">Tipo</th>
+                            <th :class="f.classic ? '' : 'w-[120px]'">{{ f.classic ? 'Ítem' : 'Producto' }}</th>
+                            <th :class="{ 'w-[90px]': f.classic }">Descripción</th>
                             <th class="w-[56px] text-right">{{ f.classic ? 'Cant.' : 'Cant' }}</th>
                             <th class="w-[86px] text-right">{{ f.classic ? 'Vr.Unitario' : 'Valor Unitario' }}</th>
                             <th class="w-[60px] text-right">{{ f.purchase ? 'Descuento' : '% Desc.' }}</th>
@@ -378,7 +392,7 @@ function submit(action) {
                                 <td class="pt-[6px] text-[11px]">{{ idx + 1 }}</td>
                                 <td v-if="f.item_type">
                                     <select v-model="row.type" class="doc-input px-[2px]" @change="row.item_id = null; row.label = ''">
-                                        <option v-for="t in Object.keys(ITEM_URL)" :key="t">{{ t }}</option>
+                                        <option v-for="(label, t) in itemTypes" :key="t" :value="t">{{ label }}</option>
                                     </select>
                                 </td>
                                 <td>

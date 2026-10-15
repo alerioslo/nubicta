@@ -46,7 +46,7 @@ class DocumentFormController extends Controller
         'NE' => [['code' => '1', 'name' => 'Nota de ensamble', 'consecutive' => 5]],
     ];
 
-    private const PREFIX = ['CE' => 'RP', 'CT' => 'C'];
+    private const PREFIX = ['CE' => 'RP', 'CT' => 'C', 'ND' => 'DF'];
 
     public const FORMS = [
         'ventas/facturas/crear' => [
@@ -56,12 +56,12 @@ class DocumentFormController extends Controller
         'ventas/notas-credito/crear' => [
             'page' => 'Trade', 'perm' => 'ventas.crear', 'title' => 'Nueva nota crédito', 'doc' => 'NC', 'party' => 'cliente', 'related' => 'ventas',
             'related_label' => 'Factura', 'seller' => true, 'payments' => true, 'item_taxes' => true, 'net' => true, 'observations' => true,
-            'buttons' => ['Guardar', 'Guardar y enviar'],
+            'item_withholdings' => ['Retefuente'], 'buttons' => ['Guardar', 'Guardar y enviar'],
         ],
         'ventas/notas-debito/crear' => [
             'page' => 'Trade', 'perm' => 'ventas.crear', 'title' => 'Nueva nota débito (Ventas)', 'doc' => 'ND', 'party' => 'cliente', 'related' => 'ventas',
             'related_label' => 'Factura', 'seller' => true, 'payments' => true, 'item_taxes' => true, 'net' => true, 'observations' => true,
-            'buttons' => ['Guardar', 'Guardar y enviar'],
+            'item_withholdings' => ['Retefuente'], 'buttons' => ['Guardar', 'Guardar y enviar'],
         ],
         'ventas/cotizaciones/crear' => [
             'page' => 'Trade', 'perm' => 'ventas.crear', 'title' => 'Nueva Cotización', 'doc' => 'CT', 'party' => 'cliente', 'seller' => true,
@@ -201,6 +201,12 @@ class DocumentFormController extends Controller
     private function render(string $key, array $override = [], ?array $initial = null): Response
     {
         $form = self::FORMS[$key];
+        if (($form['purchase'] ?? false) && ! ($form['classic'] ?? false)) {
+            $form += [
+                'item_types' => ['Producto' => 'Producto', 'Activo fijo' => 'Activo fijo', 'Cuenta contable' => 'Gasto / Cuenta contable'],
+                'item_withholdings' => ['Retefuente'], 'sorted_taxes' => true,
+            ];
+        }
 
         return Inertia::render('Forms/'.$form['page'], [
             'initial' => $initial,

@@ -81,6 +81,7 @@ return [
         ],
         'Usuarios y más' => [
             ['label' => 'Usuario', 'url' => '/configuracion/usuarios/crear', 'permission' => 'configuracion.usuarios'],
+            ['label' => 'Invita a tu contador', 'url' => '/configuracion/usuarios/crear?contador=1', 'permission' => 'configuracion.usuarios'],
         ],
         'Otros' => [
             ['label' => 'Producto / Servicio', 'url' => '/productos/crear', 'permission' => 'inventario.crear'],
@@ -94,6 +95,7 @@ return [
             ['label' => 'Traslado de dinero', 'url' => '/bancos/traslados/crear', 'permission' => 'bancos.crear'],
             ['label' => 'Ajuste de cartera / proveedores', 'url' => '/contabilidad/ajustes-cartera/crear', 'permission' => 'contabilidad.crear'],
             ['label' => 'Clientes, proveedores u otros', 'url' => '/terceros/crear', 'permission' => 'terceros.crear'],
+            ['label' => 'Favoritos', 'url' => '/contabilidad/comprobantes-favoritos', 'permission' => 'contabilidad.ver'],
         ],
     ],
 
@@ -108,7 +110,7 @@ return [
         ['label' => 'Crea un Tercero', 'icon' => 'user-plus', 'url' => '/terceros/crear'],
         ['label' => 'Crea un Producto o Servicio', 'icon' => 'cart-flatbed', 'url' => '/productos/crear'],
         ['label' => 'Importa una Compra o Gasto desde XML o ZIP', 'icon' => 'file-arrow-up', 'url' => '/compras/importar-xml'],
-        ['label' => 'Movimientos del mes', 'icon' => 'chart-column', 'url' => '/movimientos'],
+        ['label' => 'Causación automática DIAN', 'icon' => 'download', 'url' => '/bandeja-dian'],
     ],
 
     /* Modulo => acciones. Genera permisos "modulo.accion" para los perfiles. */
