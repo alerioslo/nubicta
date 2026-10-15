@@ -316,7 +316,7 @@ class LedgerController extends Controller
         ], fn ($v) => filled($v));
         \Illuminate\Support\Facades\DB::table('report_exports')->insert([
             'company_id' => \App\Support\CurrentCompany::id(), 'user_id' => auth()->id(), 'slug' => $file, 'title' => $title,
-            'rows_count' => is_array($rows) ? count($rows) : 0, 'created_at' => now(),
+            'format' => $format, 'url' => mb_substr($request->fullUrl(), 0, 2000), 'rows_count' => is_array($rows) ? count($rows) : 0, 'created_at' => now(),
         ]);
         if ($format === 'pdf') {
             return TablePdf::download("$file.pdf", $title, $columns, $rows, $totals, $filters);

@@ -24,7 +24,7 @@ final class ReportRegistry
                 'title' => 'Ventas por cliente', 'filters' => ['seller', 'range', 'contact', 'nc', 'pos'], 'primary' => ['seller'],
                 'columns' => ['ident' => ['Identificación', 'text'], 'sucursal' => ['Sucursal', 'text'], 'cliente' => ['Cliente', 'text'], 'documentos' => ['Número de comprobantes', 'count'],
                     ...self::salesValueColumns('Descuentos por item'), 'cargos' => ['Cargo en totales', 'money'], 'descuentos_totales' => ['Descuento en totales', 'money'], 'total' => ['Total', 'money']],
-                'totals' => ['documentos', 'bruto', 'descuento', 'subtotal', 'cargo', 'retencion', 'cargos', 'descuentos_totales', 'total'],
+                'totals' => ['bruto', 'descuento', 'subtotal', 'cargo', 'retencion', 'cargos', 'descuentos_totales', 'total'],
                 'links' => ['cliente' => '/terceros/{contact_id}', 'documentos' => '/reportes/movimiento-facturas-venta?tercero={contact_id}&desde={from}&hasta={to}'],
                 'query' => fn ($f) => self::salesDocs($f)->join('contacts as c', 'c.id', '=', 'd.contact_id')
                     ->selectRaw('c.id contact_id, '.self::ident('c').' ident, '.self::branch('c').' sucursal, c.name cliente, count(*) documentos, '.self::salesDocSums())
@@ -43,7 +43,7 @@ final class ReportRegistry
                 'title' => 'Ventas por vendedor', 'filters' => ['seller', 'contact', 'range', 'nc'], 'primary' => ['seller'],
                 'columns' => ['ident' => ['Identificación', 'text'], 'vendedor' => ['Nombre vendedor', 'text'], 'documentos' => ['Número de comprobantes', 'count'],
                     ...self::salesValueColumns('Descuento'), 'total' => ['Total', 'money']],
-                'totals' => ['documentos', 'bruto', 'descuento', 'subtotal', 'cargo', 'retencion', 'total'],
+                'totals' => ['bruto', 'descuento', 'subtotal', 'cargo', 'retencion', 'total'],
                 'query' => fn ($f) => self::salesDocs($f)->leftJoin('sellers as s', 's.id', '=', 'd.seller_id')
                     ->selectRaw("s.id seller_id, s.identification ident, coalesce(s.name, 'Sin vendedor') vendedor, count(*) documentos, ".self::salesDocSums())
                     ->groupBy('s.id', 's.identification', 's.name')->orderBy('vendedor'),
@@ -86,7 +86,7 @@ final class ReportRegistry
                 'labels' => ['kind' => 'Tipo de transacción', 'contact' => 'Tercero'], 'kinds' => ['RC' => 'Recibos de caja', 'RP' => 'Recibos de pago'],
                 'columns' => ['documento' => ['Documento', 'text'], 'ident' => ['Identificación', 'text'], 'sucursal' => ['Sucursal', 'text'], 'nombre' => ['Nombre', 'text'],
                     'centro' => ['Centro de costo', 'text'], 'fecha' => ['Fecha de elaboración', 'date'], 'forma_pago' => ['Forma de pago', 'text'], 'valor' => ['Valor', 'money'],
-                    'anticipos' => ['Valor anticipos', 'money'], 'moneda' => ['Moneda', 'text']],
+                    'anticipos' => ['Valor anticipos', 'money']],
                 'totals' => ['valor', 'anticipos'],
                 'query' => fn ($f) => DB::table('receipts as r')->join('contacts as c', 'c.id', '=', 'r.contact_id')->leftJoin('payment_methods as pm', 'pm.id', '=', 'r.payment_method_id')
                     ->where('r.company_id', $f['cid'])->whereIn('r.type', $f['kind'] ? [$f['kind']] : ['RC', 'RP'])->where('r.status', '<>', 'annulled')
@@ -100,7 +100,7 @@ final class ReportRegistry
                 'title' => 'Listado de productos / Servicios', 'filters' => ['product', 'kind', 'status', 'group'], 'primary' => ['product'],
                 'labels' => ['kind' => 'Saldo', 'status' => 'Estado', 'group' => 'Categoría'],
                 'kinds' => ['con' => 'Con saldo', 'sin' => 'Sin saldo', 'todos' => 'Todos'], 'statuses' => ['activo' => 'Activo', 'inactivo' => 'Inactivo', 'todos' => 'Todos'],
-                'defaults' => ['kind' => 'con', 'status' => 'activo'],
+                'defaults' => ['kind' => 'con', 'status' => 'activo'], 'column_picker' => true, 'hidden' => ['precio1', 'precio2', 'precio3'],
                 'columns' => ['tipo' => ['Tipo', 'text'], 'codigo' => ['Código', 'text'], 'nombre' => ['Nombre', 'text'], 'referencia' => ['Referencia fábrica', 'text'],
                     'categoria' => ['Categoría', 'text'], 'estado' => ['Estado', 'text'], 'impuesto1' => ['Impuesto cargo', 'text'], 'impuesto2' => ['Impuesto Cargo 2', 'text'],
                     'precio1' => ['Precio de venta 1', 'money'], 'descripcion' => ['Descripción larga', 'text'], 'incluido' => ['Es incluido', 'text'], 'inventariable' => ['Inventariable', 'text'],
@@ -127,7 +127,7 @@ final class ReportRegistry
                 'title' => 'Ventas por centro de costo', 'filters' => ['cost_center', 'contact', 'range', 'nc'], 'primary' => ['cost_center'],
                 'columns' => ['codigo' => ['Código centro de costo', 'text'], 'centro' => ['Centro de costo', 'text'], 'documentos' => ['Número de comprobantes', 'count'],
                     ...self::salesValueColumns('Descuento'), 'cargos' => ['Cargo en totales', 'money'], 'descuentos_totales' => ['Descuento en totales', 'money'], 'total' => ['Total', 'money']],
-                'totals' => ['documentos', 'bruto', 'descuento', 'subtotal', 'cargo', 'retencion', 'cargos', 'descuentos_totales', 'total'],
+                'totals' => ['bruto', 'descuento', 'subtotal', 'cargo', 'retencion', 'cargos', 'descuentos_totales', 'total'],
                 'query' => fn ($f) => self::salesDocs($f)->join('cost_centers as cc', 'cc.id', '=', 'd.cost_center_id')
                     ->when($f['cost_center'], fn ($q, $v) => $q->where('d.cost_center_id', $v))
                     ->selectRaw('cc.code codigo, cc.name centro, count(*) documentos, '.self::salesDocSums())
@@ -229,12 +229,16 @@ final class ReportRegistry
 
             // ---------------- Cartera ----------------
             'cartera-detallada' => [
-                'title' => 'Cuentas por cobrar/pagar detallada por documento', 'filters' => ['module', 'contact', 'cutoff'],
-                'columns' => ['ident' => ['Identificación', 'text'], 'tercero' => ['Tercero', 'text'], 'documento' => ['Documento', 'text'], 'fecha' => ['Fecha', 'date'], 'vence' => ['Vencimiento', 'date'],
-                    'dias' => ['Días vencidos', 'int'], 'total' => ['Valor documento', 'money'], 'sin_vencer' => ['Sin vencer', 'money'], 'd30' => ['1 a 30', 'money'], 'd60' => ['31 a 60', 'money'],
-                    'd90' => ['61 a 90', 'money'], 'mas90' => ['Más de 90', 'money'], 'saldo' => ['Saldo', 'money']],
-                'totals' => ['total', 'sin_vencer', 'd30', 'd60', 'd90', 'mas90', 'saldo'],
-                'query' => fn ($f) => self::aging($f),
+                'title' => 'Cuentas por cobrar/pagar detallada por documento', 'filters' => ['q', 'module'], 'primary' => ['q'],
+                'labels' => ['q' => 'Buscar por identificación o nombre', 'module' => 'Tipo'], 'q_placeholder' => 'Buscar', 'column_picker' => true, 'narrow' => ['nombre'],
+                'module_labels' => ['ventas' => 'Saldos por cobrar (Clientes)', 'compras' => 'Saldos por pagar (Proveedores)'],
+                'columns' => ['ident' => ['Identificación', 'text'], 'nombre' => ['Nombre', 'text'], 'sucursal' => ['Sucursal', 'text'], 'documento' => ['Documento', 'text'],
+                    'vence' => ['Fecha vencimiento', 'date'], 'centro' => ['Centro de costo', 'text'],
+                    'd30' => ['Vencido 1 a 30', 'money'], 'd60' => ['Vencido 31 a 60', 'money'], 'd90' => ['Vencido 61 a 90', 'money'], 'mas90' => ['Vencido más de 91', 'money'],
+                    'por_vencer' => ['Saldo por vencer', 'money'], 'favor' => ['Saldo a favor', 'money'], 'total' => ['Total', 'money']],
+                'totals' => ['d30', 'd60', 'd90', 'mas90', 'por_vencer', 'favor', 'total'],
+                'links' => ['nombre' => '@contact_url', 'documento' => '@url'],
+                'query' => fn ($f) => self::agingByDocument($f),
             ],
             'cxc-general' => [
                 'title' => 'Cuentas por cobrar/pagar general por cliente/proveedor', 'filters' => ['contact', 'module'], 'primary' => ['contact'],
@@ -248,44 +252,72 @@ final class ReportRegistry
                 'query' => fn ($f) => self::agingByContact($f),
             ],
             'cartera-movimiento' => [
-                'title' => 'Movimiento de cuentas por cobrar/pagar por documento', 'filters' => ['module', 'range', 'contact'],
-                'columns' => ['tercero' => ['Tercero', 'text'], 'documento' => ['Documento', 'text'], 'fecha' => ['Fecha', 'date'], 'total' => ['Valor documento', 'money'],
-                    'abonos' => ['Abonos / pagos', 'money'], 'saldo' => ['Saldo actual', 'money']],
-                'totals' => ['total', 'abonos', 'saldo'],
-                'query' => function ($f) {
-                    $purchases = $f['module'] === 'compras';
-                    $table = $purchases ? 'purchase_documents' : 'sales_documents';
-                    $fk = $purchases ? 'purchase_document_id' : 'sales_document_id';
-
-                    return DB::table("$table as d")->join('contacts as c', 'c.id', '=', 'd.contact_id')->where('d.company_id', $f['cid'])
-                        ->whereIn('d.type', $purchases ? ['FC', 'DS'] : ['FV'])->whereBetween('d.date', [$f['from'], $f['to']])
-                        ->when($f['contact'], fn ($q, $v) => $q->where('d.contact_id', $v))
-                        ->selectRaw("c.name tercero, d.name documento, d.date fecha, d.total, (select coalesce(sum(ri.value), 0) from receipt_items ri where ri.$fk = d.id) abonos, d.balance saldo")
-                        ->orderBy('d.date')->orderBy('d.number');
-                },
+                'title' => 'Movimiento de cuentas por cobrar/pagar por documento', 'filters' => ['q', 'module', 'contact'], 'primary' => ['q'],
+                'labels' => ['q' => 'Vencimiento(Documento)', 'module' => 'Tipo', 'contact' => 'Tercero'], 'q_placeholder' => 'Comprobante + Consecutivo', 'column_picker' => true,
+                'module_labels' => ['ventas' => 'Saldos por cobrar (Clientes)', 'compras' => 'Saldos por pagar (Proveedores)'],
+                'note' => 'Sin un documento en el filtro se muestran los documentos que todavía tienen saldo.',
+                'columns' => ['documento' => ['Documento', 'text'], 'secuencia' => ['Secuencia', 'int'], 'fecha' => ['Fecha', 'date'], 'detalle' => ['Detalle', 'text'],
+                    'cuenta' => ['Código de cuenta', 'text'], 'debito' => ['Débito', 'money'], 'credito' => ['Crédito', 'money']],
+                'totals' => ['debito', 'credito'],
+                'links' => ['documento' => '@url'],
+                'query' => fn ($f) => self::dueMovements($f),
             ],
             'cxc-corte' => [
-                'title' => 'Cuentas por cobrar con corte a una fecha', 'filters' => ['cutoff', 'contact'],
-                'columns' => ['ident' => ['Identificación', 'text'], 'cliente' => ['Cliente', 'text'], 'documento' => ['Documento', 'text'], 'fecha' => ['Fecha', 'date'], 'vence' => ['Vencimiento', 'date'],
-                    'total' => ['Valor documento', 'money'], 'actual' => ['Saldo actual', 'money'], 'posteriores' => ['Abonos después del corte', 'money'], 'saldo' => ['Saldo al corte', 'money']],
-                'totals' => ['total', 'actual', 'posteriores', 'saldo'],
-                'note' => 'Saldo al corte = saldo actual de la factura + abonos recibidos después de la fecha de corte.',
+                'title' => 'Cuentas por cobrar con corte a una fecha', 'filters' => ['contact', 'cutoff'], 'primary' => ['contact', 'cutoff'],
+                'labels' => ['contact' => 'Buscar por cliente'], 'defaults' => ['cutoff' => now()->subDay()->toDateString()], 'banner' => true,
+                'note' => 'Los datos presentados corresponden exclusivamente al estado histórico de la cartera al corte seleccionado. Para visualizar saldos actuales o creados recientemente, utiliza el reporte de estado de cuenta.',
+                'columns' => ['ident' => ['Identificación', 'text'], 'sucursal' => ['Sucursal', 'text'], 'cliente' => ['Nombre cliente', 'text'],
+                    'deuda' => ['Deuda por cobrar', 'money'], 'favor' => ['Saldo a favor', 'money'], 'saldo' => ['Saldo cartera', 'money']],
+                'totals' => ['deuda', 'favor', 'saldo'],
+                'links' => ['cliente' => '@url'],
                 'query' => fn ($f) => DB::query()->fromSub(
-                    DB::table('sales_documents as d')->join('contacts as c', 'c.id', '=', 'd.contact_id')->where('d.company_id', $f['cid'])->where('d.type', 'FV')
+                    DB::table('sales_documents as d')->where('d.company_id', $f['cid'])->whereIn('d.type', ['FV', 'ND', 'SI', 'NC'])
                         ->where('d.status', '<>', 'annulled')->where('d.date', '<=', $f['cutoff'])->when($f['contact'], fn ($q, $v) => $q->where('d.contact_id', $v))
-                        ->selectRaw('c.identification ident, c.name cliente, d.name documento, d.date fecha, d.due_date vence, d.total, d.balance actual,
-                            (select coalesce(sum(ri.value), 0) from receipt_items ri join receipts r on r.id = ri.receipt_id where ri.sales_document_id = d.id and r.date > ? and r.status <> ?) posteriores', [$f['cutoff'], 'annulled']), 't')
-                    ->selectRaw('t.*, actual + posteriores saldo')->whereRaw('actual + posteriores > 0.009')->orderBy('cliente')->orderBy('fecha'),
+                        ->leftJoinSub(DB::table('receipt_items as ri')->join('receipts as r', 'r.id', '=', 'ri.receipt_id')->where('r.company_id', $f['cid'])
+                            ->where('r.date', '>', $f['cutoff'])->where('r.status', '<>', 'annulled')->whereNotNull('ri.sales_document_id')
+                            ->groupBy('ri.sales_document_id')->selectRaw('ri.sales_document_id id, sum(ri.value) v'), 'ap', 'ap.id', '=', 'd.id')
+                        ->leftJoinSub(DB::table('sales_documents as n')->where('n.company_id', $f['cid'])->where('n.type', 'NC')->where('n.date', '>', $f['cutoff'])
+                            ->where('n.status', '<>', 'annulled')->whereNotNull('n.related_document_id')
+                            ->groupBy('n.related_document_id')->selectRaw('n.related_document_id id, sum(n.total) v'), 'an', 'an.id', '=', 'd.id')
+                        ->where(fn ($w) => $w->where('d.balance', '<>', 0)->orWhereNotNull('ap.id')->orWhereNotNull('an.id'))
+                        ->selectRaw('d.contact_id, d.balance + coalesce(ap.v, 0) + coalesce(an.v, 0) saldo'), 't')
+                    ->join('contacts as c', 'c.id', '=', 't.contact_id')
+                    ->selectRaw("c.identification ident, ".self::branch('c')." sucursal, c.name cliente, round(sum(greatest(t.saldo, 0)), 2) deuda,
+                        round(sum(greatest(-t.saldo, 0)), 2) favor, round(sum(t.saldo), 2) saldo, concat('/ventas/clientes/', c.id) url")
+                    ->groupBy('c.id', 'c.identification', 'c.branch_office', 'c.name')->havingRaw('abs(sum(t.saldo)) > 0.009 or sum(greatest(-t.saldo, 0)) > 0.009')
+                    ->orderByRaw('cast(c.identification as unsigned), c.identification'),
+            ],
+            'busqueda-terceros' => [
+                'title' => 'Búsqueda de cliente, proveedor u otro', 'filters' => ['contact', 'status'], 'primary' => ['contact'],
+                'labels' => ['contact' => 'Tercero'], 'statuses' => ['activo' => 'Activo', 'inactivo' => 'Inactivo'], 'column_picker' => true,
+                'columns' => ['nombre' => ['Nombre tercero', 'text'], 'tipo_id' => ['Tipo de identificación', 'text'], 'ident' => ['Identificación', 'text'],
+                    'dv' => ['Digito verificación', 'text'], 'sucursal' => ['Sucursal', 'text'], 'regimen' => ['Tipo de regimen IVA', 'text'], 'direccion' => ['Dirección', 'text'],
+                    'ciudad' => ['Ciudad', 'text'], 'telefono' => ['Teléfono.', 'text'], 'contacto' => ['Nombres contacto', 'text'], 'estado' => ['Estado', 'text']],
+                'totals' => [],
+                'links' => ['nombre' => '@url'],
+                'query' => fn ($f) => DB::table('contacts as c')->leftJoin('municipalities as m', 'm.code', '=', 'c.municipality_code')->where('c.company_id', $f['cid'])
+                    ->when($f['contact'], fn ($q, $v) => $q->where('c.id', $v))
+                    ->when($f['status'], fn ($q, $v) => $q->where('c.active', $v === 'activo'))
+                    ->selectRaw("c.name nombre, ".self::ID_TYPE_SQL." tipo_id, c.identification ident, coalesce(c.dv, '-') dv, ".self::branch('c')." sucursal,
+                        if(c.vat_responsible, 'Responsable de IVA', 'No responsable de IVA') regimen, coalesce(nullif(c.address, ''), '-') direccion, coalesce(m.name, '-') ciudad,
+                        concat(coalesce(c.phone_indicative, ''), '-', coalesce(c.phone, ''), '-', coalesce(c.phone_extension, '')) telefono,
+                        coalesce((select trim(concat(p.first_name, ' ', coalesce(p.last_name, ''))) from contact_people p where p.contact_id = c.id order by p.id limit 1), '-') contacto,
+                        if(c.active, 'Activo', 'Inactivo') estado, concat(if(c.is_customer or not c.is_supplier, '/ventas/clientes/', '/compras/proveedores/'), c.id) url")
+                    ->orderBy('c.name'),
             ],
             'busqueda-contactos' => [
-                'title' => 'Búsqueda avanzada contacto de cliente, proveedor u otro', 'filters' => ['q'],
-                'columns' => ['tercero' => ['Tercero', 'text'], 'ident' => ['Identificación', 'text'], 'contacto' => ['Contacto', 'text'], 'cargo' => ['Cargo', 'text'], 'email' => ['Correo', 'text'], 'telefono' => ['Teléfono', 'text']],
+                'title' => 'Búsqueda avanzada contacto de cliente, proveedor u otro', 'filters' => ['contact', 'status'], 'primary' => ['contact'],
+                'labels' => ['contact' => 'Cliente proveedor u otro', 'status' => 'Contacto principal'], 'statuses' => ['si' => 'Si', 'no' => 'No'], 'column_picker' => true,
+                'columns' => ['ident' => ['Número de identificación', 'text'], 'sucursal' => ['Sucursal', 'text'], 'tercero' => ['Nombre cliente proveedor u otro', 'text'],
+                    'contacto' => ['Nombre de contacto', 'text'], 'telefono' => ['Teléfono de contacto', 'text'], 'email' => ['Correo de contacto', 'text'], 'principal' => ['Contacto principal', 'text']],
                 'totals' => [],
-                'query' => fn ($f) => DB::table('contact_people as p')->join('contacts as c', 'c.id', '=', 'p.contact_id')->where('c.company_id', $f['cid'])
-                    ->when($f['q'], fn ($q, $v) => $q->where(fn ($w) => $w->where('c.name', 'like', "%$v%")->orWhere('p.first_name', 'like', "%$v%")->orWhere('p.last_name', 'like', "%$v%")
-                        ->orWhere('p.email', 'like', "%$v%")->orWhere('c.identification', 'like', "$v%")))
-                    ->selectRaw("c.name tercero, c.identification ident, trim(concat(p.first_name, ' ', coalesce(p.last_name, ''))) contacto, p.position cargo, p.email, trim(concat(coalesce(p.phone_indicative, ''), ' ', coalesce(p.phone, ''))) telefono")
-                    ->orderBy('c.name'),
+                'query' => fn ($f) => DB::query()->fromSub(DB::table('contact_people as p')->join('contacts as c', 'c.id', '=', 'p.contact_id')->where('c.company_id', $f['cid'])
+                    ->when($f['contact'], fn ($q, $v) => $q->where('c.id', $v))
+                    ->selectRaw("c.identification ident, ".self::branch('c')." sucursal, c.name tercero, trim(concat(p.first_name, ' ', coalesce(p.last_name, ''))) contacto,
+                        concat('(', lpad(coalesce(nullif(p.phone_indicative, ''), '0'), 3, '0'), ') ', coalesce(nullif(p.phone, ''), '0000000')) telefono, coalesce(p.email, '-') email,
+                        if(p.id = (select min(x.id) from contact_people x where x.contact_id = c.id), 'Si', 'No') principal"), 't')
+                    ->when($f['status'], fn ($q, $v) => $q->where('principal', $v === 'si' ? 'Si' : 'No'))
+                    ->orderByRaw("trim(trim(leading '.' from trim(contacto))), tercero"),
             ],
 
             // ---------------- Compras ----------------
@@ -294,7 +326,7 @@ final class ReportRegistry
                 'labels' => ['contact' => 'Proveedor', 'nc' => 'Incluye nota débito'],
                 'columns' => ['ident' => ['Identificación', 'text'], 'sucursal' => ['Sucursal', 'text'], 'proveedor' => ['Proveedor', 'text'], 'documentos' => ['Número de comprobantes', 'count'],
                     ...self::purchaseValueColumns()],
-                'totals' => ['documentos', 'bruto', 'descuento', 'subtotal', 'impuestos', 'retenciones', 'total'],
+                'totals' => ['bruto', 'descuento', 'subtotal', 'impuestos', 'retenciones', 'total'],
                 'query' => fn ($f) => self::purchases($f, self::purchaseTypes($f))->join('contacts as c', 'c.id', '=', 'd.contact_id')
                     ->selectRaw('c.identification ident, '.self::branch('c').' sucursal, c.name proveedor, count(*) documentos, '.self::purchaseDocSums())
                     ->groupBy('c.id', 'c.identification', 'c.branch_office', 'c.name')->orderByRaw('cast(c.identification as unsigned), c.identification'),
@@ -323,12 +355,16 @@ final class ReportRegistry
                     ->orderByRaw('cast(p.code as unsigned), p.code, cast(c.identification as unsigned), factura'),
             ],
             'cruce-orden-compra' => [
-                'title' => 'Cruce orden de compra vs factura de compra', 'filters' => ['range', 'contact'],
-                'columns' => ['orden' => ['Orden de compra', 'text'], 'fecha' => ['Fecha', 'date'], 'proveedor' => ['Proveedor', 'text'], 'valor_orden' => ['Valor orden', 'money'],
-                    'facturado' => ['Facturado', 'money'], 'pendiente' => ['Pendiente', 'money']],
-                'totals' => ['valor_orden', 'facturado', 'pendiente'],
-                'query' => fn ($f) => self::purchases($f, ['OC'])->join('contacts as c', 'c.id', '=', 'd.contact_id')
-                    ->selectRaw('d.name orden, d.date fecha, c.name proveedor, d.total valor_orden, d.total - d.balance facturado, d.balance pendiente')->orderBy('d.date'),
+                'title' => 'Cruce orden de compra vs factura de compra', 'filters' => ['range', 'contact'], 'primary' => ['contact'], 'labels' => ['contact' => 'Proveedor'],
+                'columns' => ['proveedor' => ['Proveedor', 'text'], 'orden' => ['Orden compra', 'text'], 'tipo' => ['Tipo', 'text'], 'item' => ['Ítem', 'text'], 'descripcion' => ['Descripción', 'text'],
+                    'solicitada' => ['Cantidad solicitada', 'qty'], 'recibida' => ['Cantidad recibida', 'qty'], 'pendiente' => ['Cantidad pendiente', 'qty'], 'facturas' => ['Facturas compras', 'text']],
+                'totals' => ['solicitada', 'recibida', 'pendiente'],
+                'query' => fn ($f) => DB::query()->fromSub(self::purchases($f, ['OC'])->join('contacts as c', 'c.id', '=', 'd.contact_id')->join('purchase_document_items as i', 'i.purchase_document_id', '=', 'd.id')
+                    ->selectRaw("c.name proveedor, d.name orden, 'Producto' tipo, coalesce(i.code, '-') item, i.description descripcion, i.quantity solicitada,
+                        least(i.quantity, (select coalesce(sum(fi.quantity), 0) from purchase_documents v join purchase_document_items fi on fi.purchase_document_id = v.id
+                            where v.related_document_id = d.id and v.status <> 'annulled' and fi.product_id <=> i.product_id)) recibida,
+                        (select group_concat(v.name) from purchase_documents v where v.related_document_id = d.id and v.status <> 'annulled') facturas, d.date fecha, d.id oid"), 't')
+                    ->selectRaw('t.*, solicitada - recibida pendiente')->orderBy('fecha')->orderBy('oid'),
             ],
             'movimiento-notas-debito' => [
                 'title' => 'Movimiento notas débito', 'filters' => ['range', 'contact'],
@@ -340,35 +376,43 @@ final class ReportRegistry
                         ->selectRaw("'Compras' modulo, d.name documento, d.date fecha, c.name tercero, d.subtotal, d.tax_total impuestos, d.total")),
             ],
             'libro-oficial-compras' => [
-                'title' => 'Libro oficial de compras', 'filters' => ['range', 'contact'],
-                'columns' => ['fecha' => ['Fecha', 'date'], 'documento' => ['Comprobante', 'text'], 'factura' => ['Factura proveedor', 'text'], 'ident' => ['NIT', 'text'], 'proveedor' => ['Proveedor', 'text'],
-                    'subtotal' => ['Base', 'money'], 'impuestos' => ['IVA', 'money'], 'retenciones' => ['Retenciones', 'money'], 'total' => ['Total', 'money']],
-                'totals' => ['subtotal', 'impuestos', 'retenciones', 'total'],
-                'query' => fn ($f) => self::purchases($f)->join('contacts as c', 'c.id', '=', 'd.contact_id')
-                    ->selectRaw("d.date fecha, d.name documento, concat_ws('-', d.supplier_prefix, d.supplier_number) factura, c.identification ident, c.name proveedor, d.subtotal * ".self::PSIGN.' subtotal, d.tax_total * '.self::PSIGN.' impuestos, d.withholding_total * '.self::PSIGN.' retenciones, d.total * '.self::PSIGN.' total')
-                    ->orderBy('d.date')->orderBy('d.number'),
+                'title' => 'Libro oficial de compras', 'filters' => ['range', 'contact'], 'labels' => ['contact' => 'Proveedor'],
+                'columns' => ['documento' => ['Comprobante', 'text'], 'fecha' => ['Fecha elaboración', 'date'], 'ident' => ['Identificación', 'text'], 'sucursal' => ['Sucursal', 'text'],
+                    'tercero' => ['Nombre tercero', 'text'], 'factura' => ['Factura proveedor', 'text'], 'gravada' => ['Base gravada', 'money'], 'exenta' => ['Base exenta', 'money'],
+                    'iva' => ['IVA', 'money'], 'total' => ['Total', 'money']],
+                'totals' => ['gravada', 'exenta', 'iva', 'total'],
+                'query' => fn ($f) => self::officialBook($f, true),
             ],
 
             // ---------------- Ventas oficiales e impuestos ----------------
             'libro-oficial-ventas' => [
-                'title' => 'Libro oficial de ventas', 'filters' => ['range', 'contact'],
-                'columns' => ['fecha' => ['Fecha', 'date'], 'documento' => ['Comprobante', 'text'], 'ident' => ['NIT', 'text'], 'cliente' => ['Cliente', 'text'],
-                    'subtotal' => ['Base', 'money'], 'descuento' => ['Descuento', 'money'], 'impuestos' => ['IVA', 'money'], 'retenciones' => ['Retenciones', 'money'], 'total' => ['Total', 'money']],
-                'totals' => ['subtotal', 'descuento', 'impuestos', 'retenciones', 'total'],
-                'query' => fn ($f) => self::sales($f)->join('contacts as c', 'c.id', '=', 'd.contact_id')
-                    ->selectRaw('d.date fecha, d.name documento, c.identification ident, c.name cliente, d.subtotal * '.self::SIGN.' subtotal, d.discount * '.self::SIGN.' descuento, d.tax_total * '.self::SIGN.' impuestos, d.withholding_total * '.self::SIGN.' retenciones, d.total * '.self::SIGN.' total')
-                    ->orderBy('d.date')->orderBy('d.number'),
+                'title' => 'Libro oficial de ventas', 'filters' => ['range', 'contact'], 'labels' => ['contact' => 'Cliente'],
+                'columns' => ['documento' => ['Comprobante', 'text'], 'fecha' => ['Fecha elaboración', 'date'], 'ident' => ['Identificación', 'text'], 'sucursal' => ['Sucursal', 'text'],
+                    'tercero' => ['Nombre tercero', 'text'], 'aiu' => ['Base AIU', 'money'], 'gravada' => ['Base gravada', 'money'], 'exenta' => ['Base exenta', 'money'], 'iva' => ['IVA', 'money'],
+                    'impoconsumo' => ['Impoconsumo', 'money'], 'advalorem' => ['AD-Valorem', 'money'], 'cargos' => ['Cargo en totales', 'money'], 'descuentos' => ['Descuento en totales', 'money'],
+                    'total' => ['Total', 'money']],
+                'totals' => ['aiu', 'gravada', 'exenta', 'iva', 'impoconsumo', 'advalorem', 'cargos', 'descuentos', 'total'],
+                'query' => fn ($f) => self::officialBook($f, false),
             ],
             'impuestos-detallados' => [
-                'title' => 'Impuestos detallados', 'filters' => ['range'],
-                'columns' => ['modulo' => ['Módulo', 'text'], 'impuesto' => ['Impuesto', 'text'], 'tipo' => ['Tipo', 'text'], 'porcentaje' => ['%', 'pct'], 'base' => ['Base', 'money'], 'valor' => ['Valor', 'money']],
-                'totals' => ['base', 'valor'],
-                'query' => fn ($f) => self::salesItems($f)->join('sales_document_item_taxes as t', 't.sales_document_item_id', '=', 'i.id')
-                    ->selectRaw("'Ventas' modulo, t.name impuesto, t.type tipo, t.percentage porcentaje, sum(i.subtotal * ".self::SIGN.') base, sum(t.value * '.self::SIGN.') valor')
-                    ->groupBy('t.name', 't.type', 't.percentage')
-                    ->unionAll(self::purchaseItems($f)->join('purchase_document_item_taxes as t', 't.purchase_document_item_id', '=', 'i.id')
-                        ->selectRaw("'Compras' modulo, t.name impuesto, t.type tipo, t.percentage porcentaje, sum(i.subtotal * ".self::PSIGN.') base, sum(t.value * '.self::PSIGN.') valor')
-                        ->groupBy('t.name', 't.type', 't.percentage')),
+                'title' => 'Impuestos detallados', 'filters' => ['range', 'contact'], 'labels' => ['contact' => 'Tercero'],
+                'columns' => ['documento' => ['Comprobante', 'text'], 'ident' => ['Identificación', 'text'], 'sucursal' => ['Sucursal', 'text'], 'tercero' => ['Nombre tercero', 'text'],
+                    'fecha' => ['Fecha elaboración', 'date'], 'base_v' => ['Base ventas', 'money'], 'imp_v' => ['Valor impuesto ventas', 'money'], 'base_c' => ['Base compras', 'money'],
+                    'imp_c' => ['Valor impuesto compras', 'money'], 'base_dv' => ['Base devolución ventas', 'money'], 'imp_dv' => ['Valor impuesto devolución ventas', 'money'],
+                    'base_dc' => ['Base devolución compras', 'money'], 'imp_dc' => ['Valor impuesto devolución compras', 'money']],
+                'totals' => ['base_v', 'imp_v', 'base_c', 'imp_c', 'base_dv', 'imp_dv', 'base_dc', 'imp_dc'],
+                'query' => function ($f) {
+                    $side = fn ($tbl, $types, $col) => DB::table("$tbl as d")->join('contacts as c', 'c.id', '=', 'd.contact_id')->where('d.company_id', $f['cid'])
+                        ->whereIn('d.type', $types)->where('d.status', '<>', 'annulled')->whereBetween('d.date', [$f['from'], $f['to']])->where('d.tax_total', '<>', 0)
+                        ->when($f['contact'], fn ($q, $v) => $q->where('d.contact_id', $v));
+                    $cols = fn ($k) => implode(', ', array_map(fn ($c) => ($c === $k ? 'd.subtotal' : '0')." base_$c, ".($c === $k ? 'd.tax_total' : '0')." imp_$c", ['v', 'c', 'dv', 'dc']));
+                    $pick = "d.name documento, c.identification ident, ".self::branch('c')." sucursal, c.name tercero, d.date fecha";
+
+                    return DB::query()->fromSub($side('sales_documents', ['FV', 'ND'], 'v')->selectRaw("$pick, {$cols('v')}")
+                        ->unionAll($side('purchase_documents', ['FC', 'DS', 'ND'], 'c')->selectRaw("$pick, {$cols('c')}"))
+                        ->unionAll($side('sales_documents', ['NC'], 'dv')->selectRaw("$pick, {$cols('dv')}"))
+                        ->unionAll($side('purchase_documents', ['NA'], 'dc')->selectRaw("$pick, {$cols('dc')}")), 't')->orderBy('fecha')->orderBy('documento');
+                },
             ],
 
             // ---------------- Inventario ----------------
@@ -399,101 +443,162 @@ final class ReportRegistry
                 },
             ],
             'rentabilidad-producto' => [
-                'title' => 'Rentabilidad por producto', 'filters' => ['range', 'product', 'line'],
-                'note' => 'Costo calculado con el costo promedio ponderado de las compras de cada producto.',
-                'columns' => ['codigo' => ['Código', 'text'], 'producto' => ['Producto', 'text'], 'linea' => ['Línea', 'text'], 'cantidad' => ['Cantidad', 'qty'], 'ventas' => ['Ventas', 'money'],
-                    'costo' => ['Costo', 'money'], 'utilidad' => ['Utilidad', 'money'], 'margen' => ['Margen', 'pct']],
-                'totals' => ['cantidad', 'ventas', 'costo', 'utilidad'],
-                'query' => fn ($f) => self::salesItems($f)->leftJoin('products as p', 'p.id', '=', 'i.product_id')->leftJoin('product_lines as l', 'l.id', '=', 'p.product_line_id')
-                    ->when($f['line'], fn ($q, $v) => $q->where('p.product_line_id', $v))
-                    ->selectRaw('i.code codigo, max(i.description) producto, max(l.name) linea, sum(i.quantity * '.self::SIGN.') cantidad, sum(i.subtotal * '.self::SIGN.') ventas, sum(i.quantity * coalesce(p.average_cost, 0) * '.self::SIGN.') costo,
-                        sum(i.subtotal * '.self::SIGN.') - sum(i.quantity * coalesce(p.average_cost, 0) * '.self::SIGN.') utilidad,
-                        case when sum(i.subtotal * '.self::SIGN.') <> 0 then (sum(i.subtotal * '.self::SIGN.') - sum(i.quantity * coalesce(p.average_cost, 0) * '.self::SIGN.')) / sum(i.subtotal * '.self::SIGN.') * 100 end margen')
-                    ->groupBy('i.code')->orderByDesc('utilidad'),
+                'title' => 'Rentabilidad por producto', 'filters' => ['product', 'range', 'cost_center', 'group', 'nc'], 'primary' => ['product'],
+                'labels' => ['range' => 'Año fiscal', 'group' => 'Categoría', 'nc' => 'Incluye notas crédito y débito'], 'column_picker' => true,
+                'note' => 'Costo calculado con el costo promedio ponderado de cada producto.',
+                'columns' => ['tipo' => ['Tipo', 'text'], 'codigo' => ['Código producto', 'text'], 'producto' => ['Nombre producto', 'text'], 'referencia' => ['Referencia fábrica', 'text'],
+                    'categoria' => ['Categoría', 'text'], 'cantidad' => ['Cantidad vendida', 'qty'], 'ventas' => ['Ventas brutas totales', 'money'], 'costo' => ['Costos totales', 'money'],
+                    'utilidad' => ['Utilidad $', 'money'], 'utilidad_pct' => ['Utilidad %', 'pct'], 'rentabilidad' => ['Rentabilidad %', 'pct']],
+                'totals' => ['ventas', 'costo'],
+                'query' => fn ($f) => DB::query()->fromSub(self::salesItems($f)->leftJoin('products as p', 'p.id', '=', 'i.product_id')->leftJoin('account_groups as g', 'g.id', '=', 'p.account_group_id')
+                    ->when($f['group'], fn ($q, $v) => $q->where('p.account_group_id', $v))->when($f['cost_center'], fn ($q, $v) => $q->where('d.cost_center_id', $v))
+                    ->selectRaw("'Producto' tipo, i.code codigo, max(coalesce(p.name, i.description)) producto, coalesce(max(p.reference), '-') referencia, max(g.name) categoria,
+                        sum(i.quantity * ".self::SIGN.') cantidad, round(sum(i.subtotal * '.self::SIGN.'), 2) ventas, round(sum(i.quantity * coalesce(p.average_cost, 0) * '.self::SIGN.'), 2) costo')
+                    ->groupBy('i.code'), 't')
+                    ->selectRaw('t.*, ventas - costo utilidad, case when costo <> 0 then (ventas - costo) / costo * 100 end utilidad_pct, case when ventas <> 0 then (ventas - costo) / ventas * 100 end rentabilidad')
+                    ->orderBy('codigo'),
             ],
             'valoracion-inventarios' => [
-                'title' => 'Valoración de inventarios', 'filters' => ['product', 'line'],
-                'note' => 'Existencias importadas de Siigo valoradas al costo promedio ponderado de compras. Compáralo con el saldo contable de la cuenta 14 en el balance de prueba.',
-                'columns' => ['codigo' => ['Código', 'text'], 'producto' => ['Producto', 'text'], 'linea' => ['Línea', 'text'], 'unidad' => ['Unidad', 'text'], 'existencia' => ['Existencia', 'qty'],
-                    'costo' => ['Costo promedio', 'money'], 'valor' => ['Valor total', 'money']],
+                'title' => 'Valoración de inventarios', 'filters' => ['product', 'group'], 'primary' => ['product'], 'labels' => ['group' => 'Categoría'],
+                'columns' => ['codigo' => ['Código producto', 'text'], 'producto' => ['Nombre producto', 'text'], 'referencia' => ['Referencia fábrica', 'text'],
+                    'categoria' => ['Categoría', 'text'], 'existencia' => ['Saldo cantidades', 'qty'], 'valor' => ['Valor total', 'money']],
                 'totals' => ['existencia', 'valor'],
-                'query' => fn ($f) => self::products($f)->selectRaw('p.code codigo, p.name producto, l.name linea, p.unit_label unidad, p.stock existencia, p.average_cost costo, p.stock * p.average_cost valor')->orderBy('p.code'),
-            ],
-            'saldos-productos' => [
-                'title' => 'Saldos de productos', 'filters' => ['product', 'line'],
-                'columns' => ['codigo' => ['Código', 'text'], 'producto' => ['Producto', 'text'], 'bodega' => ['Bodega', 'text'], 'existencia' => ['Existencia', 'qty'], 'minimo' => ['Stock mínimo', 'qty'], 'estado' => ['Estado', 'text']],
-                'totals' => ['existencia'],
-                'query' => fn ($f) => self::products($f)->leftJoin('warehouse_stock as ws', 'ws.product_id', '=', 'p.id')->leftJoin('warehouses as w', 'w.id', '=', 'ws.warehouse_id')
-                    ->selectRaw("p.code codigo, p.name producto, coalesce(w.name, 'Principal') bodega, coalesce(ws.quantity, p.stock) existencia, p.min_stock minimo,
-                        case when coalesce(ws.quantity, p.stock) <= 0 then 'Agotado' when p.min_stock > 0 and coalesce(ws.quantity, p.stock) < p.min_stock then 'Bajo mínimo' else 'Disponible' end estado")
+                'query' => fn ($f) => self::stockProducts($f)->where('p.stock', '<>', 0)
+                    ->selectRaw("p.code codigo, p.name producto, coalesce(p.reference, '-') referencia, g.name categoria, p.stock existencia, round(p.stock * p.average_cost, 2) valor")
                     ->orderBy('p.code'),
             ],
+            'saldos-productos' => [
+                'title' => 'Saldos de productos', 'filters' => ['product', 'group'], 'primary' => ['product'], 'labels' => ['group' => 'Categoría'],
+                'columns' => ['codigo' => ['Código producto', 'text'], 'producto' => ['Nombre producto', 'text'], 'referencia' => ['Referencia de fábrica', 'text'], 'existencia' => ['Saldo cantidades', 'qty']],
+                'totals' => ['existencia'],
+                'query' => fn ($f) => self::stockProducts($f)->where('p.stock', '<>', 0)
+                    ->selectRaw("p.code codigo, p.name producto, coalesce(p.reference, '-') referencia, p.stock existencia")->orderBy('p.code'),
+            ],
             'saldos-inventario' => [
-                'title' => 'Saldos de inventario', 'filters' => ['line'],
-                'columns' => ['linea' => ['Línea', 'text'], 'productos' => ['Productos', 'int'], 'existencia' => ['Existencia', 'qty'], 'valor' => ['Valor inventario', 'money']],
-                'totals' => ['productos', 'existencia', 'valor'],
-                'query' => fn ($f) => self::products([...$f, 'product' => null])
-                    ->selectRaw("coalesce(concat(l.code, ' - ', l.name), 'Sin línea') linea, count(*) productos, sum(p.stock) existencia, sum(p.stock * p.average_cost) valor")
-                    ->groupBy('l.code', 'l.name')->orderBy('l.code'),
+                'title' => 'Saldos de inventario', 'filters' => ['q', 'group', 'kind'], 'primary' => ['q', 'group', 'kind'],
+                'labels' => ['q' => 'Buscar por producto', 'group' => 'Categoría de inventarios', 'kind' => 'Saldos'], 'q_placeholder' => 'Buscar por producto',
+                'kinds' => ['con' => 'Con saldos', 'sin' => 'Sin saldos', 'todos' => 'Todos'], 'defaults' => ['kind' => 'con'],
+                'columns' => ['codigo' => ['Código', 'text'], 'producto' => ['Nombre', 'text'], 'referencia' => ['Referencia de fábrica', 'text'], 'unidad' => ['Unidad de medida', 'text'],
+                    'categoria' => ['Categoría de inventarios', 'text'], 'existencia' => ['Saldo total', 'qty'], 'unitario' => ['Valor unitario aproximado', 'money'], 'valor' => ['Valor total aproximado', 'money']],
+                'totals' => ['existencia', 'valor'],
+                'query' => fn ($f) => self::stockProducts($f)
+                    ->when($f['q'], fn ($q, $v) => $q->where(fn ($w) => $w->where('p.name', 'like', "%$v%")->orWhere('p.code', 'like', "$v%")))
+                    ->when($f['kind'] === 'con', fn ($q) => $q->where('p.stock', '<>', 0))->when($f['kind'] === 'sin', fn ($q) => $q->where('p.stock', 0))
+                    ->selectRaw("p.code codigo, p.name producto, coalesce(p.reference, '-') referencia, p.unit_label unidad, g.name categoria, p.stock existencia,
+                        p.average_cost unitario, round(p.stock * p.average_cost, 2) valor")->orderBy('p.code'),
             ],
             'movimiento-productos' => [
-                'title' => 'Movimiento de productos', 'filters' => ['range', 'product', 'line'],
-                'columns' => ['codigo' => ['Código', 'text'], 'producto' => ['Producto', 'text'], 'entradas' => ['Entradas (compras)', 'qty'], 'salidas' => ['Salidas (ventas)', 'qty'],
-                    'neto' => ['Movimiento neto', 'qty'], 'existencia' => ['Existencia actual', 'qty']],
-                'totals' => ['entradas', 'salidas', 'neto'],
-                'query' => fn ($f) => self::products($f)
-                    ->selectRaw("p.code codigo, p.name producto,
-                        (select coalesce(sum(pi.quantity), 0) from purchase_document_items pi join purchase_documents pd on pd.id = pi.purchase_document_id where pi.product_id = p.id and pd.date between ? and ? and pd.status <> 'annulled') entradas,
-                        (select coalesce(sum(si.quantity * case when sd.type = 'NC' then -1 else 1 end), 0) from sales_document_items si join sales_documents sd on sd.id = si.sales_document_id where si.product_id = p.id and sd.date between ? and ? and sd.status <> 'annulled') salidas,
-                        p.stock existencia", [$f['from'], $f['to'], $f['from'], $f['to']])
-                    ->havingRaw('entradas <> 0 or salidas <> 0')
-                    ->selectRaw('0 neto')->orderBy('p.code'),
-                'map' => fn ($r) => [...(array) $r, 'neto' => (float) $r->entradas - (float) $r->salidas],
+                'title' => 'Movimiento de productos', 'filters' => ['range', 'product', 'group'], 'primary' => ['product'], 'labels' => ['group' => 'Categoría'],
+                'columns' => ['codigo' => ['Código producto', 'text'], 'producto' => ['Nombre producto', 'text'], 'referencia' => ['Referencia de fabrica', 'text'],
+                    'comprobante' => ['Comprobante', 'text'], 'secuencia' => ['Secuencia', 'int'], 'fecha' => ['Fecha elaboración', 'date'],
+                    'cant_inicial' => ['Cantidad inicial', 'qty'], 'cant_entrada' => ['Cantidad entrada', 'qty'], 'cant_salida' => ['Cantidad salida', 'qty'], 'cant_saldo' => ['Saldo cantidades', 'qty'],
+                    'val_inicial' => ['Valor inicial', 'money'], 'val_entrada' => ['Valor entrada', 'money'], 'val_salida' => ['Valor salida', 'money'], 'val_saldo' => ['Saldo valor', 'money']],
+                'totals' => ['cant_entrada', 'cant_salida', 'val_entrada', 'val_salida'],
+                'query' => fn ($f) => self::kardexLines($f)
+                    ->selectRaw("p.code codigo, p.name producto, coalesce(p.reference, '-') referencia")
+                    ->orderBy('p.code')->orderBy('m.date')->orderBy('m.id'),
+            ],
+            'kardex' => [
+                'title' => 'Movimiento de productos / Kárdex', 'filters' => ['product', 'range'], 'primary' => ['product'], 'labels' => ['product' => 'Producto'],
+                'columns' => ['fecha' => ['Fecha', 'date'], 'comprobante' => ['Documento', 'text'], 'cant_entrada' => ['Cant. entrada', 'qty'], 'costo_entrada' => ['Costo unitario entrada', 'money'],
+                    'val_entrada' => ['Valor entrada', 'money'], 'cant_salida' => ['Cant. salida', 'qty'], 'costo_salida' => ['Costo unitario salida', 'money'], 'val_salida' => ['Valor salida', 'money'],
+                    'cant_saldo' => ['Saldo unidades', 'qty'], 'val_saldo' => ['Saldo valores', 'money']],
+                'totals' => ['cant_entrada', 'val_entrada', 'cant_salida', 'val_salida'],
+                'query' => fn ($f) => self::kardexLines($f)
+                    ->selectRaw('case when m.quantity > 0 then m.unit_cost else 0 end costo_entrada, case when m.quantity < 0 then m.unit_cost else 0 end costo_salida')
+                    ->orderBy('m.date')->orderBy('m.id'),
             ],
             'ensambles' => [
-                'title' => 'Ensamble producto proceso / terminado', 'filters' => ['range', 'product'],
-                'columns' => ['documento' => ['Documento', 'text'], 'fecha' => ['Fecha', 'date'], 'codigo' => ['Código', 'text'], 'producto' => ['Producto', 'text'], 'cantidad' => ['Cantidad', 'qty'], 'costo' => ['Costo total', 'money']],
-                'totals' => ['cantidad', 'costo'],
-                'query' => fn ($f) => self::movements($f, 'NE'),
+                'title' => 'Ensamble producto proceso / terminado', 'filters' => ['product', 'group'], 'primary' => ['product'], 'labels' => ['group' => 'Categoría'],
+                'columns' => ['codigo' => ['Código producto ensamble', 'text'], 'producto' => ['Nombre producto ensamble', 'text'], 'referencia' => ['Referencia fábrica ensamble', 'text'],
+                    'bodega' => ['Bodega', 'text'], 'codigo_mp' => ['Código producto MP/PP', 'text'], 'producto_mp' => ['Nombre producto MP/PP', 'text'],
+                    'referencia_mp' => ['Referencia fábrica MP/PP', 'text'], 'unidad' => ['Unidad medida', 'text'], 'cantidad' => ['Cantidad requerida', 'qty']],
+                'totals' => [],
+                'query' => fn ($f) => DB::table('product_combo_items as k')->join('products as p', 'p.id', '=', 'k.combo_id')->join('products as x', 'x.id', '=', 'k.product_id')
+                    ->where('k.company_id', $f['cid'])->when($f['product'], fn ($q, $v) => $q->where('p.id', $v))->when($f['group'], fn ($q, $v) => $q->where('p.account_group_id', $v))
+                    ->selectRaw("p.code codigo, p.name producto, coalesce(p.reference, '-') referencia, '-' bodega, x.code codigo_mp, x.name producto_mp, coalesce(x.reference, '-') referencia_mp,
+                        x.unit_label unidad, k.quantity cantidad")->orderBy('p.code')->orderBy('x.code'),
             ],
             'remisiones-cruzadas' => [
-                'title' => 'Informe de remisiones cruzadas', 'filters' => ['range', 'contact'],
-                'columns' => ['remision' => ['Remisión', 'text'], 'fecha' => ['Fecha', 'date'], 'cliente' => ['Cliente', 'text'], 'factura' => ['Factura', 'text'], 'total' => ['Valor', 'money']],
-                'totals' => ['total'],
-                'query' => fn ($f) => self::sales($f, ['RM'])->join('contacts as c', 'c.id', '=', 'd.contact_id')
-                    ->selectRaw("d.name remision, d.date fecha, c.name cliente, coalesce(d.related_name, 'Sin cruzar') factura, d.total")->orderBy('d.date'),
+                'title' => 'Informe de remisiones cruzadas', 'filters' => ['range', 'contact', 'status'], 'primary' => ['contact'],
+                'labels' => ['range' => 'Fecha elaboración', 'contact' => 'Cliente'], 'statuses' => ['pendiente' => 'Pendiente', 'parcial' => 'Parcial', 'cruzada' => 'Cruzada'],
+                'columns' => ['comprobante' => ['Comprobante', 'text'], 'secuencia' => ['Secuencia', 'int'], 'fecha' => ['Fecha Remisión', 'date'], 'cliente' => ['Cliente', 'text'],
+                    'producto' => ['Producto / Servicio', 'text'], 'cantidad' => ['Cantidad Total', 'qty'], 'pendiente' => ['Cantidad Pendiente', 'qty'], 'factura' => ['Factura', 'text'],
+                    'fecha_factura' => ['Fecha Factura', 'date'], 'entregada' => ['Cantidad Entregada', 'qty'], 'estado' => ['Estado', 'text']],
+                'totals' => ['cantidad', 'pendiente', 'entregada'],
+                'query' => fn ($f) => DB::query()->fromSub(self::sales($f, ['RM'])->join('contacts as c', 'c.id', '=', 'd.contact_id')->join('sales_document_items as i', 'i.sales_document_id', '=', 'd.id')
+                    ->selectRaw("d.name comprobante, i.position + 1 secuencia, d.date fecha, c.name cliente, concat_ws(' - ', i.code, i.description) producto, i.quantity cantidad,
+                        (select group_concat(v.name) from sales_documents v where v.related_document_id = d.id and v.type = 'FV' and v.status <> 'annulled') factura,
+                        (select max(v.date) from sales_documents v where v.related_document_id = d.id and v.type = 'FV' and v.status <> 'annulled') fecha_factura,
+                        least(i.quantity, (select coalesce(sum(vi.quantity), 0) from sales_documents v join sales_document_items vi on vi.sales_document_id = v.id
+                            where v.related_document_id = d.id and v.type = 'FV' and v.status <> 'annulled' and vi.product_id <=> i.product_id)) entregada, d.id oid"), 't')
+                    ->selectRaw("t.*, cantidad - entregada pendiente, case when entregada <= 0 then 'Pendiente' when entregada < cantidad then 'Parcial' else 'Cruzada' end estado")
+                    ->when($f['status'], fn ($q, $v) => $q->havingRaw('estado = ?', [ucfirst($v)]))
+                    ->orderBy('fecha')->orderBy('oid')->orderBy('secuencia'),
             ],
 
             // ---------------- Contabilidad ----------------
             'consecutivo-comprobantes' => [
-                'title' => 'Consecutivo de comprobantes', 'filters' => ['range'],
-                'columns' => ['tipo' => ['Tipo de comprobante', 'text'], 'desde' => ['Desde', 'int'], 'hasta' => ['Hasta', 'int'], 'cantidad' => ['Comprobantes', 'int'], 'faltantes' => ['Números sin usar', 'int']],
-                'totals' => ['cantidad', 'faltantes'],
-                'query' => fn ($f) => DB::query()->fromSub(
-                    DB::table('ledger_lines')->where('company_id', $f['cid'])->whereBetween('date', [$f['from'], $f['to']])
-                        ->selectRaw("substring_index(document, '-', 2) tipo, cast(substring_index(document, '-', -1) as unsigned) num")->distinct(), 't')
-                    ->selectRaw('tipo, min(num) desde, max(num) hasta, count(*) cantidad, max(num) - min(num) + 1 - count(*) faltantes')->groupBy('tipo')->orderBy('tipo'),
+                'title' => 'Consecutivo de comprobantes', 'filters' => ['creator', 'kind', 'range', 'status'], 'primary' => ['creator'],
+                'labels' => ['range' => 'Fecha elaboración', 'kind' => 'Tipo transacción', 'status' => 'Estado consecutivo'],
+                'kinds' => ['C' => 'Cotización', 'FV' => 'Factura de venta', 'NC' => 'Nota crédito', 'RC' => 'Recibo de caja', 'FC' => 'Factura de compra', 'DS' => 'Documento soporte',
+                    'RP' => 'Recibo de pago', 'CC' => 'Comprobante contable'],
+                'statuses' => ['contabilizado' => 'Contabilizado', 'anulado' => 'Anulado'],
+                'columns' => ['tipo' => ['Tipo transacción', 'text'], 'comprobante' => ['Comprobante', 'text'], 'valor' => ['Valor', 'money'], 'moneda' => ['Moneda', 'text'],
+                    'fecha' => ['Fecha elaboración', 'date'], 'creacion' => ['Fecha creación', 'date'], 'creador' => ['Creado por', 'text'], 'estado' => ['Estado consecutivo', 'text']],
+                'totals' => ['valor'],
+                'links' => ['comprobante' => '@url'],
+                'query' => function ($f) {
+                    $user = fn ($a, $seller = false) => "coalesce((select u.name from users u where u.id = $a.created_by)".($seller ? ", (select s.name from sellers s where s.id = $a.seller_id)" : '').", '-')";
+                    $state = fn ($a) => "if($a.status = 'annulled', 'Anulado', 'Contabilizado')";
+                    $base = fn ($tbl, $a) => DB::table("$tbl as $a")->where("$a.company_id", $f['cid'])->whereBetween("$a.date", [$f['from'], $f['to']])
+                        ->when($f['creator'], fn ($q, $v) => $q->where("$a.created_by", $v))
+                        ->when($f['status'], fn ($q, $v) => $v === 'anulado' ? $q->where("$a.status", 'annulled') : $q->where("$a.status", '<>', 'annulled'));
+                    $code = fn ($a) => "substring_index($a.name, '-', 1)";
+                    $rows = $base('sales_documents', 'd')->whereIn('d.type', ['FV', 'NC', 'ND', 'CT'])
+                        ->selectRaw("{$code('d')} tipo, d.name comprobante, d.total valor, d.currency moneda, d.date fecha, date(d.created_at) creacion, {$user('d', true)} creador, {$state('d')} estado, concat('/documentos/ventas/', d.id) url")
+                        ->unionAll($base('purchase_documents', 'd')->whereIn('d.type', ['FC', 'DS', 'ND', 'NA'])
+                            ->selectRaw("{$code('d')} tipo, d.name comprobante, d.total valor, d.currency moneda, d.date fecha, date(d.created_at) creacion, {$user('d')} creador, {$state('d')} estado, concat('/documentos/compras/', d.id) url"))
+                        ->unionAll($base('receipts', 'd')
+                            ->selectRaw("{$code('d')} tipo, d.name comprobante, d.total valor, 'COP' moneda, d.date fecha, date(d.created_at) creacion, {$user('d')} creador, {$state('d')} estado, concat('/documentos/recibos/', d.id) url"))
+                        ->unionAll($base('journal_entries', 'd')
+                            ->selectRaw("{$code('d')} tipo, d.name comprobante, d.debit valor, 'COP' moneda, d.date fecha, date(d.created_at) creacion, {$user('d')} creador, {$state('d')} estado, concat('/documentos/comprobantes/', d.id) url"));
+
+                    return DB::query()->fromSub($rows, 't')->when($f['kind'], fn ($q, $v) => $q->where('tipo', $v))
+                        ->orderBy('tipo')->orderByRaw("substring_index(comprobante, '-', 2), cast(substring_index(comprobante, '-', -1) as unsigned)");
+                },
             ],
             'comprobantes-no-contabilizados' => [
-                'title' => 'Comprobantes no contabilizados', 'filters' => ['range'],
-                'columns' => ['modulo' => ['Módulo', 'text'], 'documento' => ['Documento', 'text'], 'fecha' => ['Fecha', 'date'], 'tercero' => ['Tercero', 'text'], 'total' => ['Total', 'money']],
-                'totals' => ['total'],
-                'query' => fn ($f) => self::sales($f)->join('contacts as c', 'c.id', '=', 'd.contact_id')
-                    ->whereNotExists(fn ($q) => $q->from('ledger_lines as g')->where('g.company_id', $f['cid'])->whereColumn('g.document', 'd.name'))
-                    ->selectRaw("'Ventas' modulo, d.name documento, d.date fecha, c.name tercero, d.total")
-                    ->unionAll(self::purchases($f)->join('contacts as c', 'c.id', '=', 'd.contact_id')
-                        ->whereNotExists(fn ($q) => $q->from('ledger_lines as g')->where('g.company_id', $f['cid'])->whereColumn('g.document', 'd.name'))
-                        ->selectRaw("'Compras' modulo, d.name documento, d.date fecha, c.name tercero, d.total")),
+                'title' => 'Comprobantes no contabilizados', 'filters' => ['year'], 'primary' => ['year'],
+                'columns' => ['tipo' => ['Tipo de transacción', 'text'], 'documento' => ['Comprobante', 'text'], 'ident' => ['Identificación', 'text'], 'tercero' => ['Nombre del tercero', 'text'],
+                    'fecha' => ['Fecha de elaboración', 'date'], 'estado' => ['Estado', 'text'], 'accion' => ['Acciones', 'text']],
+                'totals' => [],
+                'links' => ['accion' => '@url', 'documento' => '@url'],
+                'query' => function ($f) {
+                    $y = [$f['year'].'-01-01', $f['year'].'-12-31'];
+                    $missing = fn ($q) => $q->whereNotExists(fn ($w) => $w->from('ledger_lines as g')->where('g.company_id', $f['cid'])->whereColumn('g.document', 'd.name'));
+                    $label = "case d.type when 'FV' then 'Factura de venta' when 'NC' then 'Nota crédito' when 'ND' then 'Nota débito' when 'FC' then 'Factura de compra'
+                        when 'DS' then 'Documento soporte' when 'NA' then 'Nota de ajuste' else d.type end";
+
+                    return $missing(DB::table('sales_documents as d')->join('contacts as c', 'c.id', '=', 'd.contact_id')->where('d.company_id', $f['cid'])
+                        ->whereIn('d.type', ['FV', 'NC', 'ND'])->where('d.status', '<>', 'annulled')->whereBetween('d.date', $y))
+                        ->selectRaw("$label tipo, d.name documento, c.identification ident, c.name tercero, d.date fecha, 'No contabilizado' estado, 'Ver' accion, concat('/documentos/ventas/', d.id) url")
+                        ->unionAll($missing(DB::table('purchase_documents as d')->join('contacts as c', 'c.id', '=', 'd.contact_id')->where('d.company_id', $f['cid'])
+                            ->whereIn('d.type', ['FC', 'DS', 'ND', 'NA'])->where('d.status', '<>', 'annulled')->whereBetween('d.date', $y))
+                            ->selectRaw("$label tipo, d.name documento, c.identification ident, c.name tercero, d.date fecha, 'No contabilizado' estado, 'Ver' accion, concat('/documentos/compras/', d.id) url"));
+                },
             ],
             'comprobantes-detallados' => [
-                'title' => 'Comprobantes detallados', 'filters' => ['range', 'doctype', 'account'],
-                'columns' => ['documento' => ['Comprobante', 'text'], 'fecha' => ['Fecha', 'date'], 'cuenta' => ['Cuenta', 'text'], 'nombre_cuenta' => ['Nombre cuenta', 'text'],
-                    'ident' => ['Identificación', 'text'], 'tercero' => ['Tercero', 'text'], 'debito' => ['Débito', 'money'], 'credito' => ['Crédito', 'money']],
+                'title' => 'Comprobantes detallados', 'filters' => ['range', 'doctype', 'account'], 'column_picker' => true,
+                'columns' => ['documento' => ['Comprobante', 'text'], 'secuencia' => ['Secuencia', 'int'], 'fecha' => ['Fecha elaboración', 'date'], 'cuenta' => ['Código contable', 'text'],
+                    'nombre_cuenta' => ['Cuenta contable', 'text'], 'ident' => ['Identificación', 'text'], 'sucursal' => ['Sucursal', 'text'], 'tercero' => ['Nombre tercero', 'text'],
+                    'descripcion' => ['Descripción', 'text'], 'detalle' => ['Detalle', 'text'], 'centro' => ['Centro de costo', 'text'], 'debito' => ['Débito', 'money'], 'credito' => ['Crédito', 'money']],
                 'totals' => ['debito', 'credito'],
                 'query' => fn ($f) => DB::table('ledger_lines as g')->leftJoin('accounts as a', 'a.id', '=', 'g.account_id')->where('g.company_id', $f['cid'])->whereBetween('g.date', [$f['from'], $f['to']])
                     ->when($f['doctype'], fn ($q, $v) => $q->where('g.document_type', $v))->when($f['account'], fn ($q, $v) => $q->where('g.account_code', 'like', "$v%"))
-                    ->selectRaw('g.document documento, g.date fecha, g.account_code cuenta, a.name nombre_cuenta, g.identification ident, g.contact_name tercero, g.debit debito, g.credit credito')
-                    ->orderBy('g.date')->orderBy('g.document')->orderBy('g.id'),
+                    ->selectRaw("g.document documento, row_number() over (partition by g.document order by g.id) secuencia, g.date fecha, g.account_code cuenta, a.name nombre_cuenta,
+                        g.identification ident, if(coalesce(g.branch, 0) = 0, '-', g.branch) sucursal, g.contact_name tercero, '-' descripcion, '-' detalle, '-' centro, g.debit debito, g.credit credito")
+                    ->orderBy('g.document')->orderBy('g.id'),
             ],
             'flujo-efectivo' => [
                 'title' => 'Estado de flujos de efectivo - Método indirecto', 'filters' => ['range'], 'paginate' => false,
@@ -512,18 +617,24 @@ final class ReportRegistry
                     ->groupBy('a.code', 'a.name')->orderBy('a.code'),
             ],
             'auxiliar-centro-costo' => [
-                'title' => 'Movimiento Auxiliar Centro de costo por cuenta contable', 'filters' => ['range', 'account'],
-                'columns' => ['centro' => ['Centro de costo', 'text'], 'cuenta' => ['Cuenta', 'text'], 'documento' => ['Comprobante', 'text'], 'fecha' => ['Fecha', 'date'], 'debito' => ['Débito', 'money'], 'credito' => ['Crédito', 'money']],
+                'title' => 'Movimiento Auxiliar Centro de costo por cuenta contable', 'filters' => ['range', 'account', 'cost_center'],
+                'columns' => ['documento' => ['Comprobante', 'text'], 'secuencia' => ['Secuencia', 'int'], 'fecha' => ['Fecha elaboración', 'date'], 'descripcion' => ['Descripción', 'text'],
+                    'detalle' => ['Detalle', 'text'], 'inicial' => ['Saldo inicial', 'money'], 'debito' => ['Débito', 'money'], 'credito' => ['Crédito', 'money'], 'saldo' => ['Saldo Movimiento', 'money']],
                 'totals' => ['debito', 'credito'],
-                'query' => fn ($f) => self::costCenterLines($f)->selectRaw("concat(cc.code, ' - ', cc.name) centro, concat(a.code, ' - ', a.name) cuenta, je.name documento, jl.date fecha, jl.debit debito, jl.credit credito")
+                'query' => fn ($f) => self::costCenterLines($f)->when($f['cost_center'], fn ($q, $v) => $q->where('jl.cost_center_id', $v))
+                    ->selectRaw("je.name documento, row_number() over (partition by je.id order by jl.id) secuencia, jl.date fecha, concat(a.code, ' - ', a.name) descripcion,
+                        coalesce(jl.description, concat(cc.code, ' - ', cc.name)) detalle, 0 inicial, jl.debit debito, jl.credit credito, jl.debit - jl.credit saldo")
                     ->orderBy('cc.code')->orderBy('a.code')->orderBy('jl.date'),
             ],
             'balance-centro-costo' => [
-                'title' => 'Balance de prueba por centro de costo', 'filters' => ['range', 'account'],
-                'columns' => ['centro' => ['Centro de costo', 'text'], 'cuenta' => ['Cuenta', 'text'], 'debito' => ['Débito', 'money'], 'credito' => ['Crédito', 'money'], 'saldo' => ['Saldo', 'money']],
-                'totals' => ['debito', 'credito', 'saldo'],
-                'query' => fn ($f) => self::costCenterLines($f)->selectRaw("concat(cc.code, ' - ', cc.name) centro, concat(a.code, ' - ', a.name) cuenta, sum(jl.debit) debito, sum(jl.credit) credito, sum(jl.debit - jl.credit) saldo")
-                    ->groupBy('cc.code', 'cc.name', 'a.code', 'a.name')->orderBy('cc.code')->orderBy('a.code'),
+                'title' => 'Balance de prueba por centro de costo', 'filters' => ['range', 'account', 'cost_center'],
+                'columns' => ['cuenta' => ['Código cuenta contable', 'text'], 'nombre' => ['Nombre cuenta contable', 'text'], 'ident' => ['Identificación', 'text'], 'sucursal' => ['Sucursal', 'text'],
+                    'tercero' => ['Nombre tercero', 'text'], 'inicial' => ['Saldo inicial', 'money'], 'debito' => ['Movimiento débito', 'money'], 'credito' => ['Movimiento crédito', 'money'], 'saldo' => ['Saldo final', 'money']],
+                'totals' => ['debito', 'credito'],
+                'query' => fn ($f) => self::costCenterLines($f)->leftJoin('contacts as c', 'c.id', '=', 'jl.contact_id')->when($f['cost_center'], fn ($q, $v) => $q->where('jl.cost_center_id', $v))
+                    ->selectRaw("a.code cuenta, a.name nombre, coalesce(c.identification, '-') ident, ".self::branch('c')." sucursal, coalesce(c.name, '-') tercero, 0 inicial,
+                        sum(jl.debit) debito, sum(jl.credit) credito, sum(jl.debit - jl.credit) saldo")
+                    ->groupBy('a.code', 'a.name', 'c.id', 'c.identification', 'c.branch_office', 'c.name')->orderBy('a.code'),
             ],
 
             // ---------------- Nomina (Reportes de nómina) ----------------
@@ -609,48 +720,69 @@ final class ReportRegistry
                     ->selectRaw('name liquidacion, settlement_type tipo, period_start desde, period_end hasta, status estado, total')->orderBy('period_start'),
             ],
             'acumulados-nomina-detallados' => [
-                'title' => 'Acumulados detallados de nómina', 'filters' => ['year', 'contact'],
-                'columns' => ['ident' => ['Identificación', 'text'], 'empleado' => ['Empleado', 'text'], 'documento' => ['Documento', 'text'], 'fecha' => ['Fecha', 'date'], 'estado' => ['Estado DIAN', 'text'], 'neto' => ['Neto pagado', 'money']],
-                'totals' => ['neto'],
-                'query' => fn ($f) => DB::table('payroll_documents as pd')->leftJoin('contacts as c', 'c.id', '=', 'pd.contact_id')->where('pd.company_id', $f['cid'])
-                    ->whereYear('pd.generated_at', $f['year'])->when($f['contact'], fn ($q, $v) => $q->where('pd.contact_id', $v))
-                    ->selectRaw("c.identification ident, c.name empleado, concat_ws('-', pd.type, pd.consecutive) documento, pd.generated_at fecha, pd.status estado, pd.net neto")->orderBy('pd.generated_at'),
+                'title' => 'Acumulados detallados de nómina', 'filters' => ['range', 'contact', 'cost_center'], 'primary' => ['contact'], 'labels' => ['range' => 'Periodo', 'contact' => 'Empleado'],
+                'columns' => ['contrato' => ['Número contrato', 'text'], 'ident' => ['Identificación', 'text'], 'nombre' => ['Nombre empleado', 'text'], 'periodo' => ['Periodo', 'text'],
+                    'mes' => ['Mes', 'text'], 'anio' => ['Año', 'text'], 'centro' => ['Centro costo', 'text'], 'novedad' => ['Novedad', 'text'], 'tipo' => ['Tipo', 'text'],
+                    'cantidad' => ['Horas/Días', 'qty'], 'valor' => ['Valor en nómina', 'money'], 'inicial' => ['Valor acumulado inicial', 'money'], 'total' => ['Valor total', 'money']],
+                'totals' => ['cantidad', 'valor', 'inicial', 'total'],
+                'query' => fn ($f) => self::payrollDocs($f)->join('payroll_items as i', 'i.payroll_document_id', '=', 'pd.id')->whereIn('i.type', ['earning', 'deduction'])
+                    ->selectRaw("pd.contract_number contrato, c.identification ident, c.name nombre, coalesce(e.payment_frequency, 'Mensual') periodo,
+                        cast(substr(pd.period, 6, 2) as unsigned) mes, cast(left(pd.period, 4) as unsigned) anio, cc.name centro, i.label novedad,
+                        if(i.type = 'earning', 'Ingreso', 'Deducción') tipo, i.quantity cantidad, i.value valor, 0 inicial, i.value total")
+                    ->orderByRaw('cast(c.identification as unsigned)')->orderBy('pd.period')->orderBy('i.id'),
             ],
             'acumulados-iniciales-nomina' => [
-                'title' => 'Acumulados iniciales de nómina', 'filters' => [],
-                'columns' => ['ident' => ['Identificación', 'text'], 'empleado' => ['Empleado', 'text'], 'contrato' => ['Contrato', 'text'], 'inicio' => ['Fecha de ingreso', 'date'], 'cargo' => ['Cargo', 'text'], 'salario' => ['Salario', 'money'], 'activo' => ['Estado', 'text']],
-                'totals' => ['salario'],
-                'query' => fn ($f) => DB::table('employees as e')->join('contacts as c', 'c.id', '=', 'e.contact_id')->where('e.company_id', $f['cid'])
-                    ->selectRaw("c.identification ident, c.name empleado, e.contract_number contrato, e.start_date inicio, e.position cargo, e.salary salario, if(e.active, 'Activo', 'Retirado') activo")->orderBy('c.name'),
+                'title' => 'Acumulados iniciales de nómina', 'filters' => ['contact'], 'primary' => ['contact'], 'labels' => ['contact' => 'Empleado'],
+                'columns' => ['contrato' => ['No contrato', 'text'], 'ident' => ['Identificación', 'text'], 'nombre' => ['Nombre', 'text'], 'novedad' => ['Novedad', 'text'],
+                    'cantidad' => ['Horas/Días', 'qty'], 'valor' => ['Valor', 'money'], 'periodo' => ['Periodo', 'text'], 'mes' => ['Mes', 'text']],
+                'totals' => ['cantidad', 'valor'],
+                'note' => 'Los acumulados iniciales son los valores de nómina registrados antes de empezar a liquidar en el sistema.',
+                'query' => fn ($f) => DB::table('employees as e')->join('contacts as c', 'c.id', '=', 'e.contact_id')->where('e.company_id', $f['cid'])->whereRaw('1 = 0')
+                    ->selectRaw("e.contract_number contrato, c.identification ident, c.name nombre, '' novedad, 0 cantidad, 0 valor, '' periodo, '' mes"),
             ],
 
             // ---------------- General ----------------
             'auditoria-borrado' => [
-                'title' => 'Auditoría de borrado de comprobantes', 'filters' => ['range'],
-                'columns' => ['fecha' => ['Fecha', 'text'], 'usuario' => ['Usuario', 'text'], 'registro' => ['Registro', 'text'], 'ip' => ['IP', 'text']],
+                'title' => 'Auditoría de borrado de comprobantes', 'filters' => ['range', 'q'], 'primary' => ['q'], 'labels' => ['range' => 'Fecha de borrado', 'q' => 'Comprobante'],
+                'columns' => ['comprobante' => ['Comprobante borrado', 'text'], 'ident' => ['Identificación', 'text'], 'tercero' => ['Nombre del tercero', 'text'],
+                    'fecha' => ['Fecha y hora de borrado', 'text'], 'usuario' => ['Usuario', 'text'], 'correo' => ['Correo electrónico', 'text'], 'origen' => ['Origen de borrado', 'text']],
                 'totals' => [],
-                'query' => fn ($f) => DB::table('audit_logs as l')->leftJoin('users as u', 'u.id', '=', 'l.user_id')->where('l.company_id', $f['cid'])->where('l.event', 'deleted')
+                'query' => fn ($f) => DB::query()->fromSub(DB::table('audit_logs as l')->leftJoin('users as u', 'u.id', '=', 'l.user_id')->where('l.company_id', $f['cid'])->where('l.event', 'deleted')
                     ->whereBetween(DB::raw('date(l.created_at)'), [$f['from'], $f['to']])
-                    ->selectRaw("date_format(l.created_at, '%d/%m/%Y %H:%i') fecha, u.name usuario, concat(substring_index(l.auditable_type, '\\\\', -1), ' #', l.auditable_id) registro, l.ip")->orderByDesc('l.created_at'),
+                    ->selectRaw("coalesce(json_unquote(json_extract(l.old_values, '$.name')), concat(substring_index(l.auditable_type, '\\\\', -1), ' #', l.auditable_id)) comprobante,
+                        json_unquote(json_extract(l.old_values, '$.contact_id')) contact_id, date_format(l.created_at, '%d/%m/%Y %h:%i %p') fecha, u.name usuario, u.email correo,
+                        'Individual' origen, l.created_at creado"), 't')
+                    ->leftJoin('contacts as c', 'c.id', '=', 't.contact_id')->when($f['q'], fn ($q, $v) => $q->where('t.comprobante', 'like', "%$v%"))
+                    ->selectRaw("t.comprobante, coalesce(c.identification, '-') ident, coalesce(c.name, '-') tercero, t.fecha, t.usuario, t.correo, t.origen")->orderByDesc('t.creado'),
             ],
             'paises-ciudades' => [
-                'title' => 'Países, departamentos y ciudades', 'filters' => ['q'],
-                'columns' => ['pais' => ['País', 'text'], 'departamento' => ['Departamento', 'text'], 'codigo' => ['Código DANE', 'text'], 'ciudad' => ['Ciudad', 'text']],
+                'title' => 'Países, departamentos y ciudades', 'filters' => ['q'], 'primary' => ['q'], 'labels' => ['q' => 'Ciudad'],
+                'columns' => ['pais' => ['País', 'text'], 'departamento' => ['Estado / Departamento', 'text'], 'ciudad' => ['Ciudad', 'text'],
+                    'cod_pais' => ['Código país', 'text'], 'cod_dep' => ['Código Estado / Departamento', 'text'], 'codigo' => ['Código ciudad', 'text']],
                 'totals' => [],
                 'query' => fn ($f) => DB::table('municipalities as m')->join('departments as d', 'd.code', '=', 'm.department_code')
                     ->when($f['q'], fn ($q, $v) => $q->where(fn ($w) => $w->where('m.name', 'like', "%$v%")->orWhere('d.name', 'like', "%$v%")))
-                    ->selectRaw("'Colombia' pais, d.name departamento, m.code codigo, m.name ciudad")->orderBy('d.name')->orderBy('m.name'),
+                    ->selectRaw("'Colombia' pais, d.name departamento, m.name ciudad, 'COL' cod_pais, d.code cod_dep, m.code codigo")->orderBy('d.name')->orderBy('m.name'),
             ],
             'historial-reportes' => [
-                'title' => 'Historial de reportes generados', 'filters' => ['range'],
-                'columns' => ['fecha' => ['Fecha', 'text'], 'usuario' => ['Usuario', 'text'], 'reporte' => ['Reporte', 'text'], 'filas' => ['Filas', 'int']],
+                'title' => 'Historial de reportes generados', 'filters' => ['q', 'status'], 'primary' => ['q', 'status'], 'banner' => true, 'refresh' => true, 'q_placeholder' => 'Buscar por nombre',
+                'note' => 'En esta sección encontrarás los reportes generados en las últimas 24 horas, disponibles para su descarga.',
+                'labels' => ['q' => 'Búsqueda'], 'statuses' => ['finalizado' => 'Finalizado'],
+                'columns' => ['reporte' => ['Nombre reporte', 'text'], 'formato' => ['Formato', 'text'], 'generacion' => ['Generación', 'text'],
+                    'estado' => ['Estado', 'text'], 'accion' => ['Acción', 'text']],
                 'totals' => [],
-                'query' => fn ($f) => DB::table('report_exports as x')->leftJoin('users as u', 'u.id', '=', 'x.user_id')->where('x.company_id', $f['cid'])
-                    ->whereBetween(DB::raw('date(x.created_at)'), [$f['from'], $f['to']])
-                    ->selectRaw("date_format(x.created_at, '%d/%m/%Y %H:%i') fecha, u.name usuario, x.title reporte, x.rows_count filas")->orderByDesc('x.created_at'),
+                'links' => ['accion' => '@url'],
+                'query' => fn ($f) => DB::table('report_exports as x')->where('x.company_id', $f['cid'])->where('x.created_at', '>=', now()->subDay())
+                    ->when($f['q'], fn ($q, $v) => $q->where('x.title', 'like', "%$v%"))
+                    ->selectRaw("x.title reporte, upper(coalesce(x.format, 'xlsx')) formato, date_format(x.created_at, '%d/%m/%Y %h:%i %p') generacion,
+                        'Finalizado' estado, if(x.url is null, null, 'Descargar') accion, x.url")->orderByDesc('x.created_at'),
             ],
         ];
     }
+
+    private const ID_TYPE_SQL = "case c.identification_type when '13' then 'Cédula de ciudadanía' when '31' then 'NIT' when '22' then 'Cédula de extranjería'
+        when '21' then 'Tarjeta de extranjería' when '41' then 'Pasaporte' when '12' then 'Tarjeta de identidad' when '11' then 'Registro civil'
+        when '42' then 'Documento de identificación extranjero' when '47' then 'PEP' when '50' then 'NIT de otro país' when '91' then 'NUIP' else '-' end";
 
     private const PSIGN = "(CASE WHEN d.type IN ('ND', 'NA') THEN -1 ELSE 1 END)";
 
@@ -697,6 +829,46 @@ final class ReportRegistry
             ->when($f['line'] ?? null, fn ($q, $v) => $q->where('p.product_line_id', $v));
     }
 
+    /** Libro oficial: un renglon por comprobante con bases gravada y exenta segun el IVA de cada item; el total no descuenta retenciones. */
+    private static function officialBook(array $f, bool $purchases): Builder
+    {
+        $sign = $purchases ? self::PSIGN : self::SIGN;
+        $items = $purchases ? 'purchase_document_items' : 'sales_document_items';
+        $taxes = $purchases ? 'purchase_document_item_taxes' : 'sales_document_item_taxes';
+        $fk = $purchases ? 'purchase_document_id' : 'sales_document_id';
+        $q = ($purchases ? self::purchases($f, ['FC', 'DS', 'ND', 'NA']) : self::sales($f))->join('contacts as c', 'c.id', '=', 'd.contact_id')
+            ->join("$items as i", "i.$fk", '=', 'd.id')
+            ->leftJoin("$taxes as t", fn ($j) => $j->on('t.'.($purchases ? 'purchase_document_item_id' : 'sales_document_item_id'), '=', 'i.id')->where('t.type', 'IVA'))
+            ->groupBy(['d.id', 'd.name', 'd.date', 'd.type', 'd.number', 'c.identification', 'c.branch_office', 'c.name', ...($purchases ? ['d.supplier_prefix', 'd.supplier_number'] : [])]);
+        $gravada = "round(sum(case when coalesce(t.percentage, 0) > 0 then i.subtotal else 0 end) * $sign, 2)";
+        $exenta = "round(sum(case when coalesce(t.percentage, 0) > 0 then 0 else i.subtotal end) * $sign, 2)";
+        $iva = "round(sum(coalesce(t.value, 0)) * $sign, 2)";
+        $who = "d.name documento, d.date fecha, c.identification ident, ".self::branch('c')." sucursal, c.name tercero";
+
+        return $purchases
+            ? $q->selectRaw("$who, nullif(concat_ws('-', d.supplier_prefix, d.supplier_number), '') factura, $gravada gravada, $exenta exenta, $iva iva, $gravada + $exenta + $iva total")
+                ->orderByDesc('d.date')->orderByDesc('d.id')
+            : $q->selectRaw("$who, 0 aiu, $gravada gravada, $exenta exenta, $iva iva, 0 impoconsumo, 0 advalorem, 0 cargos, 0 descuentos, $gravada + $exenta + $iva total")
+                ->orderByDesc('d.date')->orderByDesc('d.number');
+    }
+
+    private static function stockProducts(array $f): Builder
+    {
+        return DB::table('products as p')->leftJoin('account_groups as g', 'g.id', '=', 'p.account_group_id')->where('p.company_id', $f['cid'])->where('p.stock_control', true)
+            ->when($f['product'] ?? null, fn ($q, $v) => $q->where('p.id', $v))->when($f['group'] ?? null, fn ($q, $v) => $q->where('p.account_group_id', $v));
+    }
+
+    /** Renglones del kardex con saldo inicial, entradas, salidas y saldo final en cantidades y valores. */
+    private static function kardexLines(array $f): Builder
+    {
+        return DB::table('inventory_movements as m')->join('products as p', 'p.id', '=', 'm.product_id')->where('m.company_id', $f['cid'])
+            ->whereBetween('m.date', [$f['from'], $f['to']])->when($f['product'], fn ($q, $v) => $q->where('m.product_id', $v))
+            ->when($f['group'] ?? null, fn ($q, $v) => $q->where('p.account_group_id', $v))
+            ->selectRaw("m.document comprobante, 1 secuencia, m.date fecha, m.balance_quantity - m.quantity cant_inicial, greatest(m.quantity, 0) cant_entrada, greatest(-m.quantity, 0) cant_salida,
+                m.balance_quantity cant_saldo, m.balance_cost - case when m.quantity >= 0 then abs(m.total_cost) else -abs(m.total_cost) end val_inicial,
+                case when m.quantity > 0 then abs(m.total_cost) else 0 end val_entrada, case when m.quantity < 0 then abs(m.total_cost) else 0 end val_salida, m.balance_cost val_saldo");
+    }
+
     private static function movements(array $f, string $source): Builder
     {
         return DB::table('inventory_movements as m')->join('products as p', 'p.id', '=', 'm.product_id')->where('m.company_id', $f['cid'])->where('m.document', 'like', $source.'-%')
@@ -731,6 +903,58 @@ final class ReportRegistry
             ->selectRaw("c.identification ident, c.name nombre, coalesce(c.branch_office, 0) sucursal, b.d30, b.d60, b.d90, b.mas90, b.por_vencer, b.favor,
                 round(b.d30 + b.d60 + b.d90 + b.mas90 + b.por_vencer - b.favor, 2) total, concat('$url', c.id) url")
             ->orderByRaw('cast(c.identification as unsigned)')->orderBy('c.identification')->orderBy('c.branch_office');
+    }
+
+    /**
+     * Movimientos de cada documento de cartera: el documento que crea el saldo y los recibos y notas que lo abonan,
+     * con la cuenta por cobrar o por pagar de cada uno, como el reporte por vencimiento de Siigo.
+     */
+    private static function dueMovements(array $f): Builder
+    {
+        $purchases = $f['module'] === 'compras';
+        $table = $purchases ? 'purchase_documents' : 'sales_documents';
+        $fk = $purchases ? 'purchase_document_id' : 'sales_document_id';
+        $like = $purchases ? '2%' : '13%';
+        $docUrl = $purchases ? '/documentos/compras/' : '/documentos/ventas/';
+        $account = fn ($doc) => "(select l.account_code from ledger_lines l where l.company_id = d.company_id and l.document = $doc and l.account_code like '$like' order by l.id limit 1)";
+        $due = fn ($q) => $q->from("$table as d")->where('d.company_id', $f['cid'])->whereIn('d.type', $purchases ? ['FC', 'DS', 'SI'] : ['FV', 'ND', 'SI'])->where('d.status', '<>', 'annulled')
+            ->when($f['q'], fn ($w, $v) => $w->where('d.name', strtoupper(preg_replace('/^([A-Za-z]+-\d+-\d+)-\d+$/', '$1', str_replace(' ', '', $v)))),
+                fn ($w) => $w->where('d.balance', '<>', 0))
+            ->when($f['contact'], fn ($w, $v) => $w->where('d.contact_id', $v));
+        [$open, $pay] = $purchases ? ['0 debito, d.total credito', 'ri.value debito, 0 credito'] : ['d.total debito, 0 credito', '0 debito, ri.value credito'];
+        [$noteOpen, $noteType] = $purchases ? ['n.total debito, 0 credito', ['NA']] : ['0 debito, n.total credito', ['NC']];
+
+        $docs = $due(DB::query())->selectRaw("d.name documento, 1 secuencia, d.date fecha, concat(d.name, '-1') detalle, {$account('d.name')} cuenta, $open,
+            d.name orden, d.id oid, 0 paso, concat('$docUrl', d.id) url");
+        $receipts = $due(DB::query())->join('receipt_items as ri', "ri.$fk", '=', 'd.id')->join('receipts as r', 'r.id', '=', 'ri.receipt_id')
+            ->leftJoin('accounts as a', 'a.id', '=', 'ri.account_id')->where('r.status', '<>', 'annulled')
+            ->selectRaw("r.name documento, (select count(*) from receipt_items x where x.receipt_id = r.id and x.id <= ri.id) secuencia, r.date fecha,
+                concat(d.name, '-', coalesce(ri.due_quote, 1)) detalle, coalesce(a.code, {$account('r.name')}) cuenta, $pay, d.name orden, d.id oid, 1 paso, concat('/documentos/recibos/', r.id) url");
+        $notes = $due(DB::query())->join("$table as n", 'n.related_document_id', '=', 'd.id')->whereIn('n.type', $noteType)->where('n.status', '<>', 'annulled')
+            ->selectRaw("n.name documento, 1 secuencia, n.date fecha, concat(d.name, '-1') detalle, {$account('n.name')} cuenta, $noteOpen, d.name orden, d.id oid, 2 paso, concat('$docUrl', n.id) url");
+
+        return DB::query()->fromSub($docs->unionAll($receipts)->unionAll($notes), 'm')->orderBy('m.oid')->orderBy('m.paso')->orderBy('m.fecha');
+    }
+
+    /** Un renglon por documento con saldo, en los mismos rangos de vencimiento a hoy que agingByContact. */
+    private static function agingByDocument(array $f): Builder
+    {
+        $purchases = $f['module'] === 'compras';
+        $days = 'datediff(curdate(), d.due_date)';
+        $pos = fn ($cond) => "case when d.balance > 0 and $cond then d.balance else 0 end";
+        $url = $purchases ? '/documentos/compras/' : '/documentos/ventas/';
+
+        return DB::table(($purchases ? 'purchase_documents' : 'sales_documents').' as d')->join('contacts as c', 'c.id', '=', 'd.contact_id')
+            ->leftJoin('cost_centers as cc', 'cc.id', '=', 'd.cost_center_id')
+            ->where('d.company_id', $f['cid'])->whereIn('d.type', $purchases ? ['FC', 'DS', 'ND', 'SI', 'NA'] : ['FV', 'ND', 'SI', 'NC'])
+            ->where('d.status', '<>', 'annulled')->where('d.balance', '<>', 0)
+            ->when($f['contact'], fn ($q, $v) => $q->where('d.contact_id', $v))
+            ->when($f['q'], fn ($q, $v) => $q->where(fn ($w) => $w->where('c.name', 'like', "%$v%")->orWhere('c.identification', 'like', "$v%")))
+            ->selectRaw("c.identification ident, c.name nombre, ".self::branch('c')." sucursal, d.name documento, d.due_date vence, cc.name centro,
+                {$pos("$days between 1 and 30")} d30, {$pos("$days between 31 and 60")} d60, {$pos("$days between 61 and 90")} d90, {$pos("$days > 90")} mas90,
+                {$pos("(d.due_date is null or $days <= 0)")} por_vencer, case when d.balance < 0 then -d.balance else 0 end favor, d.balance total, concat('$url', d.id) url,
+                concat('".($purchases ? '/compras/proveedores/' : '/ventas/clientes/')."', c.id) contact_url")
+            ->orderByRaw('left(c.name, 1), cast(c.identification as unsigned), c.identification, d.due_date, d.id');
     }
 
     private static function aging(array $f): Builder

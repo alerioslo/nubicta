@@ -36,6 +36,9 @@ class GenericReportController extends Controller
         foreach ($def['defaults'] ?? [] as $k => $v) {
             $f[$k] ??= $v;
         }
+        if (isset($def['defaults']['cutoff']) && ! $request->filled('corte')) {
+            $f['cutoff'] = $def['defaults']['cutoff'];
+        }
         $format = $request->input('formato') ?? ($request->boolean('export') ? 'xlsx' : null);
 
         if (isset($def['rows'])) {
@@ -88,7 +91,7 @@ class GenericReportController extends Controller
                 'title' => $def['title'], 'note' => $def['note'] ?? null, 'filters' => $def['filters'], 'primary' => $def['primary'] ?? [],
                 'columns' => $def['columns'], 'totals' => $def['totals'], 'links' => $def['links'] ?? [],
                 'labels' => [...self::FILTER_LABELS, ...($def['labels'] ?? [])], 'defaults' => $def['defaults'] ?? [],
-                'module_labels' => $def['module_labels'] ?? null, 'column_picker' => $def['column_picker'] ?? false, 'narrow' => $def['narrow'] ?? [],
+                'module_labels' => $def['module_labels'] ?? null, 'column_picker' => $def['column_picker'] ?? false, 'narrow' => $def['narrow'] ?? [], 'banner' => $def['banner'] ?? false, 'refresh' => $def['refresh'] ?? false, 'hidden' => $def['hidden'] ?? [], 'q_placeholder' => $def['q_placeholder'] ?? null,
             ],
             'rows' => $rows,
             'totals' => $totals ?: null,
@@ -152,7 +155,7 @@ class GenericReportController extends Controller
     {
         DB::table('report_exports')->insert([
             'company_id' => CurrentCompany::id(), 'user_id' => auth()->id(), 'slug' => $slug, 'title' => $def['title'],
-            'rows_count' => $rows->count(), 'created_at' => now(),
+            'format' => $format, 'url' => mb_substr(request()->fullUrl(), 0, 2000), 'rows_count' => $rows->count(), 'created_at' => now(),
         ]);
         $cols = $def['columns'];
         $keys = array_keys($cols);

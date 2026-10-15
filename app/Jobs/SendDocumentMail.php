@@ -32,7 +32,7 @@ class SendDocumentMail implements ShouldQueue
     public function __construct(public int $id, public int $companyId) {}
 
     /** Marca el documento en cola y despacha el envio cuando termine la transaccion. */
-    public static function queue(SalesDocument $doc): void
+    public static function enqueue(SalesDocument $doc): void
     {
         $doc->forceFill(['mail_status' => 'queued'])->save();
         self::dispatch($doc->id, $doc->company_id)->afterCommit();

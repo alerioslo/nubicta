@@ -140,7 +140,7 @@ function download(format) {
 
 const data = computed(() => props.rows.data ?? []);
 const colKey = `friigo.report.columns.${props.slug}`;
-const hidden = ref(props.report.column_picker ? JSON.parse(localStorage.getItem(colKey) || '[]') : []);
+const hidden = ref(props.report.column_picker ? JSON.parse(localStorage.getItem(colKey) ?? 'null') ?? props.report.hidden ?? [] : props.report.hidden ?? []);
 const pickerOpen = ref(false);
 function toggleColumn(k) {
     hidden.value = hidden.value.includes(k) ? hidden.value.filter((x) => x !== k) : [...hidden.value, k];
@@ -197,7 +197,8 @@ function toggleFav() {
             <svg v-else viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2.8l2.8 5.8 6.4.9-4.6 4.5 1.1 6.3L12 17.3l-5.7 3 1.1-6.3-4.6-4.5 6.4-.9z" /></svg>
         </button>
     </div>
-    <p v-if="report.note" class="mb-[10px] text-[12px] text-muted"><Icon icon="circle-info" class="text-primary" /> {{ report.note }}</p>
+    <p v-if="report.note && report.banner" class="mb-[12px] flex items-center gap-[10px] rounded-[4px] border border-[#9fd3f7] bg-[#e8f5fe] px-[14px] py-[9px] text-[12.5px] text-ink"><Icon icon="circle-info" class="text-primary" /> {{ report.note }}</p>
+    <p v-else-if="report.note" class="mb-[10px] text-[12px] text-muted"><Icon icon="circle-info" class="text-primary" /> {{ report.note }}</p>
 
     <section class="s-card overflow-hidden">
         <div class="flex items-end gap-[12px] px-[14px] pt-[14px]">
@@ -209,7 +210,10 @@ function toggleFav() {
                 <select v-else-if="k === 'group'" v-model="f.grupo" class="s-input w-full" @change="generate()"><option value="">Seleccione una opción</option><option v-for="g in options.groups" :key="g.id" :value="g.id">{{ g.name }}</option></select>
                 <select v-else-if="k === 'cost_center'" v-model="f.centro" class="s-input w-full" @change="generate()"><option value="">Buscar</option><option v-for="c in options.cost_centers" :key="c.id" :value="c.id">{{ c.code }} - {{ c.name }}</option></select>
                 <select v-else-if="k === 'module'" v-model="f.modulo" class="s-input w-full" @change="generate()"><option value="ventas">{{ moduleLabels.ventas }}</option><option value="compras">{{ moduleLabels.compras }}</option></select>
-                <input v-else-if="k === 'q'" v-model="f.q" class="s-input w-full" placeholder="Buscar" @keyup.enter="generate()" />
+                <input v-else-if="k === 'q'" v-model="f.q" class="s-input w-full" :placeholder="report.q_placeholder || 'Buscar'" @keyup.enter="generate()" />
+                <select v-else-if="k === 'kind'" v-model="f.clase" class="s-input w-full" @change="generate()"><option v-if="!('todos' in options.kinds)" value="">Todos</option><option v-for="(t, v) in options.kinds" :key="v" :value="v">{{ t }}</option></select>
+                <select v-else-if="k === 'creator'" v-model="f.creador" class="s-input w-full" @change="generate()"><option value="">Buscar</option><option v-for="u in options.creators" :key="u.id" :value="u.id">{{ u.name }}</option></select>
+                <select v-else-if="k === 'status'" v-model="f.estado" class="s-input w-full" @change="generate()"><option value="">Todos</option><option v-for="(t, v) in options.statuses" :key="v" :value="v">{{ t }}</option></select>
                 <input v-else-if="k === 'account'" v-model="f.cuenta" class="s-input w-full" placeholder="Buscar" @keyup.enter="generate()" />
                 <input v-else-if="k === 'cutoff'" v-model="f.corte" type="date" class="s-input w-full" @change="generate()" />
                 <select v-else-if="k === 'year'" v-model="f.anio" class="s-input w-full" @change="generate()"><option v-for="y in options.years" :key="y" :value="y">{{ y }}</option></select>
@@ -226,7 +230,8 @@ function toggleFav() {
                     </label>
                 </div>
             </div>
-            <DownloadMenu :class="report.column_picker ? 'mb-[1px]' : 'ml-auto mb-[1px]'" button-class="inline-flex h-[32px] items-center gap-[6px] rounded-[4px] border border-primary px-[10px] text-[12.5px] text-primary hover:bg-primary-light" @download="download" />
+            <button v-if="report.refresh" type="button" class="s-btn ml-auto mb-[1px] bg-primary text-white" @click="generate()">Actualizar</button>
+            <DownloadMenu v-else :class="report.column_picker ? 'mb-[1px]' : 'ml-auto mb-[1px]'" button-class="inline-flex h-[32px] items-center gap-[6px] rounded-[4px] border border-primary px-[10px] text-[12.5px] text-primary hover:bg-primary-light" @download="download" />
         </div>
         <div class="flex min-h-[38px] flex-wrap items-center gap-[6px] px-[14px] py-[8px] text-[12px]">
             <span v-for="c in chips" :key="c.k" class="inline-flex items-center gap-[6px] rounded-full border border-[#c9ced3] bg-[#f7f9fa] py-[2px] pl-[8px] pr-[4px] text-[#4a5561]">

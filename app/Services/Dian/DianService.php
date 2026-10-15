@@ -189,7 +189,12 @@ class DianService
             'attached_path' => $attachedPath,
         ], fn ($v) => $v !== null))->save();
         if ($valid && ! $purchase && ! in_array($doc->mail_status, ['sent', 'read'], true)) {
-            \App\Jobs\SendDocumentMail::queue($doc);
+            try {
+                \App\Jobs\SendDocumentMail::enqueue($doc);
+            } catch (\Throwable $e) {
+                report($e);
+                $doc->forceFill(['mail_status' => 'failed'])->save();
+            }
         }
 
         return ['valid' => $valid, 'status' => $status, 'message' => $message, 'key' => $built['key']];

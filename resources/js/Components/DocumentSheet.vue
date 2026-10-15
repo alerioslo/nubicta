@@ -69,11 +69,11 @@ onMounted(async () => {
 
         <table class="items">
             <thead>
-                <tr><th class="w-bod">Bodega</th><th>Descripción</th><th class="w-um">Unidad de medida</th><th class="r w-n">Cant.</th><th class="w-vu">Vr. Unitario</th><th class="r w-n">Valor Impto.Cargo</th><th class="r w-n">Vr. Total</th></tr>
+                <tr><th>Descripción</th><th class="w-um">Unidad de medida</th><th class="r w-n">Cant.</th><th class="r w-vu">Vr. Unitario</th><th class="r w-n">Valor Impto.Cargo</th><th class="r w-n">Vr. Total</th></tr>
             </thead>
             <tbody>
                 <tr v-for="(i, k) in d.items" :key="k">
-                    <td>{{ i.warehouse }}</td><td>{{ i.description }}</td><td>{{ i.unit }}</td><td class="r">{{ qty(i.quantity) }}</td>
+                    <td>{{ i.description }}</td><td>{{ i.unit }}</td><td class="r">{{ qty(i.quantity) }}</td>
                     <td class="r">{{ money(i.price) }}</td><td class="r">{{ money(i.tax_total) }}</td><td class="r">{{ money(i.total) }}</td>
                 </tr>
             </tbody>
@@ -131,8 +131,9 @@ onMounted(async () => {
 .items { width: 100%; border-collapse: collapse; border-top: 1px solid #999; }
 .items th { font-weight: normal; text-align: left; padding: 18px 2px 6px; vertical-align: bottom; }
 .items td { padding: 2px; vertical-align: top; }
-.items td:nth-child(2) { padding-left: 2px; }
-.w-bod { width: 46px; } .w-um { width: 44px; } .w-n { width: 64px; } .w-vu { width: 150px; }
+
+.w-um { width: 70px; } .w-n { width: 90px; } .w-vu { width: 110px; }
+.items th.r { text-align: right; }
 .r { text-align: right; }
 .sums { width: 100%; border-collapse: collapse; margin: 18px 0 30px; }
 .sums td:first-child { width: 470px; }

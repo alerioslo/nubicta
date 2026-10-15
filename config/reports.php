@@ -5,7 +5,7 @@ return [
     ['section' => 'Favoritos', 'groups' => [
         ['name' => 'Favoritos', 'reports' => [
             ['name' => 'Compras por proveedor', 'url' => '/reportes/compras-proveedor'],
-            ['name' => 'Movimiento facturas de compra', 'url' => '/reportes/movimiento-facturas-venta?clase=FC'],
+            ['name' => 'Movimiento facturas de compra', 'url' => '/reportes/movimiento-facturas-venta'],
             ['name' => 'Movimiento auxiliar por cuenta contable', 'url' => '/contabilidad/libro-auxiliar'],
             ['name' => 'Balance de prueba general', 'url' => '/contabilidad/balance-prueba'],
         ]],
@@ -55,7 +55,7 @@ return [
             ['name' => 'Cuentas por cobrar con corte a una fecha', 'url' => '/reportes/cxc-corte'],
         ]],
         ['name' => 'Clientes', 'reports' => [
-            ['name' => 'Búsqueda de cliente, proveedor u otro', 'url' => '/terceros'],
+            ['name' => 'Búsqueda de cliente, proveedor u otro', 'url' => '/reportes/busqueda-terceros'],
             ['name' => 'Búsqueda avanzada contacto de cliente, proveedor u otro', 'url' => '/reportes/busqueda-contactos'],
         ]],
     ]],
@@ -67,8 +67,8 @@ return [
             ['name' => 'Cruce orden de compra vs factura de compra', 'url' => '/reportes/cruce-orden-compra'],
         ]],
         ['name' => 'Movimiento de documentos compras', 'reports' => [
-            ['name' => 'Movimiento facturas de compra', 'url' => '/reportes/movimiento-facturas-venta?clase=FC'],
-            ['name' => 'Movimiento notas débito', 'url' => '/reportes/movimiento-notas-debito'],
+            ['name' => 'Movimiento facturas de compra', 'url' => '/reportes/movimiento-facturas-venta'],
+            ['name' => 'Movimiento notas débito', 'url' => '/reportes/movimiento-notas-venta'],
         ]],
     ]],
     ['section' => 'Productos y servicios', 'groups' => [
@@ -83,7 +83,7 @@ return [
         ['name' => 'Saldos y movimientos', 'reports' => [
             ['name' => 'Saldos de productos', 'url' => '/reportes/saldos-productos'],
             ['name' => 'Saldos de inventario', 'url' => '/reportes/saldos-inventario'],
-            ['name' => 'Movimiento de productos / Kárdex', 'url' => '/productos'],
+            ['name' => 'Movimiento de productos / Kárdex', 'url' => '/reportes/kardex'],
             ['name' => 'Movimiento de productos', 'url' => '/reportes/movimiento-productos'],
             ['name' => 'Listado de productos / servicios', 'url' => '/reportes/listado-productos'],
         ]],
