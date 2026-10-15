@@ -236,6 +236,17 @@ final class ReportRegistry
                 'totals' => ['total', 'sin_vencer', 'd30', 'd60', 'd90', 'mas90', 'saldo'],
                 'query' => fn ($f) => self::aging($f),
             ],
+            'cxc-general' => [
+                'title' => 'Cuentas por cobrar/pagar general por cliente/proveedor', 'filters' => ['contact', 'module'], 'primary' => ['contact'],
+                'labels' => ['contact' => 'Cliente', 'module' => 'Tipo'], 'column_picker' => true, 'narrow' => ['nombre'],
+                'module_labels' => ['ventas' => 'Saldos por cobrar (Clientes)', 'compras' => 'Saldos por pagar (Proveedores)'],
+                'columns' => ['ident' => ['Identificación', 'text'], 'nombre' => ['Nombre', 'text'], 'sucursal' => ['Sucursal', 'text'],
+                    'd30' => ['Vencido 1 a 30', 'money'], 'd60' => ['Vencido 31 a 60', 'money'], 'd90' => ['Vencido 61 a 90', 'money'], 'mas90' => ['Vencido más de 91', 'money'],
+                    'por_vencer' => ['Saldo por vencer', 'money'], 'favor' => ['Saldo a favor', 'money'], 'total' => ['Total', 'money']],
+                'totals' => ['d30', 'd60', 'd90', 'mas90', 'por_vencer', 'favor', 'total'],
+                'links' => ['nombre' => '@url'],
+                'query' => fn ($f) => self::agingByContact($f),
+            ],
             'cartera-movimiento' => [
                 'title' => 'Movimiento de cuentas por cobrar/pagar por documento', 'filters' => ['module', 'range', 'contact'],
                 'columns' => ['tercero' => ['Tercero', 'text'], 'documento' => ['Documento', 'text'], 'fecha' => ['Fecha', 'date'], 'total' => ['Valor documento', 'money'],
@@ -701,6 +712,27 @@ final class ReportRegistry
     }
 
     /** Cartera por edades a la fecha de corte (cuentas por cobrar o por pagar). */
+    /** Saldos por tercero en rangos de vencimiento a hoy; Total = vencido + por vencer - saldo a favor (notas y pagos a favor). */
+    private static function agingByContact(array $f): Builder
+    {
+        $purchases = $f['module'] === 'compras';
+        $days = 'datediff(curdate(), d.due_date)';
+        $sum = fn ($cond) => "round(sum(case when d.balance > 0 and $cond then d.balance else 0 end), 2)";
+        $url = $purchases ? '/compras/proveedores/' : '/ventas/clientes/';
+
+        $inner = DB::table(($purchases ? 'purchase_documents' : 'sales_documents').' as d')->where('d.company_id', $f['cid'])
+            ->whereIn('d.type', $purchases ? ['FC', 'DS', 'ND', 'SI', 'NA'] : ['FV', 'ND', 'SI', 'NC'])->where('d.status', '<>', 'annulled')->where('d.balance', '<>', 0)
+            ->when($f['contact'], fn ($q, $v) => $q->where('d.contact_id', $v))
+            ->groupBy('d.contact_id')
+            ->selectRaw("d.contact_id, {$sum("$days between 1 and 30")} d30, {$sum("$days between 31 and 60")} d60, {$sum("$days between 61 and 90")} d90,
+                {$sum("$days > 90")} mas90, {$sum("(d.due_date is null or $days <= 0)")} por_vencer, round(sum(case when d.balance < 0 then -d.balance else 0 end), 2) favor");
+
+        return DB::query()->fromSub($inner, 'b')->join('contacts as c', 'c.id', '=', 'b.contact_id')
+            ->selectRaw("c.identification ident, c.name nombre, coalesce(c.branch_office, 0) sucursal, b.d30, b.d60, b.d90, b.mas90, b.por_vencer, b.favor,
+                round(b.d30 + b.d60 + b.d90 + b.mas90 + b.por_vencer - b.favor, 2) total, concat('$url', c.id) url")
+            ->orderByRaw('cast(c.identification as unsigned)')->orderBy('c.identification')->orderBy('c.branch_office');
+    }
+
     private static function aging(array $f): Builder
     {
         $purchases = $f['module'] === 'compras';

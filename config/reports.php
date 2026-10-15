@@ -48,7 +48,7 @@ return [
     ]],
     ['section' => 'Clientes y proveedores', 'groups' => [
         ['name' => 'Cuanto me deben (clientes) o Cuanto estoy debiendo (proveedores)', 'reports' => [
-            ['name' => 'Cuentas por cobrar/pagar general por cliente/proveedor', 'url' => '/ventas/clientes'],
+            ['name' => 'Cuentas por cobrar/pagar general por cliente/proveedor', 'url' => '/reportes/cxc-general'],
             ['name' => 'Cuentas por cobrar/pagar detallada por documento', 'url' => '/reportes/cartera-detallada'],
             ['name' => 'Movimiento de cuentas por cobrar/pagar por documento', 'url' => '/reportes/cartera-movimiento'],
             ['name' => 'Movimiento de recibos de caja/pago', 'url' => '/reportes/movimiento-recibos'],
@@ -156,11 +156,11 @@ return [
             ['name' => 'Acumulados iniciales de nómina', 'url' => '/reportes/acumulados-iniciales-nomina'],
         ]],
         ['name' => 'Clientes y Proveedores', 'reports' => [
-            ['name' => 'Cuentas por cobrar general por cliente', 'url' => '/ventas/clientes'],
+            ['name' => 'Cuentas por cobrar general por cliente', 'url' => '/reportes/cxc-general'],
             ['name' => 'Cuentas por cobrar detallada por documento', 'url' => '/reportes/cartera-detallada?modulo=ventas'],
             ['name' => 'Movimiento de cuentas por cobrar por documento', 'url' => '/reportes/cartera-movimiento?modulo=ventas'],
             ['name' => 'Movimiento de recibos de caja', 'url' => '/reportes/movimiento-recibos?clase=RC'],
-            ['name' => 'Cuentas por pagar general por proveedor', 'url' => '/compras/proveedores'],
+            ['name' => 'Cuentas por pagar general por proveedor', 'url' => '/reportes/cxc-general?modulo=compras'],
             ['name' => 'Cuentas por pagar detallada por documento', 'url' => '/reportes/cartera-detallada?modulo=compras'],
             ['name' => 'Movimiento de cuentas por pagar por documento', 'url' => '/reportes/cartera-movimiento?modulo=compras'],
             ['name' => 'Movimiento de recibos de pago / egreso', 'url' => '/reportes/movimiento-recibos?clase=RP'],

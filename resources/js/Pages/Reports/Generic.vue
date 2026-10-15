@@ -108,7 +108,7 @@ function chipValue(k) {
         case 'warehouse': return f.bodega ? name(props.options.warehouses, f.bodega) : null;
         case 'kind': return f.clase ? props.options.kinds[f.clase] ?? f.clase : null;
         case 'status': return f.estado ? props.options.statuses[f.estado] ?? f.estado : null;
-        case 'module': return f.modulo === 'compras' ? 'Cuentas por pagar' : 'Cuentas por cobrar';
+        case 'module': return moduleLabels.value[f.modulo === 'compras' ? 'compras' : 'ventas'].replace(/ \(.*\)$/, (m) => (props.report.module_labels ? m : ''));
         case 'level': return ['Clase', 'Grupo', 'Cuenta', 'Subcuenta', 'Auxiliar'][f.nivel - 1];
         case 'account': return f.cuenta || null;
         case 'doctype': return f.tipo || null;
@@ -119,6 +119,8 @@ function chipValue(k) {
     }
     return null;
 }
+const moduleLabels = computed(() => props.report.module_labels ?? { ventas: 'Cuentas por cobrar (clientes)', compras: 'Cuentas por pagar (proveedores)' });
+const dirty = computed(() => chips.value.some((c) => !(c.k === 'module' && f.modulo !== 'compras')));
 const chips = computed(() => extra.value.map((k) => ({ k, v: chipValue(k) })).filter((c) => c.v !== null && c.v !== ''));
 const RESET = { range: null, contact: { tercero: null, tercero_label: '' }, product: { producto: null, producto_label: '' }, seller: { vendedor: '' }, line: { linea: '' },
     group: { grupo: '' }, cost_center: { centro: '' }, payment: { forma_pago: '' }, creator: { creador: '' }, warehouse: { bodega: '' }, kind: { clase: '' }, status: { estado: '' },
@@ -137,7 +139,14 @@ function download(format) {
 }
 
 const data = computed(() => props.rows.data ?? []);
-const columns = computed(() => Object.entries(props.report.columns));
+const colKey = `friigo.report.columns.${props.slug}`;
+const hidden = ref(props.report.column_picker ? JSON.parse(localStorage.getItem(colKey) || '[]') : []);
+const pickerOpen = ref(false);
+function toggleColumn(k) {
+    hidden.value = hidden.value.includes(k) ? hidden.value.filter((x) => x !== k) : [...hidden.value, k];
+    localStorage.setItem(colKey, JSON.stringify(hidden.value));
+}
+const columns = computed(() => Object.entries(props.report.columns).filter(([k]) => !hidden.value.includes(k)));
 const isPaginator = computed(() => props.rows.last_page !== undefined);
 const num = (v, d = 2) => (Math.abs(Number(v)) < 0.005 ? 0 : Number(v)).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 function fmt(v, type) {
@@ -153,6 +162,7 @@ const numeric = (t) => ['money', 'qty', 'cost', 'pct', 'int'].includes(t);
 function link(k, r) {
     const tpl = props.report.links?.[k];
     if (!tpl) return null;
+    if (tpl.startsWith('@')) return r[tpl.slice(1)] || null;
     let missing = false;
     const url = tpl.replace(/\{(\w+)\}/g, (_, key) => {
         const v = key === 'from' ? f.desde : key === 'to' ? f.hasta : r[key];
@@ -198,7 +208,7 @@ function toggleFav() {
                 <select v-else-if="k === 'seller'" v-model="f.vendedor" class="s-input w-full" @change="generate()"><option value="">Buscar</option><option v-for="s in options.sellers" :key="s.id" :value="s.id">{{ s.name }}</option></select>
                 <select v-else-if="k === 'group'" v-model="f.grupo" class="s-input w-full" @change="generate()"><option value="">Seleccione una opción</option><option v-for="g in options.groups" :key="g.id" :value="g.id">{{ g.name }}</option></select>
                 <select v-else-if="k === 'cost_center'" v-model="f.centro" class="s-input w-full" @change="generate()"><option value="">Buscar</option><option v-for="c in options.cost_centers" :key="c.id" :value="c.id">{{ c.code }} - {{ c.name }}</option></select>
-                <select v-else-if="k === 'module'" v-model="f.modulo" class="s-input w-full" @change="generate()"><option value="ventas">Cuentas por cobrar (clientes)</option><option value="compras">Cuentas por pagar (proveedores)</option></select>
+                <select v-else-if="k === 'module'" v-model="f.modulo" class="s-input w-full" @change="generate()"><option value="ventas">{{ moduleLabels.ventas }}</option><option value="compras">{{ moduleLabels.compras }}</option></select>
                 <input v-else-if="k === 'q'" v-model="f.q" class="s-input w-full" placeholder="Buscar" @keyup.enter="generate()" />
                 <input v-else-if="k === 'account'" v-model="f.cuenta" class="s-input w-full" placeholder="Buscar" @keyup.enter="generate()" />
                 <input v-else-if="k === 'cutoff'" v-model="f.corte" type="date" class="s-input w-full" @change="generate()" />
@@ -208,14 +218,22 @@ function toggleFav() {
                 <Icon icon="sliders" /> Más filtros
                 <span v-if="chips.length" class="absolute -right-[7px] -top-[8px] grid h-[16px] min-w-[16px] place-items-center rounded-full bg-[#e5484d] px-[3px] text-[10px] font-bold text-white">{{ chips.length }}</span>
             </button>
-            <DownloadMenu class="ml-auto mb-[1px]" button-class="inline-flex h-[32px] items-center gap-[6px] rounded-[4px] border border-primary px-[10px] text-[12.5px] text-primary hover:bg-primary-light" @download="download" />
+            <div v-if="report.column_picker" class="relative ml-auto mb-[1px]">
+                <button type="button" class="inline-flex h-[32px] items-center gap-[6px] px-[6px] text-[12.5px] text-primary" @click="pickerOpen = !pickerOpen"><Icon icon="table-columns" /> Columnas</button>
+                <div v-if="pickerOpen" class="absolute right-0 z-30 mt-[4px] w-[220px] rounded-[4px] border border-line bg-white p-[8px] shadow-lg">
+                    <label v-for="(c, k) in report.columns" :key="k" class="flex cursor-pointer items-center gap-[8px] px-[6px] py-[4px] text-[13px]">
+                        <input type="checkbox" :checked="!hidden.includes(k)" @change="toggleColumn(k)" /> {{ c[0] }}
+                    </label>
+                </div>
+            </div>
+            <DownloadMenu :class="report.column_picker ? 'mb-[1px]' : 'ml-auto mb-[1px]'" button-class="inline-flex h-[32px] items-center gap-[6px] rounded-[4px] border border-primary px-[10px] text-[12.5px] text-primary hover:bg-primary-light" @download="download" />
         </div>
         <div class="flex min-h-[38px] flex-wrap items-center gap-[6px] px-[14px] py-[8px] text-[12px]">
             <span v-for="c in chips" :key="c.k" class="inline-flex items-center gap-[6px] rounded-full border border-[#c9ced3] bg-[#f7f9fa] py-[2px] pl-[8px] pr-[4px] text-[#4a5561]">
                 {{ label(c.k) }}: {{ c.v }}
                 <button v-if="removable(c.k)" type="button" class="grid h-[14px] w-[14px] place-items-center rounded-full bg-[#9aa5ae] text-[9px] text-white" :aria-label="`Quitar ${label(c.k)}`" @click="removeChip(c.k)"><Icon icon="xmark" /></button>
             </span>
-            <button v-if="chips.length" type="button" class="ml-[4px] text-[#a0aab3] hover:text-primary" @click="clearAll">Limpiar filtros</button>
+            <button v-if="chips.length" type="button" class="ml-[4px] disabled:text-[#c3c9ce]" :class="dirty ? 'text-primary' : ''" :disabled="!dirty" @click="clearAll">Limpiar filtros</button>
         </div>
 
         <div class="max-h-[calc(100vh-290px)] overflow-auto border-t border-[#e3e7ea]">
@@ -227,7 +245,7 @@ function toggleFav() {
                 </thead>
                 <tbody>
                     <tr v-for="(r, i) in data" :key="i" class="hover:bg-[#eaf5fd]" :class="{ 'font-bold': r.bold }">
-                        <td v-for="[k, c] in columns" :key="k" class="max-w-[260px] truncate border-b border-[#edf0f2] px-[12px] py-[9px]" :class="{ 'text-right whitespace-nowrap': numeric(c[1]) }" :title="c[1] === 'text' ? r[k] : null">
+                        <td v-for="[k, c] in columns" :key="k" class="truncate border-b border-[#edf0f2] px-[12px] py-[9px]" :style="{ maxWidth: report.narrow?.includes(k) ? '120px' : '260px' }" :class="{ 'text-right whitespace-nowrap': numeric(c[1]) }" :title="c[1] === 'text' ? r[k] : null">
                             <Link v-if="link(k, r)" :href="link(k, r)" class="text-primary hover:underline">{{ fmt(r[k], c[1]) }}</Link>
                             <template v-else>{{ fmt(r[k], c[1]) }}</template>
                         </td>
@@ -290,7 +308,7 @@ function toggleFav() {
                         <select v-else-if="k === 'warehouse'" v-model="draft.bodega" class="s-input w-full"><option value="">Todas</option><option v-for="w in options.warehouses" :key="w.id" :value="w.id">{{ w.name }}</option></select>
                         <select v-else-if="k === 'kind'" v-model="draft.clase" class="s-input w-full"><option v-if="!('todos' in options.kinds)" value="">Todos</option><option v-for="(t, v) in options.kinds" :key="v" :value="v">{{ t }}</option></select>
                         <select v-else-if="k === 'status'" v-model="draft.estado" class="s-input w-full"><option v-if="!('todos' in options.statuses)" value="">Todos</option><option v-for="(t, v) in options.statuses" :key="v" :value="v">{{ t }}</option></select>
-                        <select v-else-if="k === 'module'" v-model="draft.modulo" class="s-input w-full"><option value="ventas">Cuentas por cobrar (clientes)</option><option value="compras">Cuentas por pagar (proveedores)</option></select>
+                        <select v-else-if="k === 'module'" v-model="draft.modulo" class="s-input w-full"><option value="ventas">{{ moduleLabels.ventas }}</option><option value="compras">{{ moduleLabels.compras }}</option></select>
                         <select v-else-if="k === 'level'" v-model="draft.nivel" class="s-input w-full"><option v-for="(n, i) in ['Clase', 'Grupo', 'Cuenta', 'Subcuenta', 'Auxiliar']" :key="n" :value="i + 1">{{ n }}</option></select>
                         <input v-else-if="k === 'account'" v-model="draft.cuenta" class="s-input w-full" placeholder="Ej: 1105" />
                         <select v-else-if="k === 'doctype'" v-model="draft.tipo" class="s-input w-full"><option value="">Todos</option><option v-for="t in options.doctypes" :key="t" :value="t">{{ t }}</option></select>
@@ -302,7 +320,7 @@ function toggleFav() {
                 </div>
                 <div class="flex h-[64px] items-center gap-[10px] border-t border-[#edf0f2] px-[24px]">
                     <button type="button" class="text-[13px] text-primary" @click="panel = false">Cancelar</button>
-                    <button type="button" class="s-btn ml-auto border border-[#c9ced3] bg-white text-[#5d6b78]" :disabled="!chips.length" @click="clearAll">Limpiar filtros</button>
+                    <button type="button" class="s-btn ml-auto border border-[#c9ced3] bg-white text-[#5d6b78] disabled:opacity-50" :disabled="!dirty" @click="clearAll">Limpiar filtros</button>
                     <button type="button" class="s-btn s-btn-primary" @click="apply">Aplicar filtros</button>
                 </div>
             </aside>
