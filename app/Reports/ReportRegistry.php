@@ -134,31 +134,31 @@ final class ReportRegistry
                     ->groupBy('cc.id', 'cc.code', 'cc.name')->orderBy('cc.code'),
             ],
             'comparativo-ventas-mes' => [
-                'title' => 'Comparativo de ventas por mes', 'filters' => ['year'],
+                'title' => 'Comparativo de ventas por mes', 'filters' => ['year', 'tax', 'nc'],
                 'columns' => ['mes' => ['Mes', 'text'], 'anterior' => ['Año anterior', 'money'], 'actual' => ['Año seleccionado', 'money'], 'variacion' => ['Variación', 'money'], 'porcentaje' => ['% Variación', 'pct']],
                 'totals' => ['anterior', 'actual', 'variacion'],
                 'query' => fn ($f) => DB::query()->fromSub(
-                    self::sales([...$f, 'from' => ($f['year'] - 1).'-01-01', 'to' => $f['year'].'-12-31'])
-                        ->selectRaw('month(d.date) m, sum(case when year(d.date) = ? then d.subtotal * '.self::SIGN.' else 0 end) anterior, sum(case when year(d.date) = ? then d.subtotal * '.self::SIGN.' else 0 end) actual', [$f['year'] - 1, $f['year']])
+                    self::sales([...$f, 'from' => ($f['year'] - 1).'-01-01', 'to' => $f['year'].'-12-31'], self::comparativeTypes($f))
+                        ->selectRaw('month(d.date) m, sum(case when year(d.date) = ? then '.self::comparativeValue($f, 'd').' else 0 end) anterior, sum(case when year(d.date) = ? then '.self::comparativeValue($f, 'd').' else 0 end) actual', [$f['year'] - 1, $f['year']])
                         ->groupByRaw('month(d.date)'), 't')
                     ->selectRaw("elt(m, 'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre') mes, anterior, actual, actual - anterior variacion, case when anterior <> 0 then (actual - anterior) / anterior * 100 end porcentaje")
                     ->orderBy('m'),
             ],
             'comparativo-ventas-producto' => [
-                'title' => 'Comparativo de ventas por producto', 'filters' => ['year', 'product'],
+                'title' => 'Comparativo de ventas por producto', 'filters' => ['year', 'product', 'tax', 'nc'],
                 'columns' => ['codigo' => ['Código', 'text'], 'producto' => ['Producto', 'text'], ...self::monthColumns()],
                 'totals' => [...array_keys(self::monthColumns())],
-                'query' => fn ($f) => self::salesItems([...$f, 'from' => $f['year'].'-01-01', 'to' => $f['year'].'-12-31'])
-                    ->selectRaw('i.code codigo, max(i.description) producto, '.self::monthSums('i.subtotal * '.self::SIGN))
+                'query' => fn ($f) => self::salesItems([...$f, 'from' => $f['year'].'-01-01', 'to' => $f['year'].'-12-31'], self::comparativeTypes($f))
+                    ->selectRaw('i.code codigo, max(i.description) producto, '.self::monthSums(self::comparativeValue($f, 'i')))
                     ->groupBy('i.code')->orderByDesc('total'),
             ],
             'comparativo-ventas-vendedor' => [
-                'title' => 'Comparativo de ventas por vendedor', 'filters' => ['year', 'seller'],
+                'title' => 'Comparativo de ventas por vendedor', 'filters' => ['year', 'seller', 'tax', 'nc'],
                 'columns' => ['vendedor' => ['Vendedor', 'text'], ...self::monthColumns()],
                 'totals' => [...array_keys(self::monthColumns())],
-                'query' => fn ($f) => self::sales([...$f, 'from' => $f['year'].'-01-01', 'to' => $f['year'].'-12-31'])
+                'query' => fn ($f) => self::sales([...$f, 'from' => $f['year'].'-01-01', 'to' => $f['year'].'-12-31'], self::comparativeTypes($f))
                     ->leftJoin('sellers as s', 's.id', '=', 'd.seller_id')
-                    ->selectRaw("coalesce(s.name, 'Sin vendedor') vendedor, ".self::monthSums('d.subtotal * '.self::SIGN))
+                    ->selectRaw("coalesce(s.name, 'Sin vendedor') vendedor, ".self::monthSums(self::comparativeValue($f, 'd')))
                     ->groupBy('s.name')->orderByDesc('total'),
             ],
             'facturacion-obsequios' => [
@@ -220,11 +220,16 @@ final class ReportRegistry
                     ->orderBy('r.date')->orderBy('r.number')->orderBy('ri.id'),
             ],
             'seguimiento-correos' => [
-                'title' => 'Seguimiento envío masivo de correos electrónicos', 'filters' => ['range', 'contact'],
-                'columns' => ['documento' => ['Documento', 'text'], 'fecha' => ['Fecha', 'date'], 'cliente' => ['Cliente', 'text'], 'email' => ['Correo', 'text'], 'estado' => ['Estado del envío', 'text']],
-                'totals' => [],
-                'query' => fn ($f) => self::sales($f, ['FV', 'NC'])->join('contacts as c', 'c.id', '=', 'd.contact_id')
-                    ->selectRaw("d.name documento, d.date fecha, c.name cliente, c.email, coalesce(d.mail_status, 'No enviado') estado")->orderByDesc('d.date'),
+                'title' => 'Seguimiento envío masivo de correos electrónicos', 'filters' => ['range'], 'labels' => ['range' => 'Fecha proceso'],
+                'note' => 'Cada envío es la corrida diaria de recordatorios de pago de la cobranza automática.',
+                'columns' => ['tipo' => ['Tipo proceso', 'text'], 'fecha' => ['Fecha proceso', 'date'], 'numero' => ['Número envío', 'int'], 'correos' => ['Correos enviados', 'count'],
+                    'facturas' => ['Facturas', 'text']],
+                'totals' => ['correos'],
+                'query' => fn ($f) => DB::query()->fromSub(DB::table('collection_notices as n')->join('sales_documents as d', 'd.id', '=', 'n.sales_document_id')
+                    ->where('n.company_id', $f['cid'])->where('n.kind', 'recordatorio')->groupBy('n.sent_on')
+                    ->selectRaw("'Recordatorios de pago' tipo, n.sent_on fecha, dense_rank() over (order by n.sent_on) numero, count(*) correos,
+                        group_concat(d.name order by d.name separator ', ') facturas"), 't')
+                    ->whereBetween('t.fecha', [$f['from'], $f['to']])->orderByDesc('t.fecha'),
             ],
 
             // ---------------- Cartera ----------------
@@ -444,16 +449,18 @@ final class ReportRegistry
             ],
             'rentabilidad-producto' => [
                 'title' => 'Rentabilidad por producto', 'filters' => ['product', 'range', 'cost_center', 'group', 'nc'], 'primary' => ['product'],
-                'labels' => ['range' => 'Año fiscal', 'group' => 'Categoría', 'nc' => 'Incluye notas crédito y débito'], 'column_picker' => true,
-                'note' => 'Costo calculado con el costo promedio ponderado de cada producto.',
+                'labels' => ['range' => 'Año fiscal', 'group' => 'Categoría', 'nc' => 'Incluye notas crédito y débito'], 'column_picker' => true, 'defaults' => ['nc' => false],
+                'note' => 'Costo de cada venta: el costo promedio del mes cuando ya se ejecutó el costeo mensual y, si no, el costo promedio actual del producto.',
                 'columns' => ['tipo' => ['Tipo', 'text'], 'codigo' => ['Código producto', 'text'], 'producto' => ['Nombre producto', 'text'], 'referencia' => ['Referencia fábrica', 'text'],
                     'categoria' => ['Categoría', 'text'], 'cantidad' => ['Cantidad vendida', 'qty'], 'ventas' => ['Ventas brutas totales', 'money'], 'costo' => ['Costos totales', 'money'],
                     'utilidad' => ['Utilidad $', 'money'], 'utilidad_pct' => ['Utilidad %', 'pct'], 'rentabilidad' => ['Rentabilidad %', 'pct']],
                 'totals' => ['ventas', 'costo'],
-                'query' => fn ($f) => DB::query()->fromSub(self::salesItems($f)->leftJoin('products as p', 'p.id', '=', 'i.product_id')->leftJoin('account_groups as g', 'g.id', '=', 'p.account_group_id')
+                'query' => fn ($f) => DB::query()->fromSub(self::salesItems($f, $f['nc'] ? ['FV', 'ND', 'NC'] : ['FV', 'ND'])->leftJoin('products as p', 'p.id', '=', 'i.product_id')->leftJoin('account_groups as g', 'g.id', '=', 'p.account_group_id')
+                    ->leftJoin('product_monthly_costs as mc', fn ($j) => $j->on('mc.product_id', '=', 'i.product_id')->whereRaw('mc.year = year(d.date) and mc.month = month(d.date)'))
                     ->when($f['group'], fn ($q, $v) => $q->where('p.account_group_id', $v))->when($f['cost_center'], fn ($q, $v) => $q->where('d.cost_center_id', $v))
                     ->selectRaw("'Producto' tipo, i.code codigo, max(coalesce(p.name, i.description)) producto, coalesce(max(p.reference), '-') referencia, max(g.name) categoria,
-                        sum(i.quantity * ".self::SIGN.') cantidad, round(sum(i.subtotal * '.self::SIGN.'), 2) ventas, round(sum(i.quantity * coalesce(p.average_cost, 0) * '.self::SIGN.'), 2) costo')
+                        sum(i.quantity * ".self::SIGN.') cantidad, round(sum((i.subtotal + i.discount) * '.self::SIGN.'), 2) ventas,
+                        round(sum(i.quantity * case when d.source = \'erp\' and i.unit_cost > 0 then i.unit_cost else coalesce(mc.average_cost, p.average_cost, 0) end * '.self::SIGN.'), 2) costo')
                     ->groupBy('i.code'), 't')
                     ->selectRaw('t.*, ventas - costo utilidad, case when costo <> 0 then (ventas - costo) / costo * 100 end utilidad_pct, case when ventas <> 0 then (ventas - costo) / ventas * 100 end rentabilidad')
                     ->orderBy('codigo'),
@@ -477,15 +484,16 @@ final class ReportRegistry
             'saldos-inventario' => [
                 'title' => 'Saldos de inventario', 'filters' => ['q', 'group', 'kind'], 'primary' => ['q', 'group', 'kind'],
                 'labels' => ['q' => 'Buscar por producto', 'group' => 'Categoría de inventarios', 'kind' => 'Saldos'], 'q_placeholder' => 'Buscar por producto',
-                'kinds' => ['con' => 'Con saldos', 'sin' => 'Sin saldos', 'todos' => 'Todos'], 'defaults' => ['kind' => 'con'],
+                'kinds' => ['todos' => 'Todos los saldos', 'con' => 'Con saldos', 'sin' => 'Sin saldos', 'negativos' => 'Saldos negativos'], 'defaults' => ['kind' => 'con'],
                 'columns' => ['codigo' => ['Código', 'text'], 'producto' => ['Nombre', 'text'], 'referencia' => ['Referencia de fábrica', 'text'], 'unidad' => ['Unidad de medida', 'text'],
                     'categoria' => ['Categoría de inventarios', 'text'], 'existencia' => ['Saldo total', 'qty'], 'unitario' => ['Valor unitario aproximado', 'money'], 'valor' => ['Valor total aproximado', 'money']],
                 'totals' => ['existencia', 'valor'],
                 'query' => fn ($f) => self::stockProducts($f)
                     ->when($f['q'], fn ($q, $v) => $q->where(fn ($w) => $w->where('p.name', 'like', "%$v%")->orWhere('p.code', 'like', "$v%")))
-                    ->when($f['kind'] === 'con', fn ($q) => $q->where('p.stock', '<>', 0))->when($f['kind'] === 'sin', fn ($q) => $q->where('p.stock', 0))
+                    ->when($f['kind'] === 'con', fn ($q) => $q->where('p.stock', '>', 0))->when($f['kind'] === 'sin', fn ($q) => $q->where('p.stock', 0))
+                    ->when($f['kind'] === 'negativos', fn ($q) => $q->where('p.stock', '<', 0))
                     ->selectRaw("p.code codigo, p.name producto, coalesce(p.reference, '-') referencia, p.unit_label unidad, g.name categoria, p.stock existencia,
-                        p.average_cost unitario, round(p.stock * p.average_cost, 2) valor")->orderBy('p.code'),
+                        p.average_cost unitario, round(p.stock * p.average_cost, 2) valor")->orderBy('p.id'),
             ],
             'movimiento-productos' => [
                 'title' => 'Movimiento de productos', 'filters' => ['range', 'product', 'group'], 'primary' => ['product'], 'labels' => ['group' => 'Categoría'],
@@ -505,7 +513,7 @@ final class ReportRegistry
                     'cant_saldo' => ['Saldo unidades', 'qty'], 'val_saldo' => ['Saldo valores', 'money']],
                 'totals' => ['cant_entrada', 'val_entrada', 'cant_salida', 'val_salida'],
                 'query' => fn ($f) => self::kardexLines($f)
-                    ->selectRaw('case when m.quantity > 0 then m.unit_cost else 0 end costo_entrada, case when m.quantity < 0 then m.unit_cost else 0 end costo_salida')
+                    ->selectRaw('case when m.q > 0 then round(abs(m.v / m.q), 2) else 0 end costo_entrada, case when m.q < 0 then round(abs(m.v / m.q), 2) else 0 end costo_salida')
                     ->orderBy('m.date')->orderBy('m.id'),
             ],
             'ensambles' => [
@@ -601,20 +609,19 @@ final class ReportRegistry
                     ->orderBy('g.document')->orderBy('g.id'),
             ],
             'flujo-efectivo' => [
-                'title' => 'Estado de flujos de efectivo - Método indirecto', 'filters' => ['range'], 'paginate' => false,
-                'columns' => ['concepto' => ['Concepto', 'text'], 'valor' => ['Valor', 'money']],
+                'title' => 'Estado de flujos de efectivo - Método indirecto', 'filters' => ['year'], 'paginate' => false,
+                'note' => 'Entradas y salidas de efectivo del año comparadas con el año anterior, con los rubros y cuentas de la configuración original de Siigo.',
+                'columns' => ['concepto' => ['Concepto', 'text'], 'actual' => ['Año seleccionado', 'money'], 'anterior' => ['Año anterior', 'money']],
                 'totals' => [],
                 'rows' => fn ($f) => self::cashFlow($f),
             ],
             'cambios-patrimonio' => [
-                'title' => 'Estado de cambios en el patrimonio', 'filters' => ['range'], 'paginate' => false,
-                'columns' => ['cuenta' => ['Cuenta', 'text'], 'nombre' => ['Nombre', 'text'], 'inicial' => ['Saldo inicial', 'money'], 'aumentos' => ['Aumentos', 'money'], 'disminuciones' => ['Disminuciones', 'money'], 'final' => ['Saldo final', 'money']],
+                'title' => 'Estado de cambios en el patrimonio', 'filters' => ['year'], 'paginate' => false,
+                'note' => 'Movimientos del patrimonio del año comparados con el saldo al cierre del año anterior, con los rubros y cuentas de la configuración original de Siigo.',
+                'columns' => ['rubro' => ['Rubro', 'text'], 'cuentas' => ['Cuentas', 'text'], 'inicial' => ['Saldo año anterior', 'money'], 'aumentos' => ['Aumentos', 'money'],
+                    'disminuciones' => ['Disminuciones', 'money'], 'final' => ['Saldo año seleccionado', 'money']],
                 'totals' => ['inicial', 'aumentos', 'disminuciones', 'final'],
-                'query' => fn ($f) => DB::table('ledger_lines as g')->join('accounts as a', fn ($j) => $j->on('a.code', '=', DB::raw('left(g.account_code, 4)'))->where('a.company_id', $f['cid']))
-                    ->where('g.company_id', $f['cid'])->where('g.account_code', 'like', '3%')->where('g.date', '<=', $f['to'])
-                    ->selectRaw('a.code cuenta, a.name nombre, sum(case when g.date < ? then g.credit - g.debit else 0 end) inicial, sum(case when g.date >= ? then g.credit else 0 end) aumentos,
-                        sum(case when g.date >= ? then g.debit else 0 end) disminuciones, sum(g.credit - g.debit) final', [$f['from'], $f['from'], $f['from']])
-                    ->groupBy('a.code', 'a.name')->orderBy('a.code'),
+                'rows' => fn ($f) => self::equityChanges($f),
             ],
             'auxiliar-centro-costo' => [
                 'title' => 'Movimiento Auxiliar Centro de costo por cuenta contable', 'filters' => ['range', 'account', 'cost_center'],
@@ -760,9 +767,10 @@ final class ReportRegistry
                 'columns' => ['pais' => ['País', 'text'], 'departamento' => ['Estado / Departamento', 'text'], 'ciudad' => ['Ciudad', 'text'],
                     'cod_pais' => ['Código país', 'text'], 'cod_dep' => ['Código Estado / Departamento', 'text'], 'codigo' => ['Código ciudad', 'text']],
                 'totals' => [],
-                'query' => fn ($f) => DB::table('municipalities as m')->join('departments as d', 'd.code', '=', 'm.department_code')
-                    ->when($f['q'], fn ($q, $v) => $q->where(fn ($w) => $w->where('m.name', 'like', "%$v%")->orWhere('d.name', 'like', "%$v%")))
-                    ->selectRaw("'Colombia' pais, d.name departamento, m.name ciudad, 'COL' cod_pais, d.code cod_dep, m.code codigo")->orderBy('d.name')->orderBy('m.name'),
+                'query' => fn ($f) => DB::table('geo_cities as g')
+                    ->when($f['q'], fn ($q, $v) => $q->where(fn ($w) => $w->where('g.country', 'like', "%$v%")->orWhere('g.state', 'like', "%$v%")->orWhere('g.name', 'like', "%$v%")))
+                    ->selectRaw('g.country pais, g.state departamento, g.name ciudad, g.country_code cod_pais, g.state_code cod_dep, g.code codigo')
+                    ->orderByRaw("g.country_code <> 'COL'")->orderBy('g.country')->orderBy('g.name'),
             ],
             'historial-reportes' => [
                 'title' => 'Historial de reportes generados', 'filters' => ['q', 'status'], 'primary' => ['q', 'status'], 'banner' => true, 'refresh' => true, 'q_placeholder' => 'Buscar por nombre',
@@ -796,9 +804,9 @@ final class ReportRegistry
             ->when($f['seller'] ?? null, fn ($q, $v) => $q->where('d.seller_id', $v));
     }
 
-    public static function salesItems(array $f): Builder
+    public static function salesItems(array $f, array $types = ['FV', 'NC']): Builder
     {
-        return self::sales($f)->join('sales_document_items as i', 'i.sales_document_id', '=', 'd.id')
+        return self::sales($f, $types)->join('sales_document_items as i', 'i.sales_document_id', '=', 'd.id')
             ->when($f['product'] ?? null, fn ($q, $v) => $q->where('i.product_id', $v));
     }
 
@@ -858,15 +866,35 @@ final class ReportRegistry
             ->when($f['product'] ?? null, fn ($q, $v) => $q->where('p.id', $v))->when($f['group'] ?? null, fn ($q, $v) => $q->where('p.account_group_id', $v));
     }
 
-    /** Renglones del kardex con saldo inicial, entradas, salidas y saldo final en cantidades y valores. */
+    /**
+     * Renglones del kárdex: la historia importada de Siigo (inventory_history, ver inventory:history) y luego los movimientos propios
+     * de Friigo, cuyo saldo continúa el de la historia en lugar del saldo inicial de la apertura.
+     */
     private static function kardexLines(array $f): Builder
     {
-        return DB::table('inventory_movements as m')->join('products as p', 'p.id', '=', 'm.product_id')->where('m.company_id', $f['cid'])
-            ->whereBetween('m.date', [$f['from'], $f['to']])->when($f['product'], fn ($q, $v) => $q->where('m.product_id', $v))
-            ->when($f['group'] ?? null, fn ($q, $v) => $q->where('p.account_group_id', $v))
-            ->selectRaw("m.document comprobante, 1 secuencia, m.date fecha, m.balance_quantity - m.quantity cant_inicial, greatest(m.quantity, 0) cant_entrada, greatest(-m.quantity, 0) cant_salida,
-                m.balance_quantity cant_saldo, m.balance_cost - case when m.quantity >= 0 then abs(m.total_cost) else -abs(m.total_cost) end val_inicial,
-                case when m.quantity > 0 then abs(m.total_cost) else 0 end val_entrada, case when m.quantity < 0 then abs(m.total_cost) else 0 end val_salida, m.balance_cost val_saldo");
+        $cid = (int) $f['cid'];
+        $scope = fn (string $col) => ($f['product'] ? " and $col = ".(int) $f['product'] : '')
+            .(($f['group'] ?? null) ? " and $col in (select id from products where account_group_id = ".(int) $f['group'].')' : '');
+        $from = DB::getPdo()->quote($f['from']);
+        $to = DB::getPdo()->quote($f['to']);
+
+        $rows = "select h.product_id, h.date, h.position id, h.document doc, h.quantity q, h.value v, h.balance_quantity bq, h.balance_value bv
+            from inventory_history h where h.company_id = $cid and h.date between $from and $to {$scope('h.product_id')}
+            union all
+            select m.product_id, m.date, 1000000000000 + m.id, m.document, m.quantity, case when m.quantity >= 0 then abs(m.total_cost) else -abs(m.total_cost) end,
+                m.balance_quantity + coalesce(e.balance_quantity - o.q, 0), m.balance_cost + coalesce(e.balance_value - o.v, 0)
+            from inventory_movements m
+            left join (select product_id, sum(quantity) q, sum(total_cost) v from inventory_movements where company_id = $cid and concept = 'saldo_inicial' {$scope('product_id')} group by product_id) o
+                on o.product_id = m.product_id
+            left join (select h.product_id, h.balance_quantity, h.balance_value from inventory_history h
+                join (select product_id, max(position) position from inventory_history where company_id = $cid {$scope('product_id')} group by product_id) l
+                on l.product_id = h.product_id and l.position = h.position where h.company_id = $cid) e on e.product_id = m.product_id
+            where m.company_id = $cid and m.date between $from and $to and (m.concept <> 'saldo_inicial' or e.product_id is null) {$scope('m.product_id')}";
+
+        return DB::table(DB::raw("($rows) as m"))->join('products as p', 'p.id', '=', 'm.product_id')
+            ->selectRaw("m.doc comprobante, 1 secuencia, m.date fecha, m.bq - m.q cant_inicial, greatest(m.q, 0) cant_entrada, greatest(-m.q, 0) cant_salida,
+                m.bq cant_saldo, round(m.bv - m.v, 2) val_inicial, case when m.q > 0 or (m.q = 0 and m.v > 0) then round(abs(m.v), 2) else 0 end val_entrada,
+                case when m.q < 0 or (m.q = 0 and m.v < 0) then round(abs(m.v), 2) else 0 end val_salida, round(m.bv, 2) val_saldo");
     }
 
     private static function movements(array $f, string $source): Builder
@@ -917,21 +945,37 @@ final class ReportRegistry
         $like = $purchases ? '2%' : '13%';
         $docUrl = $purchases ? '/documentos/compras/' : '/documentos/ventas/';
         $account = fn ($doc) => "(select l.account_code from ledger_lines l where l.company_id = d.company_id and l.document = $doc and l.account_code like '$like' order by l.id limit 1)";
+        // Siigo identifica el vencimiento de una compra con el número del proveedor y no con el comprobante interno.
+        $ref = $purchases ? "coalesce(concat(nullif(d.supplier_prefix, ''), '-', nullif(d.supplier_number, '')), d.name)" : 'd.name';
+        $pays = ($purchases ? 'purchase' : 'sales').'_document_payments';
+        $creditPay = "(select min(p.id) from $pays p join payment_methods pm on pm.id = p.payment_method_id where p.$fk = d.id and pm.due_date = 1)";
+        $creditAccount = "(select ac.code from $pays p join payment_methods pm on pm.id = p.payment_method_id join accounts ac on ac.id = pm.account_id where p.id = $creditPay)";
+        // En el asiento de Siigo la cuenta por cobrar/pagar va después de un renglón por cada producto, en el orden de las formas de pago.
+        $sequence = "(select count(*) from ".($purchases ? 'purchase' : 'sales')."_document_items x where x.$fk = d.id)
+            + coalesce(nullif((select count(*) from $pays p where p.$fk = d.id and p.id <= $creditPay), 0), 1)";
+        $match = fn ($v) => fn ($o) => $o->where('d.name', $v)->when($purchases, fn ($p) => $p->orWhereRaw("upper($ref) = ?", [$v]));
+        $search = null;
+        if ($f['q']) {
+            // "Comprobante + Consecutivo" puede traer la cuota al final (FV-2-100-1); solo se quita si sin ella no hay coincidencia exacta.
+            $search = strtoupper(str_replace(' ', '', $f['q']));
+            if (! DB::table("$table as d")->where('d.company_id', $f['cid'])->where($match($search))->exists()) {
+                $search = preg_replace('/-\d+$/', '', $search);
+            }
+        }
         $due = fn ($q) => $q->from("$table as d")->where('d.company_id', $f['cid'])->whereIn('d.type', $purchases ? ['FC', 'DS', 'SI'] : ['FV', 'ND', 'SI'])->where('d.status', '<>', 'annulled')
-            ->when($f['q'], fn ($w, $v) => $w->where('d.name', strtoupper(preg_replace('/^([A-Za-z]+-\d+-\d+)-\d+$/', '$1', str_replace(' ', '', $v)))),
-                fn ($w) => $w->where('d.balance', '<>', 0))
+            ->when($search, fn ($w, $v) => $w->where($match($v)), fn ($w) => $w->where('d.balance', '<>', 0))
             ->when($f['contact'], fn ($w, $v) => $w->where('d.contact_id', $v));
         [$open, $pay] = $purchases ? ['0 debito, d.total credito', 'ri.value debito, 0 credito'] : ['d.total debito, 0 credito', '0 debito, ri.value credito'];
         [$noteOpen, $noteType] = $purchases ? ['n.total debito, 0 credito', ['NA']] : ['0 debito, n.total credito', ['NC']];
 
-        $docs = $due(DB::query())->selectRaw("d.name documento, 1 secuencia, d.date fecha, concat(d.name, '-1') detalle, {$account('d.name')} cuenta, $open,
+        $docs = $due(DB::query())->selectRaw("d.name documento, $sequence secuencia, d.date fecha, concat($ref, '-1') detalle, coalesce($creditAccount, {$account('d.name')}) cuenta, $open,
             d.name orden, d.id oid, 0 paso, concat('$docUrl', d.id) url");
         $receipts = $due(DB::query())->join('receipt_items as ri', "ri.$fk", '=', 'd.id')->join('receipts as r', 'r.id', '=', 'ri.receipt_id')
             ->leftJoin('accounts as a', 'a.id', '=', 'ri.account_id')->where('r.status', '<>', 'annulled')
             ->selectRaw("r.name documento, (select count(*) from receipt_items x where x.receipt_id = r.id and x.id <= ri.id) secuencia, r.date fecha,
-                concat(d.name, '-', coalesce(ri.due_quote, 1)) detalle, coalesce(a.code, {$account('r.name')}) cuenta, $pay, d.name orden, d.id oid, 1 paso, concat('/documentos/recibos/', r.id) url");
+                concat($ref, '-', coalesce(ri.due_quote, 1)) detalle, coalesce(a.code, $creditAccount, {$account('r.name')}) cuenta, $pay, d.name orden, d.id oid, 1 paso, concat('/documentos/recibos/', r.id) url");
         $notes = $due(DB::query())->join("$table as n", 'n.related_document_id', '=', 'd.id')->whereIn('n.type', $noteType)->where('n.status', '<>', 'annulled')
-            ->selectRaw("n.name documento, 1 secuencia, n.date fecha, concat(d.name, '-1') detalle, {$account('n.name')} cuenta, $noteOpen, d.name orden, d.id oid, 2 paso, concat('$docUrl', n.id) url");
+            ->selectRaw("n.name documento, 1 secuencia, n.date fecha, concat($ref, '-1') detalle, coalesce($creditAccount, {$account('n.name')}) cuenta, $noteOpen, d.name orden, d.id oid, 2 paso, concat('$docUrl', n.id) url");
 
         return DB::query()->fromSub($docs->unionAll($receipts)->unionAll($notes), 'm')->orderBy('m.oid')->orderBy('m.paso')->orderBy('m.fecha');
     }
@@ -974,48 +1018,103 @@ final class ReportRegistry
     }
 
     /** Flujo de efectivo por metodo indirecto a partir del libro auxiliar. */
+    /** Rubros del flujo de efectivo con las cuentas de la configuración original de Siigo. */
+    private const CASH_FLOW = [
+        'Ajustes para conciliar la utilidad con los flujos netos de efectivo' => [
+            'Depreciaciones y amortizaciones' => ['5160', '5165'],
+        ],
+        'Cambios en activos y pasivos operacionales' => [
+            'Activos por impuestos corrientes' => ['1355', '1805'],
+            'Beneficios a empleados' => ['2505', '2510'],
+            'Cuentas comerciales por cobrar y otros deudores' => ['1305', '1325', '1330', '1365', '1380'],
+            'Cuentas comerciales por pagar' => ['2205', '2210', '2299', '2305', '2335', '2370', '2380'],
+            'Ingresos recibidos por anticipado' => ['2805', '2815'],
+            'Inventarios' => ['1435', '1498'],
+            'Otras actividades de operación' => ['1398', '1399'],
+            'Pasivos por impuesto corriente' => ['2365', '2367', '2368', '2404', '2408', '2464', '2495'],
+        ],
+        'Flujo de efectivo en actividades de financiación' => [
+            'Aumento /disminución en el patrimonio' => ['3105', '3205', '3305', '3605', '3610', '3705', '3710', '3905'],
+            'Obligaciones financieras' => ['2105', '2110'],
+        ],
+        'Flujo de efectivo en actividades de inversión' => [
+            'Intangibles' => ['1635'],
+            'Otras inversiones' => ['1205', '1295', '1720', '1945'],
+            'Propiedad planta y equipo' => ['1504', '1516', '1524', '1528', '1540', '1592'],
+        ],
+    ];
+
+    /** Rubros del estado de cambios en el patrimonio con las cuentas de la configuración original de Siigo. */
+    private const EQUITY = [
+        'Capital suscrito y pagado' => ['3105'],
+        'Superávit de capital' => ['3205'],
+        'Reservas' => ['3305'],
+        'Resultado del ejercicio' => ['3605', '3610'],
+        'Resultados de años anteriores' => ['3705'],
+        'Otras partidas del patrimonio' => ['3710', '3905'],
+    ];
+
+    private static function equityChanges(array $f): array
+    {
+        $start = $f['year'].'-01-01';
+        $end = $f['year'].'-12-31';
+        $sums = DB::table('ledger_lines')->where('company_id', $f['cid'])->where('account_code', 'like', '3%')->where('date', '<=', $end)
+            ->selectRaw('left(account_code, 4) c, sum(case when date < ? then credit - debit else 0 end) inicial, sum(case when date >= ? then credit else 0 end) aumentos,
+                sum(case when date >= ? then debit else 0 end) disminuciones', [$start, $start, $start])
+            ->groupByRaw('left(account_code, 4)')->get()->keyBy('c');
+        $rows = [];
+        foreach (self::EQUITY as $rubro => $codes) {
+            $pick = fn (string $k) => (float) collect($codes)->sum(fn ($c) => $sums[$c]->$k ?? 0);
+            $ini = $pick('inicial');
+            $rows[] = ['rubro' => $rubro, 'cuentas' => implode(', ', $codes), 'inicial' => $ini, 'aumentos' => $pick('aumentos'),
+                'disminuciones' => $pick('disminuciones'), 'final' => $ini + $pick('aumentos') - $pick('disminuciones')];
+        }
+
+        return $rows;
+    }
+
+    /** Flujo de efectivo por método indirecto del año y del anterior, a partir del libro auxiliar. */
     private static function cashFlow(array $f): array
     {
-        $mov = fn (string $like, ?string $not = null) => (float) DB::table('ledger_lines')->where('company_id', $f['cid'])->whereBetween('date', [$f['from'], $f['to']])
-            ->where('account_code', 'like', $like)->when($not, fn ($q) => $q->where('account_code', 'not like', $not))->sum(DB::raw('debit - credit'));
-        $before = fn (string $like) => (float) DB::table('ledger_lines')->where('company_id', $f['cid'])->where('date', '<', $f['from'])
-            ->where('account_code', 'like', $like)->sum(DB::raw('debit - credit'));
+        $years = ['actual' => $f['year'], 'anterior' => $f['year'] - 1];
+        $sums = [];
+        foreach ($years as $k => $y) {
+            $sums[$k] = DB::table('ledger_lines')->where('company_id', $f['cid'])->whereBetween('date', ["$y-01-01", "$y-12-31"])
+                ->selectRaw('left(account_code, 4) c, sum(debit - credit) v')->groupByRaw('left(account_code, 4)')->pluck('v', 'c')->map(fn ($v) => (float) $v)->all();
+            $sums[$k]['_cash_before'] = (float) DB::table('ledger_lines')->where('company_id', $f['cid'])->where('date', '<', "$y-01-01")
+                ->where('account_code', 'like', '11%')->sum(DB::raw('debit - credit'));
+        }
+        $mov = fn (string $k, array $codes) => array_sum(array_map(fn ($c) => $sums[$k][$c] ?? 0, $codes));
+        $class = fn (string $k, array $digits) => array_sum(array_filter($sums[$k], fn ($c) => in_array(((string) $c)[0], $digits, true), ARRAY_FILTER_USE_KEY));
+        $line = fn (string $label, array $vals, bool $bold = false) => ['concepto' => $label, 'actual' => $vals['actual'] ?? null, 'anterior' => $vals['anterior'] ?? null, 'bold' => $bold];
+        $each = fn (callable $fn) => array_map($fn, array_combine(array_keys($years), array_keys($years)));
 
-        $profit = -($mov('4%') + $mov('5%') + $mov('6%') + $mov('7%'));
-        $operation = [
-            'Variación en cuentas por cobrar (13)' => -$mov('13%'),
-            'Variación en inventarios (14)' => -$mov('14%'),
-            'Variación en otros activos (16-19)' => -($mov('16%') + $mov('17%') + $mov('18%') + $mov('19%')),
-            'Variación en proveedores y cuentas por pagar (22-23)' => -($mov('22%') + $mov('23%')),
-            'Variación en impuestos por pagar (24)' => -$mov('24%'),
-            'Variación en obligaciones laborales (25)' => -$mov('25%'),
-            'Variación en otros pasivos (26-29)' => -($mov('26%') + $mov('27%') + $mov('28%') + $mov('29%')),
-        ];
-        $investing = ['Variación en propiedad, planta y equipo (15)' => -$mov('15%'), 'Variación en inversiones (12)' => -$mov('12%')];
-        $financing = ['Variación en obligaciones financieras (21)' => -$mov('21%'), 'Variación en patrimonio (31-34, 37-38)' => -($mov('3%') - $mov('36%'))];
-
-        $rows = [['concepto' => 'ACTIVIDADES DE OPERACIÓN', 'valor' => null, 'bold' => true], ['concepto' => 'Utilidad (pérdida) del periodo', 'valor' => $profit]];
-        foreach ($operation as $k => $v) {
-            $rows[] = ['concepto' => $k, 'valor' => $v];
+        $profit = $each(fn ($k) => -$class($k, ['4', '5', '6', '7']));
+        $rows = [$line('Utilidad (pérdida) del ejercicio', $profit, true)];
+        $net = $profit;
+        $operation = $profit;
+        foreach (self::CASH_FLOW as $section => $groups) {
+            $rows[] = $line(mb_strtoupper($section), [], true);
+            $total = $each(fn () => 0.0);
+            foreach ($groups as $group => $codes) {
+                // Los gastos que no son salida de efectivo se suman; en activos, pasivos y patrimonio el efectivo es el inverso del movimiento débito - crédito.
+                $vals = $each(fn ($k) => str_starts_with($codes[0], '5') ? $mov($k, $codes) : -$mov($k, $codes));
+                $rows[] = $line($group, $vals);
+                $total = $each(fn ($k) => $total[$k] + $vals[$k]);
+            }
+            $rows[] = $line("Total $section", $total, true);
+            $net = $each(fn ($k) => $net[$k] + $total[$k]);
+            if (str_starts_with($section, 'Cambios')) {
+                $operation = $each(fn ($k) => $net[$k]);
+                $rows[] = $line('Flujo neto de efectivo de actividades de operación', $operation, true);
+            }
         }
-        $op = $profit + array_sum($operation);
-        $rows[] = ['concepto' => 'Efectivo neto de actividades de operación', 'valor' => $op, 'bold' => true];
-        $rows[] = ['concepto' => 'ACTIVIDADES DE INVERSIÓN', 'valor' => null, 'bold' => true];
-        foreach ($investing as $k => $v) {
-            $rows[] = ['concepto' => $k, 'valor' => $v];
-        }
-        $rows[] = ['concepto' => 'Efectivo neto de actividades de inversión', 'valor' => array_sum($investing), 'bold' => true];
-        $rows[] = ['concepto' => 'ACTIVIDADES DE FINANCIACIÓN', 'valor' => null, 'bold' => true];
-        foreach ($financing as $k => $v) {
-            $rows[] = ['concepto' => $k, 'valor' => $v];
-        }
-        $rows[] = ['concepto' => 'Efectivo neto de actividades de financiación', 'valor' => array_sum($financing), 'bold' => true];
-        $net = $op + array_sum($investing) + array_sum($financing);
-        $opening = $before('11%');
-        $rows[] = ['concepto' => 'Aumento (disminución) neto del efectivo', 'valor' => $net, 'bold' => true];
-        $rows[] = ['concepto' => 'Efectivo al inicio del periodo', 'valor' => $opening];
-        $rows[] = ['concepto' => 'Efectivo al final del periodo', 'valor' => $opening + $net, 'bold' => true];
-        $rows[] = ['concepto' => 'Efectivo según libro (cuenta 11)', 'valor' => $opening + $mov('11%')];
+        $opening = $each(fn ($k) => $sums[$k]['_cash_before']);
+        $closing = $each(fn ($k) => $opening[$k] + array_sum(array_filter($sums[$k], fn ($c) => str_starts_with((string) $c, '11'), ARRAY_FILTER_USE_KEY)));
+        $rows[] = $line('Aumento (disminución) neto del efectivo', $net, true);
+        $rows[] = $line('Efectivo y equivalentes al inicio del año', $opening);
+        $rows[] = $line('Efectivo y equivalentes al final del año', $closing, true);
+        $rows[] = $line('Diferencia por cuentas sin rubro asignado', $each(fn ($k) => $closing[$k] - $opening[$k] - $net[$k]));
 
         return $rows;
     }
@@ -1225,6 +1324,17 @@ final class ReportRegistry
         }
 
         return [...$cols, 'total' => ['Total', 'money']];
+    }
+
+    /** Los comparativos de Siigo suman facturas y notas débito, y opcionalmente restan las notas crédito. */
+    private static function comparativeTypes(array $f): array
+    {
+        return $f['nc'] ? ['FV', 'ND', 'NC'] : ['FV', 'ND'];
+    }
+
+    private static function comparativeValue(array $f, string $alias): string
+    {
+        return ($f['tax'] ? "$alias.total" : "$alias.subtotal").' * '.self::SIGN;
     }
 
     private static function monthSums(string $expr, string $date = 'd.date'): string

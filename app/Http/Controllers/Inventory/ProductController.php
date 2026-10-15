@@ -266,7 +266,7 @@ class ProductController extends Controller
             ...$product->toArray(),
             'tax_ids' => $product->taxes->pluck('id'),
             'prices' => $product->prices->pluck('value', 'price_list_id'),
-            'components' => $product->type === 'Combo' ? $product->comboItems->map(fn ($c) => [
+            'components' => in_array($product->type, ['Combo', 'Product'], true) ? $product->comboItems->map(fn ($c) => [
                 'product_id' => $c->product_id, 'product_id_label' => "{$c->product?->code} - {$c->product?->name}", 'quantity' => (float) $c->quantity,
             ])->all() : [],
         ];
@@ -347,10 +347,10 @@ class ProductController extends Controller
     private function syncRelations(Product $product, array $data): void
     {
         $product->taxes()->sync($data['tax_ids'] ?? []);
-        if ($product->type === 'Combo') {
-            $items = collect($data['components'] ?? [])->filter(fn ($c) => ! empty($c['product_id']) && (float) ($c['quantity'] ?? 0) > 0)
+        if (in_array($product->type, ['Combo', 'Product'], true) && array_key_exists('components', $data)) {
+            $items = collect($data['components'] ?? [])->filter(fn ($c) => ! empty($c['product_id']) && (int) $c['product_id'] !== $product->id && (float) ($c['quantity'] ?? 0) > 0)
                 ->groupBy('product_id')->map(fn ($g) => $g->sum(fn ($c) => (float) $c['quantity']));
-            if ($items->isEmpty()) {
+            if ($items->isEmpty() && $product->type === 'Combo') {
                 throw \Illuminate\Validation\ValidationException::withMessages(['components' => 'Agrega al menos un producto con cantidad al combo.']);
             }
             $product->comboItems()->delete();

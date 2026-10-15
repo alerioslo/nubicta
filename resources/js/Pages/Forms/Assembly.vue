@@ -23,6 +23,12 @@ function fill(row, p) {
     row.unit = p.unit ?? '';
 }
 
+/* Como Siigo: al elegir el producto a ensamblar se cargan su materia prima y la cantidad requerida por unidad. */
+function pickTarget(p) {
+    fill(doc.target, p);
+    if (p?.components?.length) doc.items = [...p.components.map((c) => ({ ...blank(), ...c })), blank()];
+}
+
 const attachment = ref(null);
 const submit = () => doc.transform((d) => ({ ...d, attachment: attachment.value, items: [d.target, ...d.items].filter((i) => i.product_id) })).post(f.url, { preserveScroll: true });
 </script>
@@ -49,7 +55,7 @@ const submit = () => doc.transform((d) => ({ ...d, attachment: attachment.value,
         <h2 class="mt-[12px] border-b border-[#ddd] pb-[2px] text-[13px] font-semibold text-[#4a90c8]">Producto a ensamblar</h2>
         <table class="doc-grid w-full"><thead><tr class="[&>th]:bg-transparent"><th class="w-[170px]"># Producto</th><th>Descripción</th><th>Referencia de fábrica</th><th>Unidad de medida</th><th class="w-[160px]">Cantidad a ensamblar</th></tr></thead>
             <tbody><tr>
-                <td class="flex items-center gap-[2px]"><span>1</span><DocSearch v-model="doc.target.product_id" v-model:label="doc.target.label" class="flex-1" url="/api/buscar/productos" @pick="(p) => fill(doc.target, p)" /></td>
+                <td class="flex items-center gap-[2px]"><span>1</span><DocSearch v-model="doc.target.product_id" v-model:label="doc.target.label" class="flex-1" url="/api/buscar/productos" @pick="pickTarget" /></td>
                 <td><input v-model="doc.target.description" class="doc-input" /></td><td><input :value="doc.target.reference" class="doc-input" disabled /></td>
                 <td><input :value="doc.target.unit" class="doc-input" disabled /></td><td><NumInput v-model="doc.target.quantity" /></td>
             </tr></tbody>

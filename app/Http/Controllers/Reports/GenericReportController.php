@@ -25,7 +25,7 @@ class GenericReportController extends Controller
         'range' => 'Fecha de elaboración', 'cutoff' => 'Fecha de corte', 'year' => 'Año', 'contact' => 'Cliente', 'product' => 'Producto',
         'seller' => 'Vendedor', 'line' => 'Línea de producto', 'group' => 'Grupo inventario', 'cost_center' => 'Centro de costo',
         'module' => 'Tipo de cartera', 'level' => 'Nivel de cuenta', 'account' => 'Cuenta contable', 'doctype' => 'Tipo de comprobante',
-        'dian' => 'Estado DIAN', 'q' => 'Buscar', 'nc' => 'Incluye nota crédito', 'pos' => 'Solo ventas pos', 'payment' => 'Forma de pago',
+        'dian' => 'Estado DIAN', 'q' => 'Buscar', 'nc' => 'Incluye nota crédito', 'pos' => 'Solo ventas pos', 'tax' => 'Incluye impuesto', 'payment' => 'Forma de pago',
         'creator' => 'Creado por', 'currency' => 'Moneda', 'status' => 'Estado', 'warehouse' => 'Bodega', 'kind' => 'Tipo transacción',
     ];
 
@@ -39,15 +39,19 @@ class GenericReportController extends Controller
         if (isset($def['defaults']['cutoff']) && ! $request->filled('corte')) {
             $f['cutoff'] = $def['defaults']['cutoff'];
         }
+        if (isset($def['defaults']['nc']) && ! $request->has('nc')) {
+            $f['nc'] = (bool) $def['defaults']['nc'];
+        }
         $format = $request->input('formato') ?? ($request->boolean('export') ? 'xlsx' : null);
 
         if (isset($def['rows'])) {
             $rows = collect(($def['rows'])($f));
+            $totals = collect($def['totals'])->mapWithKeys(fn ($k) => [$k => $rows->sum(fn ($r) => (float) ($r[$k] ?? 0))])->all();
             if ($format) {
-                return $this->export($slug, $def, $f, $rows, null, $format);
+                return $this->export($slug, $def, $f, $rows, $totals ?: null, $format);
             }
 
-            return $this->render($slug, $def, $f, ['data' => $rows->values()], []);
+            return $this->render($slug, $def, $f, ['data' => $rows->values()], $totals);
         }
 
         $query = ($def['query'])($f);
@@ -147,6 +151,7 @@ class GenericReportController extends Controller
             'q' => trim((string) $request->input('q')) ?: null,
             'nc' => $request->input('nc', '1') !== '0',
             'pos' => $request->input('pos') === '1',
+            'tax' => $request->input('impuesto') === '1',
             'preset' => $request->input('periodo') ?: null,
         ];
     }
@@ -187,6 +192,7 @@ class GenericReportController extends Controller
                 'seller' => $f['seller'] ? Seller::find($f['seller'])?->name : null,
                 'nc' => $f['nc'] ? 'Sí' : 'No',
                 'pos' => $f['pos'] ? 'Sí' : 'No',
+                'tax' => $f['tax'] ? 'Sí' : 'No',
                 'module' => $def['module_labels'][$f['module']] ?? ($f['module'] === 'compras' ? 'Cuentas por pagar' : 'Cuentas por cobrar'),
                 'account' => $f['account'],
                 'q' => $f['q'],

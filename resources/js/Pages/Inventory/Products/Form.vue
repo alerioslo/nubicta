@@ -91,9 +91,9 @@ const isProduct = computed(() => form.type === 'Product');
             <label class="flex items-center gap-2"><input v-model="form.type" type="radio" value="Service" class="accent-primary" /> Servicio</label>
         </section>
 
-        <section v-if="isCombo" class="s-card px-[16px] py-[18px]">
-            <h2 class="s-section-title">Productos que componen el combo</h2>
-            <p class="mt-1 text-[12px] text-muted">Al vender el combo se descuenta del inventario la cantidad de cada producto por cada unidad vendida.</p>
+        <section v-if="isCombo || form.type === 'Product'" class="s-card px-[16px] py-[18px]">
+            <h2 class="s-section-title">{{ isCombo ? 'Productos que componen el combo' : 'Ensamble: materia prima o producto en proceso' }}</h2>
+            <p class="mt-1 text-[12px] text-muted">{{ isCombo ? 'Al vender el combo se descuenta del inventario la cantidad de cada producto por cada unidad vendida.' : 'Opcional. Cantidad requerida por unidad; se carga al crear una nota de ensamble de este producto.' }}</p>
             <table class="s-table mt-3 w-full">
                 <thead><tr><th>Producto</th><th class="w-[160px] text-right">Cantidad</th><th class="w-8" /></tr></thead>
                 <tbody>

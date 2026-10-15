@@ -39,7 +39,7 @@ const initial = () => ({
     vendedor: props.filters.seller ?? '', linea: props.filters.line ?? '', grupo: props.filters.group ?? '', centro: props.filters.cost_center ?? '',
     forma_pago: props.filters.payment ?? '', creador: props.filters.creator ?? '', bodega: props.filters.warehouse ?? '', clase: props.filters.kind ?? '',
     estado: props.filters.status ?? '', modulo: props.filters.module, nivel: props.filters.level, cuenta: props.filters.account ?? '',
-    tipo: props.filters.doctype ?? '', dian: props.filters.dian ?? '', q: props.filters.q ?? '', nc: props.filters.nc ? '1' : '0', pos: props.filters.pos ? '1' : '0',
+    tipo: props.filters.doctype ?? '', dian: props.filters.dian ?? '', q: props.filters.q ?? '', nc: props.filters.nc ? '1' : '0', pos: props.filters.pos ? '1' : '0', impuesto: props.filters.tax ? '1' : '0',
 });
 const f = reactive(initial());
 const draft = reactive(initial());
@@ -73,8 +73,9 @@ function params(src = f) {
     if (has('doctype')) put('tipo', src.tipo);
     if (has('dian')) put('dian', src.dian);
     if (has('q')) put('q', src.q);
-    if (has('nc') && src.nc === '0') p.nc = '0';
+    if (has('nc') && src.nc !== (props.report.defaults?.nc === false ? '0' : '1')) p.nc = src.nc;
     if (has('pos') && src.pos === '1') p.pos = '1';
+    if (has('tax') && src.impuesto === '1') p.impuesto = '1';
     if (props.rows.per_page && props.rows.per_page !== 50) p.per_page = props.rows.per_page;
     return p;
 }
@@ -85,7 +86,7 @@ function apply() { panel.value = false; generate(draft); }
 function clearAll() {
     const d = { ...initial(), desde: periodRange('mes', today.getFullYear())[0], hasta: periodRange('mes', today.getFullYear())[1], periodo: 'mes', periodo_anio: today.getFullYear(),
         tercero: null, tercero_label: '', producto: null, producto_label: '', vendedor: '', linea: '', grupo: '', centro: '', forma_pago: '', creador: '', bodega: '',
-        clase: '', estado: '', cuenta: '', tipo: '', dian: '', q: '', nc: '1', pos: '0' };
+        clase: '', estado: '', cuenta: '', tipo: '', dian: '', q: '', nc: '1', pos: '0', impuesto: '0' };
     panel.value = false;
     generate(d);
 }
@@ -116,6 +117,7 @@ function chipValue(k) {
         case 'q': return f.q || null;
         case 'nc': return f.nc === '1' ? 'Sí' : 'No';
         case 'pos': return f.pos === '1' ? 'Sí' : 'No';
+        case 'tax': return f.impuesto === '1' ? 'Sí' : 'No';
     }
     return null;
 }
@@ -124,7 +126,7 @@ const dirty = computed(() => chips.value.some((c) => !(c.k === 'module' && f.mod
 const chips = computed(() => extra.value.map((k) => ({ k, v: chipValue(k) })).filter((c) => c.v !== null && c.v !== ''));
 const RESET = { range: null, contact: { tercero: null, tercero_label: '' }, product: { producto: null, producto_label: '' }, seller: { vendedor: '' }, line: { linea: '' },
     group: { grupo: '' }, cost_center: { centro: '' }, payment: { forma_pago: '' }, creator: { creador: '' }, warehouse: { bodega: '' }, kind: { clase: '' }, status: { estado: '' },
-    account: { cuenta: '' }, doctype: { tipo: '' }, dian: { dian: '' }, q: { q: '' }, nc: { nc: '1' }, pos: { pos: '0' } };
+    account: { cuenta: '' }, doctype: { tipo: '' }, dian: { dian: '' }, q: { q: '' }, nc: { nc: '1' }, pos: { pos: '0' }, tax: { impuesto: '0' } };
 function removeChip(k) {
     const d = { ...f };
     if (k === 'range') Object.assign(d, { periodo: 'mes', periodo_anio: today.getFullYear(), desde: periodRange('mes', today.getFullYear())[0], hasta: periodRange('mes', today.getFullYear())[1] });
@@ -321,6 +323,7 @@ function toggleFav() {
                         <input v-else-if="k === 'q'" v-model="draft.q" class="s-input w-full" placeholder="Buscar" />
                         <select v-else-if="k === 'nc'" v-model="draft.nc" class="s-input w-full"><option value="1">Sí</option><option value="0">No</option></select>
                         <select v-else-if="k === 'pos'" v-model="draft.pos" class="s-input w-full"><option value="0">No</option><option value="1">Sí</option></select>
+                        <select v-else-if="k === 'tax'" v-model="draft.impuesto" class="s-input w-full"><option value="0">No</option><option value="1">Sí</option></select>
                     </div>
                 </div>
                 <div class="flex h-[64px] items-center gap-[10px] border-t border-[#edf0f2] px-[24px]">

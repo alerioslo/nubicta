@@ -50,7 +50,7 @@ class LookupController extends Controller
 
         return response()->json(
             Product::query()->search($request->input('q'))->where('active', true)
-                ->with(['taxes:id,name,type,percentage', 'prices'])->orderBy('name')->limit($this->limit($request))->get()
+                ->with(['taxes:id,name,type,percentage', 'prices', 'comboItems.product:id,code,name,reference,unit_label'])->orderBy('name')->limit($this->limit($request))->get()
                 ->map(fn (Product $p) => [
                     'id' => $p->id, 'code' => $p->code, 'name' => $p->name, 'label' => "{$p->code} - {$p->name}", 'kind' => $p->type,
                     'price' => $p->priceFor($list), 'prices' => $p->prices->mapWithKeys(fn ($x) => [$x->price_list_id => (float) $x->value]),
@@ -58,6 +58,10 @@ class LookupController extends Controller
                     'status' => 'Activo', 'tax_included' => (bool) $p->tax_included, 'cost' => (float) $p->average_cost,
                     'tax_id' => $p->taxes->first(fn ($t) => ! in_array($t->type, Tax::WITHHOLDINGS, true))?->id,
                     'withholding_id' => $p->taxes->first(fn ($t) => in_array($t->type, Tax::WITHHOLDINGS, true))?->id,
+                    'components' => $p->comboItems->filter(fn ($c) => $c->product)->map(fn ($c) => [
+                        'product_id' => $c->product_id, 'label' => "{$c->product->code} - {$c->product->name}", 'description' => $c->product->name,
+                        'reference' => $c->product->reference ?? '', 'unit' => $c->product->unit_label ?? '', 'quantity' => (float) $c->quantity,
+                    ])->values(),
                 ])
         );
     }
