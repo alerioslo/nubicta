@@ -16,6 +16,10 @@ class PurchaseDocumentController extends Controller
 {
     public function index(Request $request): Response|RedirectResponse
     {
+        $last15 = ! $request->hasAny(['q', 'desde', 'hasta', 'saldo', 'tipo', 'page', 'todos']);
+        if ($last15) {
+            $request->merge(['desde' => now()->subDays(14)->toDateString(), 'hasta' => now()->toDateString()]);
+        }
         $cid = CurrentCompany::id();
         $tipo = $request->input('tipo');
         $q = $request->input('q');
@@ -39,7 +43,7 @@ class PurchaseDocumentController extends Controller
         $union = $tipo === 'RP' ? $payments : $docs->unionAll($payments);
 
         $docs = DB::query()->fromSub($union, 't')->orderBy('ord')->orderByDesc('date')->orderBy('created_at')->orderBy('id')
-            ->paginate($request->integer('per_page', 20))->withQueryString()
+            ->paginate($request->integer('per_page', 50))->withQueryString()
             ->through(fn ($d) => [
                 'id' => $d->id,
                 'url' => $d->kind === 'pago' ? "/documentos/recibos/{$d->id}" : "/documentos/compras/{$d->id}",
@@ -61,6 +65,7 @@ class PurchaseDocumentController extends Controller
             'documents' => $docs,
             'tabs' => DashboardController::tabs('compras'),
             'filters' => $request->only('q', 'desde', 'hasta', 'saldo', 'tipo'),
+            'last15' => $last15,
         ]);
     }
 }

@@ -9,10 +9,11 @@ const props = defineProps({
     documents: { type: Object, required: true },
     tabs: { type: Array, required: true },
     filters: { type: Object, default: () => ({}) },
+    last15: { type: Boolean, default: false },
 });
 
 const f = reactive({ q: '', tipo: '', desde: '', hasta: '', saldo: '', ...props.filters });
-const open = ref(!!(f.desde || f.hasta || f.saldo || f.q));
+const open = ref(!props.last15 && !!(f.desde || f.hasta || f.saldo || f.q));
 const newMenu = ref(false);
 function reload() {
     router.get('/compras', Object.fromEntries(Object.entries(f).filter(([, v]) => v)), { preserveState: true, replace: true });
@@ -24,9 +25,11 @@ function search() {
 }
 function clear() {
     Object.assign(f, { q: '', tipo: '', desde: '', hasta: '', saldo: '' });
-    reload();
+    router.get('/compras', { todos: 1 }, { preserveState: true, replace: true });
 }
 const money = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const NEW = [['Factura de Compra / Gasto', '/compras/facturas/crear'], ['Documento soporte', '/compras/documentos-soporte/crear'], ['Orden de Compra', '/compras/ordenes/crear'],
+    ['Recibo de Pago / Egreso', '/compras/egresos/crear'], ['Nota débito / Nota de ajuste', '/compras/notas-debito/crear'], ['Ajuste cartera / proveedores', '/contabilidad/ajustes-cartera/crear']];
 const TIPOS = { FC: 'Compra/Gasto', DS: 'Documento soporte', RP: 'Pagos' };
 </script>
 
@@ -38,8 +41,7 @@ const TIPOS = { FC: 'Compra/Gasto', DS: 'Documento soporte', RP: 'Pagos' };
         <div class="relative">
             <button type="button" class="s-btn s-btn-primary" @click="newMenu = !newMenu">Nueva Compra / Gasto / Doc Soporte <Icon icon="chevron-down" /></button>
             <div v-if="newMenu" class="absolute right-0 z-20 mt-1 w-[230px] rounded-[6px] bg-white py-1 shadow-lg">
-                <Link href="/compras/facturas/crear" class="block px-4 py-2 hover:bg-primary-light">Factura de compra / gasto</Link>
-                <Link href="/compras/documentos-soporte/crear" class="block px-4 py-2 hover:bg-primary-light">Documento soporte</Link>
+                <Link v-for="[l, u] in NEW" :key="l" :href="u" class="block px-4 py-2 hover:bg-primary-light">{{ l }}</Link>
             </div>
         </div>
     </div>
@@ -67,7 +69,10 @@ const TIPOS = { FC: 'Compra/Gasto', DS: 'Documento soporte', RP: 'Pagos' };
                 </label>
             </div>
             <div class="flex flex-wrap items-center gap-2 py-3 text-[12px]">
-                <span v-if="f.desde || f.hasta" class="rounded-full border border-line bg-[#f5f6f7] px-2 py-[2px]">Fecha elaboración: {{ f.desde || '…' }} a {{ f.hasta || '…' }}</span>
+                <span v-if="f.desde || f.hasta" class="inline-flex items-center gap-[6px] rounded-full border border-line bg-[#f5f6f7] px-2 py-[2px]">
+                    Fecha elaboración: {{ last15 ? 'Últimos 15 Días' : `${f.desde || '…'} a ${f.hasta || '…'}` }}
+                    <button type="button" class="text-muted" aria-label="Quitar filtro" @click="clear"><Icon icon="circle-xmark" /></button>
+                </span>
                 <span v-if="f.tipo" class="rounded-full border border-line bg-[#f5f6f7] px-2 py-[2px]">Tipo: {{ TIPOS[f.tipo] }}</span>
                 <button type="button" class="s-btn-link" @click="clear">Limpiar filtros</button>
             </div>

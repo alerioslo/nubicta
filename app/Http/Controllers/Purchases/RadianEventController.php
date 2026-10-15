@@ -40,7 +40,7 @@ class RadianEventController extends Controller
             ->when($request->input('recepcion'), fn ($q, $s) => $q->where('reception_status', $s))
             ->when($request->input('mercancia'), fn ($q, $s) => $q->where('goods_status', $s))
             ->when($request->input('aceptacion'), fn ($q, $s) => $q->where('acceptance_status', $s))
-            ->orderByDesc('registered_at')->orderByDesc('id')
+            ->orderByDesc('registered_at')->orderBy('id')
             ->paginate((int) $request->input('per_page', 10))->withQueryString()
             ->through(fn (RadianEvent $e) => $this->row($e));
 

@@ -104,19 +104,17 @@ function remove() {
     <Head title="Compras y gastos" />
     <PageHeader title="Compras y gastos" :tabs="tabs" active="Registro de eventos" />
 
-    <div class="mt-[26px] px-[22px]">
-        <h2 class="text-[22px] font-semibold text-primary">Registro de eventos en factura electrónica de proveedores</h2>
-    </div>
-    <div class="mx-[22px] mt-[16px] flex gap-3 rounded border border-[#b9dcf3] bg-[#eaf5fc] px-4 py-3 text-[13px] text-ink">
-        <Icon icon="circle-info" class="mt-[2px] text-primary" />
-        <p>
+    <h2 class="mt-[16px] text-[18px] font-bold text-ink">Registro de eventos en factura electrónica de proveedores</h2>
+    <div class="mt-[12px] flex items-stretch overflow-hidden rounded-[4px] border border-primary bg-[#e8f4fd] text-[13px] leading-[22px] text-ink">
+        <div class="grid w-[36px] shrink-0 place-items-center bg-primary text-white"><Icon icon="circle-info" /></div>
+        <p class="px-[22px] py-[8px]">
             Para que las facturas electrónicas de venta emitidas por tus proveedores en operaciones a crédito, puedan servir como soporte de costos, deducciones y/o impuestos descontables,
             debes registrar el CUFE correspondiente para enviar a la DIAN los eventos de <b>Recepción de factura, Recepción de mercancía o servicio, y Aceptación o Reclamo de la factura</b>
-            en los plazos establecidos (Res. DIAN 00085, art. 34 del 08 de abril de 2022 - Decreto 1074 de 2015).
+            en los plazos establecidos (Res. DIAN 00085, art. 34 del 08 de abril de 2022 - Decreto 1074 de 2015). <a href="/ayuda#radian" target="_blank" class="font-semibold text-primary">Aprende más.</a>
         </p>
     </div>
 
-    <section class="s-card mt-[18px]">
+    <section class="s-card mt-[44px]">
         <div class="flex gap-6 border-b border-line px-[16px]">
             <button v-for="s in SUBTABS" :key="s" type="button" class="-mb-px border-b-[3px] py-3 text-[14px] font-semibold"
                 :class="f.sub === s ? 'border-primary text-primary' : 'border-transparent text-ink-soft'" @click="reload({ sub: s })">{{ s }}</button>
