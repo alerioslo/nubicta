@@ -30,15 +30,6 @@ class ModuleViewController extends Controller
             'columns' => ['Tipo transacción', 'Comprobante', 'Fecha elaboración', 'Identificación', 'Sucursal', 'Cliente', 'Estado envío de correo', 'Total', 'Moneda'],
             'source' => 'remissions',
         ],
-        'compras/soporte-legalizar' => [
-            'title' => 'Compras y gastos', 'module' => 'compras', 'tab' => 'Soporte por legalizar', 'heading' => 'Soporte de compras o gastos por legalizar',
-            'search_label' => 'Documento soporte', 'search' => 'Buscar', 'dates' => true,
-            'selects' => [['name' => 'estado', 'label' => 'Estado', 'options' => ['Sin causar', 'Causado']]],
-            'buttons' => [['label' => 'Cargar soporte', 'icon' => 'cloud-arrow-up', 'upload' => '/compras/soporte-legalizar', 'accept' => '.pdf,.jpg,.jpeg,.png,.webp,.heic,.xml,.zip']],
-            'columns' => ['Documento soporte', 'Fecha creación', 'Nombre Comprobante', 'Número de comprobante', 'Estado', 'Acción'],
-            'empty' => ['No se encontraron resultados para tu búsqueda', 'Carga la foto o el PDF del soporte para causarlo como factura de compra'],
-            'source' => 'supports',
-        ],
         'productos/documentos' => [
             'title' => 'Productos y servicios', 'module' => 'productos', 'tab' => 'Documentos de productos / servicios', 'heading' => 'Inventarios',
             'search_label' => 'Comprobante', 'search' => 'Buscar por comprobante u observación', 'dates' => true, 'default_days' => 30,
@@ -147,6 +138,27 @@ class ModuleViewController extends Controller
         return number_format($v, 2, '.', ',');
     }
 
+    public function supportsPage(Request $request): Response
+    {
+        if (! $request->hasAny(['desde', 'hasta', 'q', 'estado', 'page', 'rango'])) {
+            $request->merge(['desde' => now()->subDays(29)->toDateString(), 'hasta' => now()->toDateString(), 'rango' => 'd30']);
+        }
+
+        return Inertia::render('Purchases/Supports', [
+            'rows' => $this->supports($request),
+            'tabs' => DashboardController::tabs('compras', 'Soporte por legalizar'),
+            'filters' => $request->only(['q', 'desde', 'hasta', 'estado', 'rango']),
+        ]);
+    }
+
+    public function supportsExcel(Request $request)
+    {
+        $request->merge(['per_page' => 5000]);
+        $rows = collect($this->supports($request)->items())->map(fn ($r) => collect($r)->take(5)->map(fn ($c) => is_array($c) ? ($c['text'] ?? '') : $c)->all());
+
+        return \App\Support\Download::array('soporte_por_legalizar.xlsx', ['Documento soporte', 'Fecha creación', 'Nombre Comprobante', 'Número de comprobante', 'Estado'], $rows->all(), 'Soporte de compras o gastos por legalizar');
+    }
+
     private function supports(Request $request)
     {
         return \App\Models\ExpenseSupport::query()
@@ -154,7 +166,7 @@ class ModuleViewController extends Controller
             ->when($request->input('estado'), fn ($q, $s) => $q->where('status', $s))
             ->when($request->input('desde'), fn ($q, $d) => $q->whereDate('created_at', '>=', $d))
             ->when($request->input('hasta'), fn ($q, $d) => $q->whereDate('created_at', '<=', $d))
-            ->orderByDesc('id')->paginate(20)->withQueryString()
+            ->orderByDesc('id')->paginate($request->integer('per_page', 20))->withQueryString()
             ->through(function (\App\Models\ExpenseSupport $s) {
                 $doc = $s->purchase_document_id ? \App\Models\PurchaseDocument::query()->find($s->purchase_document_id) : null;
                 $type = $doc ? \App\Models\DocumentType::query()->find($doc->document_type_id) : null;

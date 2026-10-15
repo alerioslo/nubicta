@@ -386,6 +386,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/bandeja-dian', [\App\Http\Controllers\Purchases\DianInboxController::class, 'index'])->middleware('can:compras.ver');
     Route::post('/bandeja-dian/sincronizar', [\App\Http\Controllers\Purchases\DianInboxController::class, 'sync'])->middleware('can:compras.crear');
     Route::get('/bandeja-dian/{id}/xml', [\App\Http\Controllers\Purchases\DianInboxController::class, 'xml'])->whereNumber('id')->middleware('can:compras.ver');
+    Route::get('/compras/soporte-legalizar', [\App\Http\Controllers\ModuleViewController::class, 'supportsPage'])->middleware('can:compras.ver');
+    Route::get('/compras/soporte-legalizar/excel', [\App\Http\Controllers\ModuleViewController::class, 'supportsExcel'])->middleware('can:compras.ver');
     Route::post('/compras/soporte-legalizar', function (\Illuminate\Http\Request $request) {
         $request->validate(['file' => ['required', 'file', 'max:10240']], ['file.required' => 'Selecciona el archivo del soporte', 'file.max' => 'El soporte no puede superar 10 MB']);
         $file = $request->file('file');
