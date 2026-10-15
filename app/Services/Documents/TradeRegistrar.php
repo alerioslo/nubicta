@@ -200,6 +200,10 @@ class TradeRegistrar
 
     private function createSale(string $kind, DocumentType $type, int $number, string $name, Contact $contact, array $calc, ?Model $related, array $data, float $credit, string $dueDate): SalesDocument
     {
+        if (! $related && ! empty($data['source_id']) && in_array($kind, ['FV', 'RM'], true)) {
+            $related = SalesDocument::query()->whereIn('type', $kind === 'FV' ? ['CT', 'RM'] : ['CT'])->where('status', '!=', 'annulled')->find((int) $data['source_id']);
+        }
+
         return SalesDocument::create([
             'company_id' => CurrentCompany::id(), 'source' => 'erp', 'type' => $kind, 'document_type_id' => $type->id, 'prefix' => $type->prefix,
             'number' => $number, 'name' => $name, 'date' => $data['date'], 'due_date' => $dueDate, 'contact_id' => $contact->id,

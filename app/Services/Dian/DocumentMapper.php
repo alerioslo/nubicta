@@ -25,7 +25,7 @@ class DocumentMapper
         $kind = $doc->type;
         $items = DB::table('sales_document_items')->where('sales_document_id', $doc->id)->orderBy('position')->get();
         $taxes = DB::table('sales_document_item_taxes')->whereIn('sales_document_item_id', $items->pluck('id'))->get()->groupBy('sales_document_item_id');
-        $related = $doc->related_document_id ? SalesDocument::query()->find($doc->related_document_id) : null;
+        $related = in_array($doc->type, ['NC', 'ND'], true) && $doc->related_document_id ? SalesDocument::query()->find($doc->related_document_id) : null;
 
         $supplier = ['registration_prefix' => ($type?->prefix ?? '') ?: null] + $this->companyParty();
         $d = $this->document($kind, $doc, $type, 'fe', $supplier, $this->contactParty($doc->contact), $items, $taxes, $related);

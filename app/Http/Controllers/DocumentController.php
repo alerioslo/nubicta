@@ -43,11 +43,45 @@ class DocumentController extends Controller
     public function destroy(string $kind, int $id): RedirectResponse
     {
         $doc = DocumentLocator::find($kind, $id);
+        if ($doc instanceof \App\Models\SalesDocument && $doc->type === 'CT') {
+            Gate::authorize('ventas.anular');
+            if ($reason = app(DocumentReverser::class)->blocker($doc)) {
+                return back()->with('error', $reason);
+            }
+            if (\Illuminate\Support\Facades\DB::table('sales_documents')->where('related_document_id', $doc->id)->exists()) {
+                return back()->with('error', "La cotización {$doc->name} ya tiene comprobantes generados y no se puede borrar.");
+            }
+            \Illuminate\Support\Facades\DB::transaction(function () use ($doc) {
+                $items = \Illuminate\Support\Facades\DB::table('sales_document_items')->where('sales_document_id', $doc->id)->pluck('id');
+                \Illuminate\Support\Facades\DB::table('sales_document_item_taxes')->whereIn('sales_document_item_id', $items)->delete();
+                \Illuminate\Support\Facades\DB::table('sales_document_items')->where('sales_document_id', $doc->id)->delete();
+                \Illuminate\Support\Facades\DB::table('sales_document_payments')->where('sales_document_id', $doc->id)->delete();
+                \App\Models\AuditLog::record('deleted', $doc, $doc->only(['name', 'total', 'contact_id']), []);
+                $doc->delete();
+            });
+
+            return redirect('/ventas/cotizaciones')->with('success', "Se borró la cotización {$doc->name}.");
+        }
         abort_unless($doc instanceof \App\Models\Receipt, 404);
         Gate::authorize(DocumentLocator::module($doc).'.anular');
         app(DocumentReverser::class)->delete($doc);
 
         return redirect($doc->type === 'RC' ? '/ventas/recaudos' : '/compras/pagos')->with('success', "Se eliminó el documento {$doc->name}.");
+    }
+
+    /** Cotizacion: Aprobar, Descartar o volver a pendiente, como en Siigo. */
+    public function quoteStatus(\Illuminate\Http\Request $request, string $kind, int $id): RedirectResponse
+    {
+        $doc = DocumentLocator::find($kind, $id);
+        abort_unless($doc instanceof \App\Models\SalesDocument && $doc->type === 'CT' && $doc->status !== 'annulled', 404);
+        Gate::authorize('ventas.editar');
+        if ($reason = app(DocumentReverser::class)->blocker($doc)) {
+            return back()->with('error', $reason);
+        }
+        $status = ['aprobar' => 'approved', 'descartar' => 'discarded', 'pendiente' => 'issued'][$request->input('estado')] ?? abort(422);
+        $doc->forceFill(['status' => $status])->save();
+
+        return back()->with('success', ['approved' => "Se aprobó la cotización {$doc->name}.", 'discarded' => "Se descartó la cotización {$doc->name}.", 'issued' => "La cotización {$doc->name} quedó pendiente."][$status]);
     }
 
     public function favorite(string $kind, int $id): RedirectResponse

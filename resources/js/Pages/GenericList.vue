@@ -228,7 +228,7 @@ function downloadHref(b) {
             <span v-for="c in view.chips ?? []" :key="c.text ?? c" class="inline-flex items-center gap-2 rounded-full bg-[#e3f1fb] px-3 py-[6px] text-[12px] text-primary">{{ c.text ?? c }}
                 <Link v-if="c.clear" :href="c.clear" title="Quitar filtro"><Icon icon="circle-xmark" /></Link>
             </span>
-            <Link v-if="(view.chips ?? []).some((c) => c.clear)" :href="view.chips.find((c) => c.clear).clear" class="pb-[6px] text-[12px] text-primary">Limpiar filtros</Link>
+            <Link v-if="(view.chips ?? []).some((c) => c.clear)" :href="view.clear_url ?? view.chips.find((c) => c.clear).clear" class="pb-[6px] text-[12px] text-primary">Limpiar filtros</Link>
             <button v-if="(view.search && !view.search_only) || view.dates" type="submit" class="s-btn s-btn-outline"><Icon icon="sliders" /> Más filtros</button>
             <div class="ml-auto flex items-center gap-2">
                 <span v-if="selected.length" class="text-[12px] text-muted">{{ selected.length }} seleccionado(s)</span>

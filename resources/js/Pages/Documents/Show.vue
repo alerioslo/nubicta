@@ -12,6 +12,16 @@ const sale = !!props.company;
 const SHORT = { FV: 'Factura de venta', NC: 'Nota crédito', ND: 'Nota débito', CT: 'Cotización', RM: 'Remisión' };
 const menu = ref('');
 const classic = d.type === 'NC';
+const quote = d.type === 'CT';
+const QUOTE_STATUS = { approved: 'Aprobada', discarded: 'Descartada' };
+const setStatus = (estado) => router.post(`/documentos/${d.kind}/${d.id}/estado`, { estado }, { preserveScroll: true });
+function removeQuote() {
+    if (confirm(`¿Borrar la cotización ${d.name}?`)) router.post(`/documentos/${d.kind}/${d.id}/eliminar`);
+}
+function copyUrl() {
+    navigator.clipboard?.writeText(d.public_url || window.location.href);
+    menu.value = '';
+}
 const allHistory = ref(false);
 const fileInput = ref(null);
 const upload = (e) => {
@@ -48,7 +58,8 @@ function sendMail() {
 <template>
     <Head :title="d.name" />
     <div v-if="sale" class="mx-auto max-w-[1000px] pb-[30px]" @click="menu = ''">
-        <h1 class="text-[20px] font-bold text-ink">{{ SHORT[d.type] ?? d.type_name }}{{ classic ? ':' : ' :' }} {{ d.name }}</h1>
+        <h1 class="text-[20px] font-bold text-ink">{{ SHORT[d.type] ?? d.type_name }}{{ classic || quote ? ':' : ' :' }} {{ d.name }}
+            <span v-if="quote && QUOTE_STATUS[d.quote_status]" class="ml-[8px] rounded-[10px] px-[10px] py-[2px] align-middle text-[11px] font-semibold text-white" :class="d.quote_status === 'approved' ? 'bg-[#43a047]' : 'bg-[#9e9e9e]'">{{ QUOTE_STATUS[d.quote_status] }}</span></h1>
         <p class="mt-[6px] flex justify-between text-[12px] text-ink">
             <span v-if="d.created?.at">Creado: {{ [d.created.by, d.created.at].filter(Boolean).join(' ') }} hrs.</span>
             <span v-if="classic">Modificado: {{ d.modified_at }}</span>
@@ -65,6 +76,46 @@ function sendMail() {
                     <button type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff]" @click="showLedger = !showLedger; menu = ''">{{ showLedger ? 'Ocultar contabilización' : 'Ver contabilización' }}</button>
                     <a v-if="d.dian?.xml" :href="`/documentos/${d.kind}/${d.id}/xml`" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Descargar XML</a>
                 </div>
+            </div>
+        </div>
+        <div v-else-if="quote" class="mt-[14px] flex items-center justify-between border-t border-line pt-[26px]" @click.stop>
+            <div class="flex items-center gap-[12px]">
+                <div class="relative flex">
+                    <Link :href="`/ventas/facturas/crear?desde=${d.id}`" class="s-btn h-[34px] rounded-r-none bg-[#6cb42c] px-[16px] text-[13px] font-semibold text-white hover:bg-[#5ea226]">Facturar</Link>
+                    <button type="button" class="s-btn h-[34px] rounded-l-none border-l border-[#ffffff66] bg-[#6cb42c] px-[8px] text-white hover:bg-[#5ea226]" @click="menu = menu === 'fac' ? '' : 'fac'"><Icon icon="caret-down" /></button>
+                    <div v-if="menu === 'fac'" class="absolute left-[66px] top-[38px] z-20 min-w-[178px] rounded-[4px] bg-white py-[4px] text-[13px] shadow-lg">
+                        <Link :href="`/ventas/remisiones/crear?desde=${d.id}`" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Remisionar</Link>
+                    </div>
+                </div>
+                <div class="relative flex">
+                    <button type="button" class="s-btn s-btn-outline h-[34px] rounded-r-none px-[16px] text-[13px] font-semibold disabled:opacity-60" :disabled="!!d.blocker" :title="d.blocker" @click="setStatus(d.quote_status === 'approved' ? 'pendiente' : 'aprobar')">{{ d.quote_status === 'approved' ? 'Aprobada' : 'Aprobar' }}</button>
+                    <button type="button" class="s-btn s-btn-outline h-[34px] rounded-l-none border-l-0 px-[8px] disabled:opacity-60" :disabled="!!d.blocker" @click="menu = menu === 'apr' ? '' : 'apr'"><Icon icon="caret-down" /></button>
+                    <div v-if="menu === 'apr'" class="absolute right-0 top-[38px] z-20 min-w-[178px] rounded-[4px] bg-white py-[4px] text-[13px] shadow-lg">
+                        <button v-if="d.quote_status !== 'discarded'" type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff]" @click="setStatus('descartar')">Descartar</button>
+                        <button v-else type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff]" @click="setStatus('pendiente')">Volver a pendiente</button>
+                    </div>
+                </div>
+                <span class="h-[26px] border-l border-line"></span>
+                <Link v-if="d.editable && !d.blocker" :href="`/documentos/${d.kind}/${d.id}/editar`" class="s-btn s-btn-outline h-[34px] px-[14px] text-[13px] font-semibold"><Icon icon="pen" class="mr-[6px]" />Editar</Link>
+                <button v-else type="button" class="s-btn s-btn-outline h-[34px] px-[14px] text-[13px] font-semibold opacity-60" disabled :title="d.blocker"><Icon icon="pen" class="mr-[6px]" />Editar</button>
+                <div class="relative">
+                    <button type="button" class="s-btn s-btn-outline h-[34px] px-[14px] text-[13px] font-semibold" @click="menu = menu === 'mas' ? '' : 'mas'">Más <Icon icon="caret-down" class="ml-[6px]" /></button>
+                    <div v-if="menu === 'mas'" class="absolute left-[-120px] top-[38px] z-20 min-w-[178px] rounded-[4px] bg-white py-[4px] text-[13px] shadow-lg">
+                        <Link v-if="d.copy_url" :href="d.copy_url" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Copiar cotización</Link>
+                        <button type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff] disabled:text-[#bdbdbd]" :disabled="!!d.blocker" :title="d.blocker" @click="removeQuote">Borrar</button>
+                        <Link href="/ventas/recibos/crear" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Registrar anticipo</Link>
+                        <Link href="/ventas/seguimiento-comercial/crear" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Crear seguimiento comercial</Link>
+                        <button type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff]" @click="copyUrl">Copiar URL cotización</button>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-[10px]">
+                <a :href="`/documentos/${d.kind}/${d.id}/imprimir`" target="_blank" class="icon-btn" title="Imprimir"><Icon icon="print" /></a>
+                <div class="relative">
+                    <button type="button" class="icon-btn" title="Observaciones" @click="menu = menu === 'obs' ? '' : 'obs'"><Icon icon="comment" /></button>
+                    <div v-if="menu === 'obs'" class="absolute right-0 top-[38px] z-20 w-[300px] rounded-[4px] border border-line bg-white p-[12px] text-[12px] shadow-lg">{{ d.observations || 'El documento no tiene observaciones.' }}</div>
+                </div>
+                <button v-if="d.mailable && !annulled" type="button" class="icon-btn" title="Enviar por correo" @click="sendMail"><Icon icon="envelope" /></button>
             </div>
         </div>
         <div v-else class="mt-[8px] flex items-center justify-between">
@@ -129,12 +180,29 @@ function sendMail() {
 
         <div class="mt-[10px]"><DocumentSheet :doc="d" :company="company" :resolution="resolution" /></div>
 
-        <template v-if="!classic && d.history?.length">
+        <template v-if="!classic && !quote && d.history?.length">
             <div v-for="h in (allHistory ? d.history : d.history.slice(0, 1))" :key="h.at + h.to" class="mt-[4px] flex justify-between rounded-[4px] border border-[#999] bg-[#f5f5f5] px-[38px] py-[3px] text-[10px] text-ink">
                 <span><b>Documento <span class="text-[#1a237e]">enviado</span> a {{ h.name }} ({{ h.to }})</b></span><span>{{ h.at }}</span>
             </div>
             <button v-if="d.history.length > 1" type="button" class="ml-auto block pt-[4px] text-[12px] text-ink hover:underline" @click="allHistory = !allHistory">{{ allHistory ? 'Ver menos' : 'Ver más' }}</button>
         </template>
+        <div v-if="quote" class="mt-[10px] grid grid-cols-[1fr_1fr] gap-[10px]">
+            <section class="rounded-[4px] bg-white p-[20px]">
+                <h2 class="text-[17px] font-semibold text-ink">Información General</h2>
+                <table class="mt-[16px] w-full border border-line text-[12px]">
+                    <tr><th class="w-[220px] p-[14px] text-left font-semibold">Cliente</th><td class="p-[14px]"><Link v-if="d.contact_id" :href="`/terceros/${d.contact_id}/editar`" class="font-semibold text-primary underline">{{ d.contact?.name }}</Link></td></tr>
+                    <tr class="bg-[#f5f5f5]"><th class="p-[14px] text-left font-semibold">Contacto</th><td class="p-[14px]">{{ d.contact_person || d.contact?.name }}</td></tr>
+                    <tr><th class="p-[14px] text-left font-semibold">Factura relacionada</th><td class="p-[14px]"><Link v-if="d.invoice_link" :href="d.invoice_link.url" class="font-semibold text-primary underline">{{ d.invoice_link.name }}</Link></td></tr>
+                    <tr class="bg-[#f5f5f5]"><th class="p-[14px] text-left font-semibold">Remisión relacionada</th><td class="p-[14px]"><Link v-if="d.remission_link" :href="d.remission_link.url" class="font-semibold text-primary underline">{{ d.remission_link.name }}</Link></td></tr>
+                </table>
+            </section>
+            <section class="rounded-[4px] bg-white p-[20px]">
+                <h2 class="text-[17px] font-semibold text-ink">Anexos</h2>
+                <a v-for="a in d.attachments" :key="a.id" :href="a.url" class="mt-[10px] block text-[12px] text-primary hover:underline"><Icon icon="paperclip" /> {{ a.name }}</a>
+                <button type="button" class="mt-[30px] px-[30px] text-[12px] text-ink" @click="fileInput.click()">Adjuntar archivo <Icon icon="paperclip" class="ml-[6px]" /></button>
+                <input ref="fileInput" type="file" class="hidden" @change="upload" />
+            </section>
+        </div>
         <template v-if="classic">
             <section class="mt-[10px] rounded-[4px] bg-white p-[20px]">
                 <h2 class="text-[17px] font-semibold text-ink">Historial de acciones</h2>

@@ -24,7 +24,7 @@ class ModuleViewController extends Controller
                 ['label' => 'Crear cotización', 'href' => '/ventas/cotizaciones/crear'],
             ],
             'columns' => ['Comprobante', 'Fecha elaboración', 'Identificación', 'Sucursal', 'Cliente', 'Total', 'Moneda'],
-            'empty' => ['Aún no tienes cotizaciones en este periodo', 'Crea una cotización para enviarla a tu cliente'],
+            'empty' => ['No se encontraron resultados para tu búsqueda.', 'Modifica tus criterios de búsqueda o filtrado e inténtalo de nuevo.'], 'clear_url' => '/ventas/cotizaciones',
             'source' => 'quotes',
         ],
         'ventas/remisiones' => [

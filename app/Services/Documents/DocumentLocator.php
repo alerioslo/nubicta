@@ -157,7 +157,8 @@ class DocumentLocator
             'payments' => $payments->map(fn ($p) => ['name' => $p->name, 'value' => (float) $p->value, 'due_date' => $p->due_date,
                 'form' => ($methods[$p->payment_method_id] ?? null) === 'Cartera' ? 'Crédito' : 'Efectivo']),
             'number_label' => $sales && $doc->prefix ? "{$doc->prefix} {$doc->number}" : null,
-            'created' => ['by' => $doc->created_by ? DB::table('users')->where('id', $doc->created_by)->value('name') : null,
+            'created' => ['by' => $doc->created_by ? DB::table('users')->where('id', $doc->created_by)->value('name')
+                    : ($sales && in_array($doc->type, ['CT', 'RM'], true) && $doc->seller_id ? DB::table('sellers')->where('id', $doc->seller_id)->value('name') : null),
                 'at' => $doc->created_at?->format('d/m/Y H:i')],
             'retentions' => $retentions->map(fn ($r) => ['name' => $r->name, 'value' => (float) $r->value]),
             'totals' => ['subtotal' => (float) $doc->subtotal, 'discount' => (float) $doc->discount, 'tax' => (float) $doc->tax_total,
@@ -194,6 +195,24 @@ class DocumentLocator
                     return ['at' => \Illuminate\Support\Carbon::parse($l->created_at)->locale('es')->translatedFormat('j M Y - H:i'), 'to' => $v['to'] ?? '', 'name' => $v['name'] ?? ''];
                 }),
             'modified_at' => $doc->updated_at && $doc->updated_at->ne($doc->created_at) && $doc->source === 'erp' ? $doc->updated_at->format('d/m/Y H:i') : null,
+        ] + (in_array($doc->type, ['CT', 'RM'], true) ? self::quoteExtra($doc) : []);
+    }
+
+    /** Cotizaciones y remisiones: datos del vendedor que firma, estado y comprobantes generados a partir de ellas. */
+    private static function quoteExtra(SalesDocument $doc): array
+    {
+        $seller = $doc->seller_id ? DB::table('sellers as s')->leftJoin('users as u', 'u.id', '=', 's.user_id')->where('s.id', $doc->seller_id)->first(['s.name', 's.email', 's.phone', 'u.email as user_email']) : null;
+        $child = fn (string $type) => DB::table('sales_documents')->where('related_document_id', $doc->id)->where('type', $type)->where('status', '!=', 'annulled')->orderBy('id')->first(['id', 'name']);
+        $link = fn ($d) => $d ? ['name' => $d->name, 'url' => "/documentos/ventas/{$d->id}"] : null;
+
+        return [
+            'seller_info' => $seller ? ['name' => $seller->name, 'email' => $seller->email ?: $seller->user_email, 'phone' => $seller->phone] : null,
+            'quote_status' => $doc->status,
+            'invoice_link' => $link($child('FV')),
+            'remission_link' => $doc->type === 'CT' ? $link($child('RM')) : null,
+            'source_link' => $doc->related_document_id ? $link(DB::table('sales_documents')->where('id', $doc->related_document_id)->first(['id', 'name'])) : null,
+            'public_url' => $doc->public_url,
+            'contact_person' => $doc->contact_person_id ? DB::table('contact_people')->where('id', $doc->contact_person_id)->selectRaw("TRIM(CONCAT(first_name, ' ', COALESCE(last_name, ''))) AS n")->value('n') : null,
         ];
     }
 

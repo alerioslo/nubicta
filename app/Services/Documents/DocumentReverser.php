@@ -55,7 +55,7 @@ class DocumentReverser
             if ($receipt) {
                 return "Tiene pagos asociados ($receipt). Anula primero el recibo.";
             }
-            $note = $doc::query()->where('related_document_id', $doc->id)->where('status', '!=', 'annulled')->value('name');
+            $note = $doc::query()->where('related_document_id', $doc->id)->whereIn('type', ['NC', 'ND', 'NA'])->where('status', '!=', 'annulled')->value('name');
             if ($note) {
                 return "Tiene la nota $note asociada. Anula primero la nota.";
             }

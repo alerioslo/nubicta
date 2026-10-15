@@ -127,7 +127,12 @@ class DocumentFormController extends Controller
                 $initial = ['date' => now()->toDateString()] + DocumentLocator::payload($doc);
             }
         }
-        if ($key === 'contabilidad/comprobantes/crear' && in_array($request->input('cruce'), ['compras', 'ventas'], true) && $request->integer('tercero')) {
+        $sources = ['ventas/facturas/crear' => ['CT', 'RM'], 'ventas/remisiones/crear' => ['CT']];
+        if (isset($sources[$key]) && ($src = \App\Models\SalesDocument::query()->whereIn('type', $sources[$key])->where('status', '!=', 'annulled')->find($request->integer('desde')))) {
+            $initial = collect(DocumentLocator::payload($src))->except(['document_type', 'date', 'related_id', 'related_label', 'payments', 'credit', 'due_date'])->all()
+                + ['date' => now()->toDateString(), 'source_id' => $src->id];
+        }
+                if ($key === 'contabilidad/comprobantes/crear' && in_array($request->input('cruce'), ['compras', 'ventas'], true) && $request->integer('tercero')) {
             $lines = app(\App\Services\Documents\AdvanceCrossing::class)->journalLines($request->input('cruce'), $request->integer('tercero'));
             if ($lines) {
                 $initial = array_filter([
