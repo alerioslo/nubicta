@@ -49,7 +49,7 @@ function sync() {
                     <input v-model="f.q" class="s-input pl-9" placeholder="Buscar por proveedor o CUFE" />
                 </span>
             </label>
-            <label class="flex flex-col text-[13px] text-ink">Estado <span class="sr-only">*</span>
+            <label class="flex flex-col text-[13px] text-ink"><span>Estado *</span>
                 <select v-model="f.estado" class="s-input w-[220px]" @change="reload">
                     <option value="">Todos</option>
                     <option v-for="(label, key) in statuses" :key="key" :value="key">{{ label }}</option>

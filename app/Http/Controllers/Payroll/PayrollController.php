@@ -70,10 +70,11 @@ class PayrollController extends Controller
             ->with('contact:id,name,identification')
             ->when($request->input('q'), fn ($q, $t) => $q->whereHas('contact', fn ($c) => $c->where('name', 'like', "%$t%")->orWhere('identification', 'like', "$t%")))
             ->when(! $request->input('q'), fn ($q) => $q->where('period', $period))
-            ->orderByDesc('generated_at')->orderByDesc('number')->orderBy('consecutive')
+            ->orderByDesc('generated_at')->orderBy('id')
             ->limit(500)->get();
         if ($docs->isEmpty() && ! $request->input('q')) {
-            $docs = PayrollDocument::query()->whereIn('type', $types)->with('contact:id,name,identification')->orderByDesc('generated_at')->orderBy('consecutive')->limit(50)->get();
+            $last = PayrollDocument::query()->whereIn('type', $types)->max('period');
+            $docs = PayrollDocument::query()->whereIn('type', $types)->where('period', $last)->with('contact:id,name,identification')->orderByDesc('generated_at')->orderBy('id')->get();
         }
 
         $tab = in_array($request->input('tab'), ['correo', 'configuracion'], true) ? $request->input('tab') : 'dian';

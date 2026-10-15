@@ -80,8 +80,8 @@ function downloadHref(b) {
     <Head :title="view.title" />
     <PageHeader :title="view.title" :tabs="tabs" :active="view.tab" />
 
-    <div v-if="view.heading" class="mt-[26px] px-[22px]">
-        <h2 class="text-[22px] font-semibold text-primary">{{ view.heading }}</h2>
+    <div v-if="view.heading" :class="view.blue ? 'mt-[14px]' : 'mt-[26px] px-[22px]'">
+        <h2 class="text-[22px] font-semibold" :class="view.blue ? 'text-ink' : 'text-primary'">{{ view.heading }}</h2>
         <p v-if="view.intro" class="mt-[10px] text-[13px] text-ink">{{ view.intro }}</p>
     </div>
 
@@ -90,7 +90,41 @@ function downloadHref(b) {
         <p>{{ view.info }}</p>
     </div>
 
-    <section class="s-card mt-[18px]">
+    <section v-if="view.blue" class="mt-[18px]">
+        <form class="flex items-center" @submit.prevent="reload()">
+            <input v-model="f.q" class="h-[28px] w-[311px] rounded-l-[4px] bg-[#eceff1] px-[8px] text-[12px] outline-none" :placeholder="view.search" />
+            <button type="submit" class="grid h-[28px] w-[23px] place-items-center rounded-r-[4px] bg-[#c9ced3] text-[11px] text-muted" aria-label="Buscar"><Icon icon="magnifying-glass" /></button>
+            <Link v-for="b in (view.buttons ?? []).filter((x) => x.href)" :key="b.label" :href="fill(b.href)" class="s-btn s-btn-primary ml-auto">{{ b.label }}</Link>
+        </form>
+        <div class="mt-[12px] overflow-hidden rounded-[4px] bg-white shadow-sm">
+            <table class="s-table w-full">
+                <thead><tr><th v-for="c in columns" :key="c" class="!bg-[#0072ce] !text-white">{{ c }}</th></tr></thead>
+                <tbody>
+                    <tr v-for="(r, i) in list" :key="i">
+                        <td v-for="(raw, j) in r" :key="j">
+                            <template v-if="cell(raw).actions">
+                                <template v-for="a in cell(raw).actions" :key="a.text">
+                                    <Link v-if="a.href" :href="a.href" class="mr-3 font-semibold text-primary hover:underline">{{ a.text }}</Link>
+                                    <button v-else-if="a.post" type="button" class="mr-3 font-semibold hover:underline" :class="a.danger ? 'text-[#c62828]' : 'text-primary'" :disabled="busy" @click="post(a.post, a.data ?? {}, a.confirm)">{{ a.text }}</button>
+                                </template>
+                            </template>
+                            <Link v-else-if="cell(raw).href" :href="cell(raw).href" class="font-semibold text-primary hover:underline">{{ cell(raw).text }}</Link>
+                            <template v-else>{{ cell(raw).text }}</template>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <template v-if="!list.length">
+                <EmptyState icon="file-circle-question" v-bind="view.empty ? { title: view.empty[0], text: view.empty[1] } : {}" />
+                <div v-if="view.empty_button" class="-mt-[20px] pb-[18px] text-center">
+                    <Link :href="view.empty_button.href" class="s-btn s-btn-primary !px-[14px] !text-[14px]">{{ view.empty_button.label }}</Link>
+                </div>
+            </template>
+            <Pager v-if="paginator" :paginator="paginator" />
+        </div>
+    </section>
+
+    <section v-else class="s-card mt-[18px]">
         <div v-if="view.subtabs" class="flex gap-6 border-b border-line px-[16px]">
             <button v-for="s in view.subtabs" :key="s" type="button" class="-mb-px border-b-[3px] py-3 text-[14px] font-semibold"
                 :class="f.sub === s ? 'border-primary text-primary' : 'border-transparent text-ink-soft'" @click="reload({ sub: s })">{{ s }}</button>

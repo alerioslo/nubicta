@@ -1,5 +1,4 @@
 <script setup>
-import DownloadMenu from '../../Components/DownloadMenu.vue';
 import { ref } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
@@ -107,7 +106,7 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                     <a href="/ayuda?q=plan" class="block px-3 py-2 hover:bg-[#f4f9fd]">Cómo editar el plan de cuentas</a>
                 </div>
             </div>
-            <DownloadMenu class="ml-auto" @download="(f) => download('/contabilidad/cuentas/excel', f)" />
+            <button type="button" class="s-btn s-btn-outline ml-auto font-semibold" @click="download('/contabilidad/cuentas/excel', 'xlsx')"><Icon icon="file-excel" /> Descargar Excel</button>
         </div>
 
         <div class="s-card grid min-h-[480px] grid-cols-[minmax(420px,45%)_1fr]">

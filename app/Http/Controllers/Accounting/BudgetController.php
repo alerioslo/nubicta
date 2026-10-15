@@ -34,7 +34,7 @@ class BudgetController extends Controller
 
         return Inertia::render('GenericList', [
             'view' => [
-                'title' => 'Contabilidad', 'tab' => 'Presupuesto contable', 'heading' => 'Presupuesto contable', 'url' => '/contabilidad/presupuesto',
+                'title' => 'Contabilidad', 'tab' => 'Presupuesto contable', 'heading' => 'Presupuesto contable', 'blue' => true, 'url' => '/contabilidad/presupuesto',
                 'intro' => 'Elabora un presupuesto contable detallado por año y mes. Así, podrás compararlo fácilmente con los resultados de la ejecución.',
                 'search' => 'Buscar por Año o Nombre', 'search_only' => true, 'empty_button' => ['label' => 'Crear presupuesto', 'href' => '/contabilidad/presupuesto/crear'],
                 'buttons' => $rows ? [['label' => 'Crear presupuesto', 'href' => '/contabilidad/presupuesto/crear']] : [],

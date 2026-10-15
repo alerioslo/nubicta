@@ -41,6 +41,12 @@ function remove(t) {
     if (confirm(`¿Eliminar el impuesto ${t.name}?`)) router.delete(`/configuracion/impuestos/${t.id}`, { preserveScroll: true });
 }
 const rows = () => (tab.value === 'impuestos' ? props.taxes : props.selfWithholdings);
+const show = (k) => {
+    tab.value = k;
+    undo();
+    if (!rows().length) add();
+};
+if (tab.value === 'autoretenciones' && !rows().length) add();
 </script>
 
 <template>
@@ -51,7 +57,7 @@ const rows = () => (tab.value === 'impuestos' ? props.taxes : props.selfWithhold
     </div>
     <nav class="mt-[24px] flex gap-[2px] text-[12px]">
         <button v-for="[k, l] in [['impuestos', 'Impuestos'], ['autoretenciones', 'Autoretenciones']]" :key="k" type="button" class="rounded-t-[3px] border border-b-0 px-[16px] py-[8px]"
-            :class="tab === k ? 'border-[#ddd] bg-white' : 'border-transparent'" @click="tab = k; undo()">{{ l }}</button>
+            :class="tab === k ? 'border-[#ddd] bg-white' : 'border-transparent'" @click="show(k)">{{ l }}</button>
     </nav>
     <section class="border border-[#ddd] bg-white pb-[16px] text-[11px] text-[#333]">
         <table class="w-full border-collapse">
