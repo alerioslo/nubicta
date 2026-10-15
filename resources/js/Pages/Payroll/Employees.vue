@@ -1,5 +1,5 @@
 <script setup>
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
 import Pager from '../../Components/Pager.vue';
@@ -10,7 +10,8 @@ const props = defineProps({
     tabs: { type: Array, required: true },
     filters: { type: Object, default: () => ({}) },
 });
-const f = reactive({ q: '', estado: 'activos', ...props.filters });
+const f = reactive({ q: '', ...props.filters });
+const menu = ref(null);
 const reload = () => router.get('/nomina/empleados', Object.fromEntries(Object.entries(f).filter(([, v]) => v)), { preserveState: true, replace: true });
 let t = null;
 const search = () => {
@@ -24,24 +25,16 @@ const money = (v) => '$ ' + Number(v).toLocaleString('es-CO', { maximumFractionD
     <Head title="Empleados" />
     <PageHeader title="Nómina" :tabs="tabs" active="Empleados" />
 
-    <div class="mt-[24px] flex items-center">
-        <h2 class="text-[24px] font-semibold text-ink">Empleados</h2>
-        <div class="ml-auto flex gap-2">
-            <a href="/terceros/excel?tipo=empleado" class="s-btn s-btn-outline">Exportar lista de empleados</a>
-            <Link href="/terceros/crear?tipo=empleado" class="s-btn s-btn-primary">Crear nuevo empleado</Link>
-        </div>
-    </div>
+    <h2 class="mt-[24px] text-[24px] font-semibold text-ink">Empleados</h2>
 
-    <section class="s-card mt-[14px]">
+    <section class="s-card mt-[14px]" @click="menu = null">
         <div class="flex items-center gap-3 p-[16px]">
-            <div class="relative w-[320px]">
-                <Icon icon="magnifying-glass" class="absolute left-3 top-[10px] text-muted" />
-                <input v-model="f.q" class="s-input pl-9" placeholder="Buscar por nombre o identificación" @input="search" />
+            <a href="/terceros/excel?tipo=empleado" class="s-btn s-btn-outline">Exportar lista de empleados</a>
+            <div class="relative w-[290px]">
+                <input v-model="f.q" class="s-input pr-9" placeholder="Buscar: Nombre, N° Id, N° Contrato" @input="search" />
+                <button type="button" class="absolute right-0 top-0 grid h-full w-[24px] place-items-center rounded-r-[4px] bg-primary text-[11px] text-white" aria-label="Buscar" @click="reload"><Icon icon="magnifying-glass" /></button>
             </div>
-            <select v-model="f.estado" class="s-input w-[160px]" @change="reload">
-                <option value="activos">Activos</option>
-                <option value="todos">Todos</option>
-            </select>
+            <Link href="/terceros/crear?tipo=empleado" class="s-btn s-btn-primary ml-auto">Crear nuevo empleado</Link>
         </div>
         <table class="s-table">
             <thead>
@@ -57,7 +50,7 @@ const money = (v) => '$ ' + Number(v).toLocaleString('es-CO', { maximumFractionD
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="e in employees.data" :key="e.id" :class="{ 'opacity-60': !e.active }">
+                <tr v-for="e in employees.data" :key="e.id">
                     <td class="text-primary"><Link :href="`/nomina/empleados/${e.id}/editar`" class="hover:underline">{{ e.name }}</Link></td>
                     <td>{{ e.identification }}</td>
                     <td>{{ e.contract }}</td>
@@ -66,8 +59,14 @@ const money = (v) => '$ ' + Number(v).toLocaleString('es-CO', { maximumFractionD
                     <td class="text-right">{{ e.salary ? money(e.salary) : '' }}</td>
                     <td>{{ e.type }}</td>
                     <td class="whitespace-nowrap">
-                        <Link :href="`/nomina/empleados/${e.id}/editar`" class="s-btn-link" title="Contrato y nómina"><Icon icon="file-signature" /></Link>
-                        <Link :href="`/terceros/${e.contact_id}/editar`" class="s-btn-link ml-2" title="Datos del tercero"><Icon icon="pen" /></Link>
+                        <div class="relative inline-flex" @click.stop>
+                            <Link :href="`/nomina/empleados/${e.id}/editar`" class="rounded-l-[4px] border border-[#c9ced3] px-[18px] py-[3px] text-[12px] text-muted hover:bg-[#f0f7fd]">Editar</Link>
+                            <button type="button" class="rounded-r-[4px] border border-l-0 border-[#c9ced3] px-[7px] text-muted hover:bg-[#f0f7fd]" aria-label="Más acciones" @click="menu = menu === e.id ? null : e.id"><Icon icon="caret-down" /></button>
+                            <div v-if="menu === e.id" class="absolute right-0 top-[28px] z-30 w-[170px] rounded-[6px] bg-white py-[6px] text-left shadow-lg">
+                                <Link :href="`/nomina/empleados/${e.id}/editar`" class="block px-[14px] py-[7px] text-[13px] hover:bg-[#f0f7fd]">Contrato y nómina</Link>
+                                <Link :href="`/terceros/${e.contact_id}/editar`" class="block px-[14px] py-[7px] text-[13px] hover:bg-[#f0f7fd]">Datos del tercero</Link>
+                            </div>
+                        </div>
                     </td>
                 </tr>
             </tbody>

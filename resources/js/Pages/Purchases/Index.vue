@@ -27,7 +27,7 @@ function clear() {
     reload();
 }
 const money = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const TIPOS = { FC: 'Compra/Gasto', DS: 'Documento soporte', RP: 'Pago / Egreso' };
+const TIPOS = { FC: 'Compra/Gasto', DS: 'Documento soporte', RP: 'Pagos' };
 </script>
 
 <template>
@@ -89,14 +89,14 @@ const TIPOS = { FC: 'Compra/Gasto', DS: 'Documento soporte', RP: 'Pago / Egreso'
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="d in documents.data" :key="d.id">
+                <tr v-for="d in documents.data" :key="d.url">
                     <td>{{ d.transaction }}</td>
-                    <td><Link :href="`/documentos/compras/${d.id}`" class="text-primary">{{ d.name }}</Link><div v-if="d.annulled" class="text-[11px] text-[#c62828]">Anulado</div></td>
+                    <td><Link :href="d.url" class="text-primary">{{ d.name }}</Link><div v-if="d.annulled" class="text-[11px] text-[#c62828]">Anulado</div></td>
                     <td>{{ d.supplier_invoice || '-' }}</td>
                     <td class="whitespace-nowrap">{{ d.date }}</td>
                     <td>{{ d.identification }}</td>
                     <td>{{ d.branch }}</td>
-                    <td class="max-w-[200px]"><Link :href="`/compras/proveedores/${d.contact_id}`" class="block truncate text-primary">{{ d.supplier }}</Link></td>
+                    <td class="max-w-[200px]"><Link :href="`/terceros/${d.contact_id}`" class="block truncate text-primary">{{ d.supplier }}</Link></td>
                     <td>-</td>
                     <td class="whitespace-nowrap text-right">{{ money(d.total) }}</td>
                     <td>{{ d.currency }}</td>

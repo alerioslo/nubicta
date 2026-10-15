@@ -37,16 +37,17 @@ class PayrollController extends Controller
     {
         $employees = Employee::query()
             ->with('contact:id,name,identification')
-            ->when($request->input('q'), fn ($q, $t) => $q->whereHas('contact', fn ($c) => $c->where('name', 'like', "%$t%")->orWhere('identification', 'like', "$t%")))
-            ->when($request->input('estado', 'activos') === 'activos', fn ($q) => $q->where('active', true))
-            ->orderByDesc('salary')->orderByDesc('start_date')
-            ->paginate($request->integer('per_page', 20))->withQueryString()
+            ->when($request->input('q'), fn ($q, $t) => $q->where(fn ($w) => $w->where('contract_number', 'like', "$t%")
+                ->orWhereHas('contact', fn ($c) => $c->where('name', 'like', "%$t%")->orWhere('identification', 'like', "$t%"))))
+            ->when($request->input('estado') === 'activos', fn ($q) => $q->where('active', true))
+            ->orderBy('id')
+            ->paginate($request->integer('per_page', 10))->withQueryString()
             ->through(fn (Employee $e) => [
                 'id' => $e->id,
                 'contact_id' => $e->contact_id,
                 'name' => $e->contact?->name,
                 'identification' => $e->contact?->identification,
-                'contract' => $e->contract_number ?? 'No aplica',
+                'contract' => $e->contract_number,
                 'start' => $e->start_date?->translatedFormat('d M Y') ?? 'No aplica',
                 'end' => $e->end_date?->translatedFormat('d M Y') ?? 'No aplica',
                 'salary' => (float) $e->salary,
