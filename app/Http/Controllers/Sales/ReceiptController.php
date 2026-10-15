@@ -27,7 +27,7 @@ class ReceiptController extends Controller
         $isRc = $type === 'RC';
         $receipts = Receipt::query()
             ->where('type', $type)
-            ->with(['contact:id,name,identification', 'items:id,receipt_id,due_prefix,due_number,value'])
+            ->with(['contact:id,name,identification,email', 'items:id,receipt_id,due_prefix,due_number,value'])
             ->when($request->input('q'), fn ($q, $t) => $q->where(fn ($w) => $w
                 ->where('name', 'like', "%$t%")
                 ->orWhereHas('contact', fn ($c) => $c->where('name', 'like', "%$t%")->orWhere('identification', 'like', "$t%"))))
@@ -45,6 +45,8 @@ class ReceiptController extends Controller
                 'applies_to' => $r->items->map(fn ($i) => $i->due_prefix ? "{$i->due_prefix}-{$i->due_number}" : null)->filter()->unique()->implode(', '),
                 'total' => (float) $r->total,
                 'annulled' => $r->status === 'annulled',
+                'mail_status' => $r->mail_status,
+                'email' => $r->contact?->email,
             ]);
 
         return Inertia::render('Receipts/Index', [

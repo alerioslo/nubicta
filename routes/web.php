@@ -186,6 +186,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('ventas')->middleware('can:ventas.ver')->group(function () {
+        Route::get('/envio-masivo', [\App\Http\Controllers\Sales\MassSendController::class, 'index']);
         Route::get('/envio-masivo/imprimir', [\App\Http\Controllers\DocumentController::class, 'batch']);
         Route::post('/envio-masivo/enviar', [\App\Http\Controllers\Sales\MassSendController::class, 'send']);
 

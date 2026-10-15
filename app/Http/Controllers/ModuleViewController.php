@@ -30,16 +30,6 @@ class ModuleViewController extends Controller
             'columns' => ['Tipo transacción', 'Comprobante', 'Fecha elaboración', 'Identificación', 'Sucursal', 'Cliente', 'Estado envío de correo', 'Total', 'Moneda'],
             'source' => 'remissions',
         ],
-        'ventas/envio-masivo' => [
-            'title' => 'Ventas', 'module' => 'ventas', 'tab' => 'Envío masivo', 'heading' => 'Impresión y envío masivo de comprobantes',
-            'search_label' => 'Clientes', 'search' => 'Buscar por nombre o identificación', 'dates' => true,
-            'buttons' => [
-                ['label' => 'Imprimir', 'icon' => 'print', 'style' => 'outline', 'selection' => 'open', 'url' => '/ventas/envio-masivo/imprimir'],
-                ['label' => 'Enviar', 'icon' => 'envelope', 'selection' => 'post', 'url' => '/ventas/envio-masivo/enviar', 'confirm' => 'Se enviarán :n comprobantes al correo de cada cliente. ¿Continuar?'],
-            ],
-            'columns' => ['#select', 'Tipo transacción', 'Comprobante', 'Fecha de elaboración', 'Identificación', 'Sucursal', 'Clientes', 'Correo electrónico', 'Total', 'Envío por email', 'Envío a la DIAN'],
-            'source' => 'massiveSend',
-        ],
         'compras/soporte-legalizar' => [
             'title' => 'Compras y gastos', 'module' => 'compras', 'tab' => 'Soporte por legalizar', 'heading' => 'Soporte de compras o gastos por legalizar',
             'search_label' => 'Documento soporte', 'search' => 'Buscar', 'dates' => true,
@@ -181,27 +171,6 @@ class ModuleViewController extends Controller
                     ]],
                 ];
             });
-    }
-
-    private function massiveSend(Request $request)
-    {
-        $from = $request->input('desde', now()->toDateString());
-        $to = $request->input('hasta', now()->toDateString());
-
-        return SalesDocument::query()->with('contact:id,name,identification,branch_office,email')
-            ->whereIn('type', ['FV', 'NC', 'ND'])
-            ->whereBetween('date', [$from, $to])
-            ->when($request->input('q'), fn ($q, $t) => $q->whereHas('contact', fn ($c) => $c->where('name', 'like', "%$t%")->orWhere('identification', 'like', "$t%")))
-            ->orderByDesc('number')
-            ->paginate(50)->withQueryString()
-            ->through(fn (SalesDocument $d) => [
-                ['select' => $d->id], SalesDocument::TYPES[$d->type] ?? $d->type, ['text' => $d->name, 'href' => "/documentos/ventas/{$d->id}"], $d->date->format('d/m/Y'),
-                $d->contact?->identification, $d->contact?->branch_office ?: '-', $d->contact?->name, $d->contact?->email ?? '-',
-                ['text' => $this->money((float) $d->total), 'align' => 'right'],
-                $d->mailBadge(),
-                ['text' => ['Accepted' => 'Aprobada', 'Rejected' => 'Rechazada'][$d->dian_status] ?? ($d->dian_status ? 'Pendiente' : 'Sin enviar'),
-                    'badge' => ['Accepted' => 'ok', 'Rejected' => 'danger'][$d->dian_status] ?? 'off'],
-            ]);
     }
 
     /** Cotizaciones (CT) o remisiones (RM) con filtro de fechas y cliente. */

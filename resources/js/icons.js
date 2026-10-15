@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
-    faFileCircleQuestion, faHouse, faDollarSign, faDownload, faBagShopping, faCartFlatbed, faLandmark, faUserTie, faBook,
+    faChevronUp, faFileCircleQuestion, faHouse, faDollarSign, faDownload, faBagShopping, faCartFlatbed, faLandmark, faUserTie, faBook,
     faClipboardCheck, faChartColumn, faMagnifyingGlass, faPlus, faBell, faGear, faCircleQuestion,
     faChevronDown, faChevronLeft, faChevronRight, faAnglesLeft, faAnglesRight, faXmark, faSliders,
     faFileInvoiceDollar, faListCheck, faFileLines, faWallet, faCashRegister, faReceipt, faUserPlus,
@@ -14,7 +14,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 library.add(
-    faFileCircleQuestion, faHouse, faDollarSign, faDownload, faBagShopping, faCartFlatbed, faLandmark, faUserTie, faBook,
+    faChevronUp, faFileCircleQuestion, faHouse, faDollarSign, faDownload, faBagShopping, faCartFlatbed, faLandmark, faUserTie, faBook,
     faClipboardCheck, faChartColumn, faMagnifyingGlass, faPlus, faBell, faGear, faCircleQuestion,
     faChevronDown, faChevronLeft, faChevronRight, faAnglesLeft, faAnglesRight, faXmark, faSliders,
     faFileInvoiceDollar, faListCheck, faFileLines, faWallet, faCashRegister, faReceipt, faUserPlus,

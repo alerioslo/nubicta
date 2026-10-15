@@ -57,9 +57,7 @@ class DocumentMailer
             @unlink($pdf);
             $zip && @unlink($zip['path']);
         }
-        if ($doc instanceof SalesDocument) {
-            $doc->forceFill(['mail_status' => 'sent'])->save();
-        }
+        $doc->forceFill(['mail_status' => 'sent'])->save();
     }
 
     /** Genera el PDF con Chromium sin interfaz a partir de la vista de impresion firmada. */
