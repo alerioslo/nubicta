@@ -15,7 +15,7 @@ class SalesDocumentController extends Controller
     public function index(Request $request): Response
     {
         $docs = SalesDocument::query()
-            ->with('contact:id,name,identification')
+            ->with('contact:id,name,identification,email')
             ->when($request->input('tipo'), fn ($q, $t) => $q->where('type', $t), fn ($q) => $q->whereIn('type', ['FV', 'NC', 'ND']))
             ->when($request->input('q'), fn ($q, $t) => $q->where(fn ($w) => $w
                 ->where('name', 'like', "%$t%")
@@ -41,6 +41,8 @@ class SalesDocumentController extends Controller
                 'mail_status' => $d->mail_status,
                 'public_url' => $d->public_url,
                 'annulled' => $d->status === 'annulled',
+                'contact_id' => $d->contact_id,
+                'email' => $d->contact?->email,
             ]);
 
         return Inertia::render('Sales/Index', [

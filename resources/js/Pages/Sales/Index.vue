@@ -25,6 +25,20 @@ const money = (v, c) => Number(v).toLocaleString('en-US', { minimumFractionDigit
 const dian = (s) => ({ Accepted: ['Aprobada', 'text-ok', 'circle-check'], Rejected: ['Rechazada', 'text-danger', 'triangle-exclamation'] })[s] ?? [s ? 'Pendiente' : 'Sin enviar', 'text-muted', 'clock-rotate-left'];
 const mail = (s) => ({ sent: ['Enviado', 's-badge-ok'], not_sent: ['Sin enviar', 's-badge-warn'], error: ['Fallo de envío', 's-badge-danger'] })[s] ?? ['Sin enviar', 's-badge-warn'];
 const pagination = computed(() => props.documents);
+
+const menu = ref(null);
+const sending = ref(null);
+const to = ref('');
+const docUrl = (d) => d.public_url || `/documentos/ventas/${d.id}/imprimir`;
+const canSend = (d) => !d.annulled && d.mail_status !== 'sent';
+function openSend(d) {
+    menu.value = null;
+    sending.value = d;
+    to.value = d.email || '';
+}
+function send() {
+    router.post(`/documentos/ventas/${sending.value.id}/correo`, { to: to.value }, { preserveScroll: true, onSuccess: () => (sending.value = null) });
+}
 </script>
 
 <template>
@@ -76,7 +90,15 @@ const pagination = computed(() => props.documents);
                     <td class="whitespace-nowrap" :class="dian(d.dian_status)[1]"><Icon :icon="dian(d.dian_status)[2]" /> <span class="text-ink">{{ dian(d.dian_status)[0] }}</span></td>
                     <td><span class="s-badge" :class="mail(d.mail_status)[1]">{{ mail(d.mail_status)[0] }}</span></td>
                     <td>
-                        <a v-if="d.public_url" :href="d.public_url" target="_blank" rel="noopener" class="s-btn s-btn-outline h-[28px] w-full">Ver documento</a>
+                        <div v-if="canSend(d)" class="relative flex">
+                            <button type="button" class="s-btn s-btn-outline h-[28px] flex-1 rounded-r-none text-[12px]" @click="openSend(d)">Enviar por correo</button>
+                            <button type="button" class="s-btn s-btn-outline h-[28px] rounded-l-none border-l-0 px-2" @click="menu = menu === d.id ? null : d.id"><Icon icon="caret-down" /></button>
+                            <div v-if="menu === d.id" class="absolute right-0 top-[30px] z-20 w-[170px] rounded border border-line bg-white py-1 shadow-lg">
+                                <a :href="docUrl(d)" target="_blank" rel="noopener" class="block px-3 py-2 text-[13px] hover:bg-[#f5f6f7]">Ver documento</a>
+                                <Link v-if="d.is_invoice" :href="`/ventas/clientes/${d.contact_id}`" class="block px-3 py-2 text-[13px] hover:bg-[#f5f6f7]">Ver saldo</Link>
+                            </div>
+                        </div>
+                        <a v-else :href="docUrl(d)" target="_blank" rel="noopener" class="s-btn s-btn-outline h-[28px] w-full text-[12px]">Ver documento</a>
                     </td>
                 </tr>
             </tbody>
@@ -84,4 +106,17 @@ const pagination = computed(() => props.documents);
         <EmptyState v-if="!documents.data.length" />
         <Pager :paginator="pagination" />
     </section>
+
+    <div v-if="sending" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="sending = null">
+        <form class="s-card w-[420px] p-[20px]" @submit.prevent="send">
+            <div class="text-[16px] font-bold text-ink">Enviar {{ sending.name }} por correo</div>
+            <label class="mt-[12px] block text-[12px] text-muted">Correo del cliente
+                <input v-model="to" type="email" required class="s-input mt-[4px] w-full" />
+            </label>
+            <div class="mt-[16px] flex justify-end gap-2">
+                <button type="button" class="s-btn s-btn-cancel" @click="sending = null">Cancelar</button>
+                <button class="s-btn s-btn-primary">Enviar</button>
+            </div>
+        </form>
+    </div>
 </template>
