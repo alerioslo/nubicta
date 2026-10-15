@@ -1,4 +1,5 @@
 <script setup>
+import DownloadMenu from '../../../Components/DownloadMenu.vue';
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PageHeader from '../../../Components/PageHeader.vue';
@@ -57,6 +58,7 @@ const reports = [
 const exportUrl = computed(() => '/productos/excel?' + new URLSearchParams(clean()).toString());
 const money = (v) => Number(v).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const qty = (v) => Number(v).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const download = (base, f) => (window.location.href = base + (base.includes('?') ? '&' : '?') + 'formato=' + f);
 </script>
 
 <template>
@@ -107,7 +109,7 @@ const qty = (v) => Number(v).toLocaleString('es-CO', { minimumFractionDigits: 2,
                 </div>
             </div>
             <div class="ml-auto flex items-center gap-3">
-                <a :href="exportUrl" class="px-[8px] text-[18px] text-primary" title="Exportar a Excel"><Icon icon="file-excel" /></a>
+                <DownloadMenu button-class="px-[8px] text-[18px] text-primary" icon="file-excel" label="" title="Exportar" @download="(f) => download(exportUrl, f)" />
                 <div class="relative" @click.stop>
                     <button type="button" class="s-btn s-btn-outline" @click="toggle('reportes')">Ver reportes</button>
                     <div v-if="menu === 'reportes'" class="absolute right-0 top-[40px] z-30 w-[260px] rounded-[6px] bg-white py-[6px] shadow-lg">

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Sales;
 
-use App\Exports\ArrayExport;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\DashboardController;
 use App\Models\RecurringInvoice;
@@ -59,7 +58,7 @@ class RecurringInvoiceController extends Controller
             $r->times ?? 'Indefinido', $r->generated, $r->start_date->format('d/m/Y'), $r->next_date->format('d/m/Y'), $r->active ? 'Sí' : 'No', $r->last_document, $r->last_error,
         ]);
 
-        return ArrayExport::download('facturas_recurrentes.xlsx', ['Factura recurrente', 'Identificación', 'Sucursal', 'Cliente', 'Recurrencia', 'Número de veces',
+        return \App\Support\Download::array('facturas_recurrentes.xlsx', ['Factura recurrente', 'Identificación', 'Sucursal', 'Cliente', 'Recurrencia', 'Número de veces',
             'Generadas', 'Fecha inicio', 'Próxima fecha', 'Activo', 'Última factura', 'Último error'], $rows, 'Facturas recurrentes');
     }
 

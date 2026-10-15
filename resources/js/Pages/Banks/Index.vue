@@ -1,4 +1,5 @@
 <script setup>
+import DownloadMenu from '../../Components/DownloadMenu.vue';
 import { ref, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import { onClickOutside } from '../../composables/clickOutside';
@@ -21,6 +22,7 @@ watch(show, (v) => localStorage.setItem('banks.columns', JSON.stringify(v)), { d
 const open = ref(false);
 const menu = ref(null);
 onClickOutside(menu, () => (open.value = false));
+const download = (base, f) => (window.location.href = base + (base.includes('?') ? '&' : '?') + 'formato=' + f);
 </script>
 
 <template>
@@ -37,7 +39,7 @@ onClickOutside(menu, () => (open.value = false));
                     <label class="flex items-center gap-2 py-1 text-[13px] text-muted"><input type="checkbox" checked disabled /> Saldo</label>
                 </div>
             </div>
-            <a href="/bancos/excel" class="s-btn s-btn-outline"><Icon icon="download" /> Descargar</a>
+            <DownloadMenu @download="(f) => download('/bancos/excel', f)" />
         </div>
         <table class="s-table">
             <thead>

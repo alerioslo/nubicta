@@ -23,14 +23,18 @@ function search() {
 }
 const money = (v, c) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + c;
 const dian = (s) => ({ Accepted: ['Aprobada', 'text-ok', 'circle-check'], Rejected: ['Rechazada', 'text-danger', 'triangle-exclamation'] })[s] ?? [s ? 'Pendiente' : 'Sin enviar', 'text-muted', 'clock-rotate-left'];
-const mail = (s) => ({ sent: ['Enviado', 's-badge-ok'], not_sent: ['Sin enviar', 's-badge-warn'], error: ['Fallo de envío', 's-badge-danger'] })[s] ?? ['Sin enviar', 's-badge-warn'];
+const mail = (s) => ({
+    sent: ['Enviado', 's-badge-ok'], read: ['Leído', 's-badge-ok'], queued: ['En cola', 's-badge-off'], not_sent: ['Sin enviar', 's-badge-warn'],
+    no_email: ['Sin correo', 's-badge-warn'], blocked: ['Correo bloqueado', 's-badge-danger'], failed: ['Fallo de envío', 's-badge-danger'],
+    failed_delivery: ['Fallo de entrega', 's-badge-danger'], error: ['Fallo de envío', 's-badge-danger'],
+})[s] ?? ['Sin enviar', 's-badge-warn'];
 const pagination = computed(() => props.documents);
 
 const menu = ref(null);
 const sending = ref(null);
 const to = ref('');
 const docUrl = (d) => d.public_url || `/documentos/ventas/${d.id}/imprimir`;
-const canSend = (d) => !d.annulled && d.mail_status !== 'sent';
+const canSend = (d) => !d.annulled && !['sent', 'read'].includes(d.mail_status);
 function openSend(d) {
     menu.value = null;
     sending.value = d;

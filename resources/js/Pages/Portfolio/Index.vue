@@ -1,4 +1,5 @@
 <script setup>
+import DownloadMenu from '../../Components/DownloadMenu.vue';
 import { reactive, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
@@ -43,6 +44,7 @@ const toggleColumn = (k) => {
 };
 const menu = ref(null);
 const adjustUrl = (r) => `/contabilidad/ajustes-cartera/crear?modulo=${props.side === 'clientes' ? 'ventas' : 'compras'}&tercero=${r.id}&nombre=${encodeURIComponent(`${r.identification} - ${r.name}`)}`;
+const download = (base, f) => (window.location.href = base + (base.includes('?') ? '&' : '?') + 'formato=' + f);
 </script>
 
 <template>
@@ -67,7 +69,7 @@ const adjustUrl = (r) => `/contabilidad/ajustes-cartera/crear?modulo=${props.sid
                             </label>
                         </div>
                     </div>
-                    <a :href="`/terceros/excel?tipo=${party}`" class="s-btn s-btn-outline"><Icon icon="download" /> Descargar</a>
+                    <DownloadMenu @download="(f) => download(`/terceros/excel?tipo=${party}`, f)" />
                     <Link href="/movimientos" class="s-btn s-btn-outline">Ver reportes <Icon icon="chevron-down" /></Link>
                     <Link :href="cfg.create" class="s-btn s-btn-primary">{{ cfg.create_label }}</Link>
                 </div>

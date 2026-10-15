@@ -1,4 +1,5 @@
 <script setup>
+import DownloadMenu from '../../Components/DownloadMenu.vue';
 import { computed, reactive } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
@@ -54,6 +55,7 @@ const tabs = [
     { key: 'producto', label: 'Resumen por producto' },
     { key: 'vendedor', label: 'Resumen por vendedor' },
 ];
+const download = (base, f) => (window.location.href = base + (base.includes('?') ? '&' : '?') + 'formato=' + f);
 </script>
 
 <template>
@@ -100,7 +102,7 @@ const tabs = [
                 <Icon icon="magnifying-glass" class="absolute left-3 top-[30px] text-muted" />
                 <input v-model="f.q" class="s-input pl-9" placeholder="Producto, factura o cliente" @input="search" />
             </label>
-            <a :href="exportUrl" class="s-btn s-btn-outline ml-auto"><Icon icon="file-excel" /> Descargar Excel</a>
+            <DownloadMenu class="ml-auto" @download="(f) => download(exportUrl, f)" />
         </div>
     </section>
 

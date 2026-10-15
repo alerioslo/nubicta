@@ -17,7 +17,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
-use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ContactController extends Controller
@@ -102,7 +101,7 @@ class ContactController extends Controller
 
     public function export(Request $request): BinaryFileResponse
     {
-        return Excel::download(new ContactsExport($this->query($request)), 'terceros.xlsx');
+        return \App\Support\Download::export(new ContactsExport($this->query($request)), 'terceros.xlsx', 'Terceros');
     }
 
     /** Busqueda rapida para selectores de documentos. */

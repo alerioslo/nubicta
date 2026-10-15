@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Settings;
 
-use App\Exports\ArrayExport;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\DocumentType;
@@ -35,8 +34,8 @@ class DocumentClassController extends Controller
         $types = DocumentType::query()->where('type', $def['type'])->orderByRaw('code + 0')->orderBy('code')->get();
         $rows = $types->map(fn (DocumentType $t) => $this->row($t, $def));
 
-        if ($request->input('formato') === 'xlsx') {
-            return ArrayExport::download("tipos_comprobante_{$class}.xlsx", array_column($def['columns'], 'label'),
+        if (in_array($request->input('formato'), ['xlsx', 'pdf'], true)) {
+            return \App\Support\Download::array("tipos_comprobante_{$class}.xlsx", array_column($def['columns'], 'label'),
                 $rows->map(fn ($r) => array_map(fn ($c) => $r[$c['key']], $def['columns']))->all(), $def['list_title']);
         }
 

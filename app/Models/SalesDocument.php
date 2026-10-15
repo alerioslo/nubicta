@@ -14,6 +14,20 @@ class SalesDocument extends Model
 
     protected $guarded = ['id'];
 
+    /** Estado del correo al cliente: los de Siigo (sent, read, not_sent, failed_delivery) y los del envio automatico. */
+    public const MAIL_STATUSES = [
+        'sent' => ['Enviado', 'ok'], 'read' => ['Leído', 'ok'], 'queued' => ['En cola', 'off'], 'not_sent' => ['Sin enviar', 'warn'], 'no_email' => ['Sin correo', 'warn'],
+        'blocked' => ['Correo bloqueado', 'danger'], 'failed' => ['Fallo de envío', 'danger'], 'failed_delivery' => ['Fallo de entrega', 'danger'],
+    ];
+
+    /** @return array{text:string, badge:string} */
+    public function mailBadge(): array
+    {
+        [$text, $badge] = self::MAIL_STATUSES[$this->mail_status] ?? ['Sin enviar', 'warn'];
+
+        return ['text' => $text, 'badge' => $badge];
+    }
+
     public const TYPES = ['FV' => 'Factura de venta', 'NC' => 'Nota crédito', 'ND' => 'Nota débito', 'CT' => 'Cotización', 'RM' => 'Remisión', 'SI' => 'Saldo inicial'];
 
     protected function casts(): array

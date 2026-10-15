@@ -1,4 +1,5 @@
 <script setup>
+import DownloadMenu from '../../Components/DownloadMenu.vue';
 import { ref } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
@@ -89,6 +90,7 @@ const can = (perm) => {
     const p = page.props.auth?.permissions ?? [];
     return p.includes('*') || p.includes(perm);
 };
+const download = (base, f) => (window.location.href = base + (base.includes('?') ? '&' : '?') + 'formato=' + f);
 </script>
 
 <template>
@@ -105,7 +107,7 @@ const can = (perm) => {
                     <a href="/ayuda?q=plan" class="block px-3 py-2 hover:bg-[#f4f9fd]">Cómo editar el plan de cuentas</a>
                 </div>
             </div>
-            <a href="/contabilidad/cuentas/excel" class="s-btn s-btn-outline ml-auto"><Icon icon="file-excel" /> Descargar Excel</a>
+            <DownloadMenu class="ml-auto" @download="(f) => download('/contabilidad/cuentas/excel', f)" />
         </div>
 
         <div class="s-card grid min-h-[480px] grid-cols-[minmax(420px,45%)_1fr]">

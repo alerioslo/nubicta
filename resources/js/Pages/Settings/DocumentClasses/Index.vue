@@ -1,4 +1,5 @@
 <script setup>
+import DownloadMenu from '../../../Components/DownloadMenu.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import EmptyState from '../../../Components/EmptyState.vue';
 
@@ -12,6 +13,7 @@ const props = defineProps({
 });
 
 const base = `/configuracion/documentos/${props.slug}`;
+const download = (base, f) => (window.location.href = base + (base.includes('?') ? '&' : '?') + 'formato=' + f);
 </script>
 
 <template>
@@ -24,7 +26,7 @@ const base = `/configuracion/documentos/${props.slug}`;
 
     <section class="s-card mt-[18px] p-[18px]">
         <div v-if="export" class="mb-[12px] flex justify-end">
-            <a :href="`${base}?formato=xlsx`" class="s-btn s-btn-outline h-[34px] w-[36px] px-0" title="Exportar a Excel"><Icon icon="file-excel" /></a>
+            <DownloadMenu button-class="s-btn s-btn-outline h-[34px] w-[36px] px-0" icon="file-excel" label="" title="Exportar" @download="(f) => download(base, f)" />
         </div>
         <table class="s-table">
             <thead>

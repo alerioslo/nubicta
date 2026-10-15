@@ -13,7 +13,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
-use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
@@ -60,7 +59,7 @@ class MovementsController extends Controller
         $filters = $this->filters($request);
         $name = 'movimientos_'.$filters['from']->format('Ymd').'_'.$filters['to']->format('Ymd').'.xlsx';
 
-        return Excel::download(new MovementsExport($this->detail($this->query($filters))), $name);
+        return \App\Support\Download::export(new MovementsExport($this->detail($this->query($filters))), $name, 'Movimientos');
     }
 
     private function filters(Request $request): array

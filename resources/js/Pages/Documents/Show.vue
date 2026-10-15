@@ -31,7 +31,7 @@ function sendMail() {
         <template #actions>
             <a v-if="d.printable" :href="`/documentos/${d.kind}/${d.id}/imprimir`" target="_blank" class="s-btn s-btn-outline"><Icon icon="print" /> Imprimir / PDF</a>
             <a v-if="d.dian?.xml" :href="`/documentos/${d.kind}/${d.id}/xml`" class="s-btn s-btn-outline"><Icon icon="file-code" /> XML</a>
-            <button v-if="d.mailable && !annulled" type="button" class="s-btn s-btn-outline" @click="sendMail"><Icon icon="envelope" /> {{ d.mail_status === 'sent' ? 'Reenviar correo' : 'Enviar por correo' }}</button>
+            <button v-if="d.mailable && !annulled" type="button" class="s-btn s-btn-outline" @click="sendMail"><Icon icon="envelope" /> {{ ['sent', 'read', 'failed', 'failed_delivery'].includes(d.mail_status) ? 'Reenviar correo' : 'Enviar por correo' }}</button>
             <button v-if="d.favorite !== null" type="button" class="s-btn s-btn-outline" :title="d.favorite ? 'Quitar de favoritos' : 'Marcar como favorito para copiarlo después'" @click="router.post(`/documentos/${d.kind}/${d.id}/favorito`, {}, { preserveScroll: true })">
                 <Icon icon="circle-check" :class="d.favorite && 'text-[#f5a623]'" /> {{ d.favorite ? 'Favorito' : 'Marcar favorito' }}
             </button>

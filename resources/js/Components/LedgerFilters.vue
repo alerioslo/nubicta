@@ -2,6 +2,7 @@
 import { reactive } from 'vue';
 import { router } from '@inertiajs/vue3';
 import Lookup from './Lookup.vue';
+import DownloadMenu from './DownloadMenu.vue';
 
 const props = defineProps({
     url: { type: String, required: true },
@@ -15,13 +16,13 @@ const CONTACT_COLUMNS = [['identification', 'Identificación'], ['name', 'Nombre
 const f = reactive({ ...props.filters });
 const clean = () => Object.fromEntries(Object.entries(f).filter(([, v]) => v !== null && v !== '' && v !== false && v !== undefined));
 const apply = () => router.get(props.url, clean(), { preserveState: true });
-const download = () => (window.location.href = `${props.url}?${new URLSearchParams({ ...clean(), export: 1 })}`);
+const download = (formato) => (window.location.href = `${props.url}?${new URLSearchParams({ ...clean(), formato })}`);
 const clear = () => router.get(props.url);
 </script>
 
 <template>
     <div class="flex justify-end gap-[8px]">
-        <button type="button" class="s-btn s-btn-outline" @click="download"><Icon icon="download" /> Descargar</button>
+        <DownloadMenu @download="download" />
         <button type="button" class="s-btn s-btn-primary" @click="apply">Generar reporte</button>
     </div>
     <section class="s-card mt-[10px] grid grid-cols-2 gap-x-[40px] gap-y-[12px] px-[36px] py-[18px] text-[13px]">

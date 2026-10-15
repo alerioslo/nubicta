@@ -291,7 +291,8 @@ class DocumentFormController extends Controller
             $dian = DianService::forCurrent();
             $r = $dian->emit($doc);
 
-            return ($dian->settings()->simulated ? 'DIAN (simulado): ' : 'DIAN: ').$r['message'];
+            return ($dian->settings()->simulated ? 'DIAN (simulado): ' : 'DIAN: ').$r['message']
+                .($r['valid'] && $doc instanceof SalesDocument ? ' El envío por correo al cliente quedó en cola.' : '');
         } catch (\App\Services\Dian\DianUnavailableException|\Illuminate\Http\Client\ConnectionException $e) {
             $doc->forceFill(['dian_status' => 'Pending', 'dian_message' => mb_substr($e->getMessage(), 0, 500)])->save();
             \App\Jobs\EmitDianDocument::dispatch($doc::class, $doc->id, $doc->company_id)->delay(now()->addMinute());

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Accounting;
 
-use App\Exports\ArrayExport;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\DashboardController;
 use App\Models\User;
@@ -61,7 +60,7 @@ class VerificationController extends Controller
                 'buttons' => [
                     ['label' => 'Verificar seleccionados', 'icon' => 'circle-check', 'selection' => 'post', 'url' => '/contabilidad/verifica-documentos?accion=verificar', 'confirm' => 'Se verificarán y bloquearán :n comprobantes. ¿Continuar?'],
                     ['label' => 'Quitar verificación', 'style' => 'outline', 'selection' => 'post', 'url' => '/contabilidad/verifica-documentos?accion=quitar', 'confirm' => 'Se quitará la verificación de :n comprobantes. ¿Continuar?'],
-                    ['label' => 'Excel', 'icon' => 'file-excel', 'style' => 'outline', 'download' => '/contabilidad/verifica-documentos/excel'],
+                    ['label' => 'Descargar', 'icon' => 'download', 'style' => 'outline', 'download' => '/contabilidad/verifica-documentos/excel'],
                 ],
                 'empty' => ['No hay comprobantes en el rango', 'Ajusta los criterios de búsqueda'],
             ],
@@ -78,7 +77,7 @@ class VerificationController extends Controller
             (float) $d->total, $d->currency ?: 'COP', substr((string) $d->date, 0, 10), (int) $d->attachments, $d->verified_at ? 'Verificado' : 'Sin verificar',
         ])->all();
 
-        return ArrayExport::download('verifica_comprobantes.xlsx', ['Tipo comprobante', 'Comprobante', 'Factura proveedor', 'Identificación', 'Sucursal', 'Tercero', 'Valor', 'Moneda', 'Fecha elaboración', 'Documento soporte', 'Estado'], $rows, 'Comprobantes');
+        return \App\Support\Download::array('verifica_comprobantes.xlsx', ['Tipo comprobante', 'Comprobante', 'Factura proveedor', 'Identificación', 'Sucursal', 'Tercero', 'Valor', 'Moneda', 'Fecha elaboración', 'Documento soporte', 'Estado'], $rows, 'Comprobantes');
     }
 
     public function store(Request $request): RedirectResponse

@@ -1,4 +1,5 @@
 <script setup>
+import DownloadMenu from '../../Components/DownloadMenu.vue';
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
@@ -73,6 +74,7 @@ const cf = useForm({
     note_prefix: props.config?.note_prefix ?? 'DNA', note_start: props.config?.note_start ?? 1,
 });
 const saveConfig = () => cf.put('/nomina/documentos/configuracion', { preserveScroll: true });
+const download = (base, f) => (window.location.href = base + (base.includes('?') ? '&' : '?') + 'formato=' + f);
 </script>
 
 <template>
@@ -91,7 +93,7 @@ const saveConfig = () => cf.put('/nomina/documentos/configuracion', { preserveSc
 
         <template v-if="tab === 'dian'">
             <div class="flex flex-wrap items-end gap-4 p-[16px]">
-                <a :href="`/nomina/documentos/excel?${query({ periodo: f.periodo })}`" class="self-center text-[18px] text-muted hover:text-primary" title="Descargar a Excel"><Icon icon="download" /></a>
+                <DownloadMenu class="self-center" button-class="text-[18px] text-muted hover:text-primary" label="" title="Descargar" @download="(x) => download(`/nomina/documentos/excel?${query({ periodo: f.periodo })}`, x)" />
                 <button type="button" class="s-btn s-btn-primary" :disabled="!selected.length || busy" @click="send">Enviar ({{ selected.length }})</button>
                 <span class="text-[13px] font-semibold">Documentos disponibles: <span class="text-[#5a9e2b]">{{ total }}</span></span>
                 <label>
@@ -157,7 +159,7 @@ const saveConfig = () => cf.put('/nomina/documentos/configuracion', { preserveSc
 
         <template v-else-if="tab === 'correo'">
             <div class="flex flex-wrap items-center gap-4 p-[16px]">
-                <a :href="`/nomina/documentos/excel?${query({ tab: 'correo', ...mail.filters })}`" class="text-[18px] text-muted hover:text-primary" title="Descargar a Excel"><Icon icon="download" /></a>
+                <DownloadMenu button-class="text-[18px] text-muted hover:text-primary" label="" title="Descargar" @download="(x) => download(`/nomina/documentos/excel?${query({ tab: 'correo', ...mail.filters })}`, x)" />
                 <button type="button" class="s-btn s-btn-primary" :disabled="!mailCount || mailing || !mail.smtp" :title="mail.smtp ? null : 'Configura el correo de salida (SMTP) para enviar documentos.'" @click="sendMail">Enviar al correo electrónico ({{ mailCount }})</button>
                 <form class="flex" @submit.prevent="mailReload()">
                     <input v-model="mf.q" class="s-input w-[260px] rounded-r-none" placeholder="Buscar por Nombre/identificación" />

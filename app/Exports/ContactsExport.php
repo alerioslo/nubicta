@@ -13,7 +13,7 @@ class ContactsExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMap
 {
     public function __construct(private Builder $query) {}
 
-    public function query()
+    public function query(): \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Eloquent\Relations\Relation
     {
         return $this->query->with('municipality:code,name')->orderBy('name');
     }

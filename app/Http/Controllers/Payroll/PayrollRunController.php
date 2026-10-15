@@ -250,20 +250,24 @@ class PayrollRunController extends Controller
         return Inertia::render('Payroll/Pila', ['tabs' => $this->tabs(), 'report' => $this->reports->pila($month)]);
     }
 
-    public function pilaCsv(Request $request): StreamedResponse
+    public function pilaExport(Request $request): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
         $report = $this->reports->pila($request->input('mes', now()->subMonth()->format('Y-m')));
+        $columns = [['Identificación', 'text'], ['Empleado', 'text'], ['Días', 'int'], ['IBC', 'money'], ['EPS', 'text'], ['Salud', 'money'], ['AFP', 'text'], ['Pensión', 'money'],
+            ['FSP', 'money'], ['ARL', 'text'], ['Clase', 'text'], ['ARL valor', 'money'], ['CCF', 'text'], ['CCF valor', 'money'], ['SENA', 'money'], ['ICBF', 'money'], ['Novedades', 'text']];
+        $rows = array_map(fn ($r) => [$r['identification'], $r['name'], $r['days'], $r['ibc'], $r['eps'], $r['health'], $r['afp'], $r['pension'], $r['fsp'], $r['arl'],
+            $r['arl_class'], $r['arl_value'], $r['ccf'], $r['ccf_value'], $r['sena'], $r['icbf'], $r['novelties']], $report['rows']);
+        $sum = fn ($i) => array_sum(array_column($rows, $i));
+        $totals = [null, null, null, $sum(3), null, $sum(5), null, $sum(7), $sum(8), null, null, $sum(11), null, $sum(13), $sum(14), $sum(15), null];
+        $title = 'Aportes de seguridad social y parafiscales';
+        $filters = ['Mes' => $report['month']];
+        $file = "aportes-{$report['month']}";
 
-        return response()->streamDownload(function () use ($report) {
-            $out = fopen('php://output', 'w');
-            fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['Identificación', 'Empleado', 'Días', 'IBC', 'EPS', 'Salud', 'AFP', 'Pensión', 'FSP', 'ARL', 'Clase', 'ARL valor', 'CCF', 'CCF valor', 'SENA', 'ICBF', 'Novedades'], ';');
-            foreach ($report['rows'] as $r) {
-                fputcsv($out, [$r['identification'], $r['name'], $r['days'], $r['ibc'], $r['eps'], $r['health'], $r['afp'], $r['pension'], $r['fsp'], $r['arl'],
-                    $r['arl_class'], $r['arl_value'], $r['ccf'], $r['ccf_value'], $r['sena'], $r['icbf'], $r['novelties']], ';');
-            }
-            fclose($out);
-        }, "aportes-{$report['month']}.csv", ['Content-Type' => 'text/csv; charset=UTF-8']);
+        if ($request->input('formato') === 'pdf') {
+            return \App\Services\Reports\TablePdf::download("$file.pdf", $title, $columns, $rows, $totals, $filters);
+        }
+
+        return \App\Exports\ArrayExport::download("$file.xlsx", array_column($columns, 0), $rows, 'Aportes', array_column($columns, 1), $title, $filters, $totals);
     }
 
     public function vacations(): Response

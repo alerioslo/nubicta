@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Payroll;
 
-use App\Exports\ArrayExport;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendPayrollDocumentMail;
 use App\Models\Company;
@@ -94,7 +93,7 @@ class ElectronicPayrollController extends Controller
                 $d->contract_number, PayrollMailer::emailFor($d), $d->mail_status,
             ]);
 
-            return ArrayExport::download('envios_correo_nomina.xlsx', ['Fecha documento', 'Periodo', 'Tipo', 'Consecutivo', 'Empleado', '# Identificación', '#Contrato', 'Correo electrónico', 'Envió al empleado'], $rows, 'Envíos por correo');
+            return \App\Support\Download::array('envios_correo_nomina.xlsx', ['Fecha documento', 'Periodo', 'Tipo', 'Consecutivo', 'Empleado', '# Identificación', '#Contrato', 'Correo electrónico', 'Envió al empleado'], $rows, 'Envíos por correo');
         }
         $rows = PayrollDocument::query()->whereIn('type', ElectronicPayroll::TYPES)->with('contact:id,name,identification')
             ->when($request->input('periodo'), fn ($q, $p) => $q->where('period', $p))
@@ -103,7 +102,7 @@ class ElectronicPayrollController extends Controller
                 (float) $d->net, $d->status, $d->cune,
             ]);
 
-        return ArrayExport::download('documentos_nomina_electronica.xlsx', ['Fecha de generación', 'Tipo', 'Consecutivo', 'Empleado', '# Identificación', '#Contrato', 'Neto', 'Estado', 'CUNE'], $rows, 'Envío a la DIAN');
+        return \App\Support\Download::array('documentos_nomina_electronica.xlsx', ['Fecha de generación', 'Tipo', 'Consecutivo', 'Empleado', '# Identificación', '#Contrato', 'Neto', 'Estado', 'CUNE'], $rows, 'Envío a la DIAN');
     }
 
     /** "Enviar al correo electronico": uno se envia de inmediato; varios (o todos los filtrados) se encolan. */

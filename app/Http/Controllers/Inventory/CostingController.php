@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Inventory;
 
-use App\Exports\ArrayExport;
 use App\Http\Controllers\Controller;
 use App\Services\Inventory\MonthlyCosting;
 use Illuminate\Http\RedirectResponse;
@@ -28,7 +27,7 @@ class CostingController extends Controller
     {
         abort_unless($month >= 1 && $month <= 12, 404);
 
-        return ArrayExport::download(sprintf('costeo_%d_%02d.xlsx', $year, $month), [
+        return \App\Support\Download::array(sprintf('costeo_%d_%02d.xlsx', $year, $month), [
             'Código', 'Producto', 'Saldo inicial cantidad', 'Saldo inicial costo', 'Entradas cantidad', 'Entradas costo',
             'Salidas cantidad', 'Salidas costo', 'Saldo final cantidad', 'Saldo final costo', 'Costo promedio',
         ], $costing->detail($year, $month), sprintf('Costeo %02d-%d', $month, $year));

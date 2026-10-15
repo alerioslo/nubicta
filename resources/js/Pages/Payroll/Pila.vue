@@ -2,12 +2,14 @@
 import { ref } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
+import DownloadMenu from '../../Components/DownloadMenu.vue';
 
 /* Resumen de aportes del mes para diligenciar la planilla PILA en el operador. */
 const props = defineProps({ tabs: Array, report: Object });
 const month = ref(props.report.month);
 const money = (v) => Number(v ?? 0).toLocaleString('es-CO', { maximumFractionDigits: 0 });
 const consult = () => router.get('/nomina/pila', { mes: month.value });
+const download = (f) => (window.location.href = `/nomina/pila/descargar?mes=${props.report.month}&formato=${f}`);
 </script>
 
 <template>
@@ -18,7 +20,7 @@ const consult = () => router.get('/nomina/pila', { mes: month.value });
     <section class="s-card mx-[10px] mt-[14px] flex flex-wrap items-end gap-3 p-4 text-[12px]">
         <label class="flex flex-col gap-1">Periodo de cotización <input v-model="month" type="month" class="s-input h-[32px]" /></label>
         <button type="button" class="s-btn s-btn-primary" @click="consult">Consultar</button>
-        <a :href="`/nomina/pila/csv?mes=${report.month}`" class="s-btn s-btn-outline"><Icon icon="file-excel" /> Descargar CSV</a>
+        <DownloadMenu @download="download" />
         <p class="w-full text-[11.5px] text-muted">Se toma de las nóminas del ERP contabilizadas en el mes. Con estos valores diligencias la planilla en el operador PILA (Aportes en Línea, SOI, Mi Planilla...).</p>
     </section>
 

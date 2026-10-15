@@ -88,6 +88,11 @@ class RadianEventController extends Controller
 
             return back()->with('error', $event->message);
         }
+        if (($invoice['payment_means'] ?? '1') !== '2') {
+            $event->update(['reception_status' => 'Rechazado', 'message' => self::NOT_CREDIT]);
+
+            return back()->with('error', self::NOT_CREDIT);
+        }
 
         return $this->send($event, '030', 'reception_status', 'Se confirmó la recepción de la factura.');
     }

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Accounting;
 
-use App\Exports\ArrayExport;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\DashboardController;
 use App\Models\Account;
@@ -105,7 +104,7 @@ class BudgetController extends Controller
         [$columns, $totals, $rows] = [$pick($columns), $pick($totals), array_map($pick, $rows)];
 
         if ($request->boolean('excel')) {
-            return ArrayExport::download("presupuesto_{$budget->year}.xlsx", $columns, [...$rows, $totals], $budget->name);
+            return \App\Support\Download::array("presupuesto_{$budget->year}.xlsx", $columns, [...$rows, $totals], $budget->name);
         }
 
         return Inertia::render('SimpleForm', [

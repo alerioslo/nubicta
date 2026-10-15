@@ -12,7 +12,6 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AccountController extends Controller
@@ -104,7 +103,7 @@ class AccountController extends Controller
 
     public function export(): BinaryFileResponse
     {
-        return Excel::download(new AccountsExport, 'Cuentas contables.xlsx');
+        return \App\Support\Download::export(new AccountsExport, 'Cuentas contables.xlsx', 'Listado de cuentas contables');
     }
 
     private function validated(Request $request, ?Account $account = null): array

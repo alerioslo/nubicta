@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Banks;
 
-use App\Exports\ArrayExport;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\DashboardController;
 use App\Models\BankAccount;
@@ -31,7 +30,7 @@ class BankController extends Controller
     {
         $rows = $this->balances();
 
-        return ArrayExport::download('saldos-cuentas-bancarias-cajas.xlsx', ['Código cuenta contable', 'Cuenta bancaria / caja', 'Saldo'],
+        return \App\Support\Download::array('saldos-cuentas-bancarias-cajas.xlsx', ['Código cuenta contable', 'Cuenta bancaria / caja', 'Saldo'],
             $rows->map(fn ($r) => [$r['code'], $r['name'], $r['balance']])->push(['', 'Total general', $rows->sum('balance')]), 'Saldos');
     }
 

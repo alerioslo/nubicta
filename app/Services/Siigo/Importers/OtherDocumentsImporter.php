@@ -84,7 +84,7 @@ class OtherDocumentsImporter extends BaseImporter
         $doc = $this->upsert(PurchaseDocument::class, 'purchase_document', $r, function ($r) {
             $subtotal = $discount = $tax = $withholding = 0;
             foreach ($r['items'] ?? [] as $i) {
-                $d = (float) ($i['discount'] ?? 0);
+                $d = $this->discountValue($i, $r['discount_type'] ?? null);
                 $subtotal += round((float) $i['quantity'] * (float) $i['price'] - $d, 2);
                 $discount += $d;
                 foreach ($i['taxes'] ?? [] as $t) {
@@ -125,7 +125,7 @@ class OtherDocumentsImporter extends BaseImporter
             $type = $i['type'] ?? 'Product';
             $code = trim((string) ($i['code'] ?? ''));
             $taxes = $i['taxes'] ?? [];
-            $d = (float) ($i['discount'] ?? 0);
+            $d = $this->discountValue($i, $r['discount_type'] ?? null);
             $taxValue = collect($taxes)->reject(fn ($t) => in_array($t['type'] ?? '', self::WITHHOLDING_TYPES, true))->sum('value');
             $item = PurchaseDocumentItem::create([
                 'purchase_document_id' => $doc->id,

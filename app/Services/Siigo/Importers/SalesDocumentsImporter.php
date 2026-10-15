@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
- * Facturas (v1/invoices) y notas credito (v1/credit-notes) como documentos externos.
+ * Facturas (v1/invoices), notas credito (v1/credit-notes) y cotizaciones (v1/quotations) como documentos externos.
  * No mueven el kardex: el saldo de inventario ya viene de Siigo en la importacion de productos.
  */
 class SalesDocumentsImporter extends BaseImporter
@@ -40,7 +40,7 @@ class SalesDocumentsImporter extends BaseImporter
             'created_end' => isset($params['hasta']) ? date('Y-m-d', strtotime($params['hasta'].' +1 day')) : null, // Siigo lo toma como 00:00
         ]);
 
-        foreach (['v1/invoices' => 'FV', 'v1/credit-notes' => 'NC'] as $endpoint => $type) {
+        foreach (['v1/invoices' => 'FV', 'v1/credit-notes' => 'NC', 'v1/quotations' => 'CT'] as $endpoint => $type) {
             $this->log("$endpoint...");
             $n = 0;
             foreach ($this->siigo->paginate($endpoint, $query) as $r) {
@@ -76,7 +76,7 @@ class SalesDocumentsImporter extends BaseImporter
         $subtotal = 0;
         $discount = 0;
         foreach ($r['items'] ?? [] as $i) {
-            $lineDiscount = (float) ($i['discount'] ?? 0);
+            $lineDiscount = $this->discountValue($i);
             $subtotal += round((float) $i['quantity'] * (float) $i['price'] - $lineDiscount, 2);
             $discount += $lineDiscount;
             foreach ($i['taxes'] ?? [] as $t) {
@@ -127,7 +127,7 @@ class SalesDocumentsImporter extends BaseImporter
         SalesDocumentItem::where('sales_document_id', $doc->id)->delete();
         foreach (array_values($items) as $pos => $i) {
             $taxes = $i['taxes'] ?? [];
-            $lineDiscount = (float) ($i['discount'] ?? 0);
+            $lineDiscount = $this->discountValue($i);
             $taxValue = 0;
             $mainPct = null;
             foreach ($taxes as $t) {

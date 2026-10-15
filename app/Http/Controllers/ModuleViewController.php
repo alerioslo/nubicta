@@ -149,7 +149,7 @@ class ModuleViewController extends Controller
         $rows = $this->{$view['source']}($request);
         $rows = collect(is_array($rows) ? $rows : $rows->items())->map(fn ($r) => collect($r)->map(fn ($c) => is_array($c) ? ($c['text'] ?? '') : $c)->all());
 
-        return \App\Exports\ArrayExport::download(str_replace('/', '_', $key).'.xlsx', $view['columns'], $rows->all(), $view['heading'] ?? $view['title']);
+        return \App\Support\Download::array(str_replace('/', '_', $key).'.xlsx', $view['columns'], $rows->all(), $view['heading'] ?? $view['title']);
     }
 
     private function money(float $v): string
@@ -198,7 +198,7 @@ class ModuleViewController extends Controller
                 ['select' => $d->id], SalesDocument::TYPES[$d->type] ?? $d->type, ['text' => $d->name, 'href' => "/documentos/ventas/{$d->id}"], $d->date->format('d/m/Y'),
                 $d->contact?->identification, $d->contact?->branch_office ?: '-', $d->contact?->name, $d->contact?->email ?? '-',
                 ['text' => $this->money((float) $d->total), 'align' => 'right'],
-                ['text' => $d->mail_status === 'sent' ? 'Enviado' : 'Sin enviar', 'badge' => $d->mail_status === 'sent' ? 'ok' : 'warn'],
+                $d->mailBadge(),
                 ['text' => ['Accepted' => 'Aprobada', 'Rejected' => 'Rechazada'][$d->dian_status] ?? ($d->dian_status ? 'Pendiente' : 'Sin enviar'),
                     'badge' => ['Accepted' => 'ok', 'Rejected' => 'danger'][$d->dian_status] ?? 'off'],
             ]);
@@ -219,7 +219,7 @@ class ModuleViewController extends Controller
                 $type === 'RM' ? 'Remisión' : null,
                 ['text' => $d->name.($d->status === 'annulled' ? ' (Anulada)' : ''), 'href' => "/documentos/ventas/{$d->id}"],
                 $d->date->format('d/m/Y'), $d->contact?->identification, $d->contact?->branch_office ?: '-', ['text' => $d->contact?->name, 'truncate' => true],
-                $type === 'RM' ? ['text' => $d->mail_status === 'sent' ? 'Enviado' : 'Sin enviar', 'badge' => $d->mail_status === 'sent' ? 'ok' : 'warn'] : null,
+                $type === 'RM' ? $d->mailBadge() : null,
                 ['text' => $this->money((float) $d->total), 'align' => 'right'], $d->currency ?? 'COP',
             ], fn ($v) => $v !== null)));
     }

@@ -16,7 +16,10 @@ use Illuminate\Support\Str;
 /** Importa tablas de configuracion: impuestos, tipos de documento, formas de pago, etc. */
 class ParametersImporter extends BaseImporter
 {
-    private const DOCUMENT_TYPES = ['FV', 'NC', 'RC', 'CC', 'FC'];
+    /** Tipos de Siigo; C (cotizacion) y DF (debito facturacion) se guardan como CT y ND. */
+    private const DOCUMENT_TYPES = ['FV', 'NC', 'RC', 'CC', 'FC', 'C', 'DF'];
+
+    private const LOCAL_TYPES = ['C' => 'CT', 'DF' => 'ND'];
 
     private const PAYMENT_DOC_TYPES = ['FV', 'FC', 'RC'];
 
@@ -116,7 +119,7 @@ class ParametersImporter extends BaseImporter
             foreach ($this->siigo->get('v1/document-types', ['type' => $type]) as $r) {
                 $this->upsert(DocumentType::class, 'document_type', $r, fn ($r) => [
                     'siigo_id' => (string) $r['id'],
-                    'type' => $r['type'],
+                    'type' => self::LOCAL_TYPES[$r['type']] ?? $r['type'],
                     'code' => (string) $r['code'],
                     'name' => $r['name'],
                     'description' => $r['description'] ?? null,

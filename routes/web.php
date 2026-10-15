@@ -317,7 +317,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/crear', [$p, 'create'])->middleware('can:nomina.crear');
         Route::post('/', [$p, 'store'])->middleware('can:nomina.crear');
         Route::get('/pila', [$p, 'pila']);
-        Route::get('/pila/csv', [$p, 'pilaCsv']);
+        Route::get('/pila/descargar', [$p, 'pilaExport']);
+        Route::get('/pila/csv', [$p, 'pilaExport']);
         Route::get('/vacaciones', [$p, 'vacations']);
         Route::get('/certificado-ingresos', [$p, 'certificate']);
         Route::get('/empleados/{employee}/editar', [$p, 'editEmployee'])->whereNumber('employee')->middleware('can:nomina.editar');

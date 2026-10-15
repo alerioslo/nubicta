@@ -135,6 +135,22 @@ abstract class BaseImporter
         }
     }
 
+    /**
+     * Valor del descuento de un item: la API lo entrega como {percentage, value} o como numero.
+     * En compras el numero es un porcentaje cuando el documento trae discount_type = Percentage.
+     */
+    protected function discountValue(array $item, ?string $type = null): float
+    {
+        $d = $item['discount'] ?? 0;
+        if (is_array($d)) {
+            return (float) ($d['value'] ?? 0);
+        }
+
+        return $type === 'Percentage'
+            ? round((float) $item['quantity'] * (float) $item['price'] * (float) $d / 100, 2)
+            : (float) $d;
+    }
+
     /** Id local de un registro ya importado. */
     protected function localId(string $entity, string|int|null $siigoId): ?int
     {

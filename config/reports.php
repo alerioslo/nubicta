@@ -5,7 +5,7 @@ return [
     ['section' => 'Favoritos', 'groups' => [
         ['name' => 'Favoritos', 'reports' => [
             ['name' => 'Compras por proveedor', 'url' => '/reportes/compras-proveedor'],
-            ['name' => 'Movimiento facturas de compra', 'url' => '/compras'],
+            ['name' => 'Movimiento facturas de compra', 'url' => '/reportes/movimiento-facturas-venta?clase=FC'],
             ['name' => 'Movimiento auxiliar por cuenta contable', 'url' => '/contabilidad/libro-auxiliar'],
             ['name' => 'Balance de prueba general', 'url' => '/contabilidad/balance-prueba'],
         ]],
@@ -17,9 +17,9 @@ return [
     ]],
     ['section' => 'Ventas', 'groups' => [
         ['name' => 'Ventas', 'reports' => [
-            ['name' => 'Ventas por cliente', 'url' => '/movimientos?vista=detalle'],
-            ['name' => 'Ventas por producto', 'url' => '/movimientos?vista=producto'],
-            ['name' => 'Ventas por vendedor', 'url' => '/movimientos?vista=vendedor'],
+            ['name' => 'Ventas por cliente', 'url' => '/reportes/ventas-cliente'],
+            ['name' => 'Ventas por producto', 'url' => '/reportes/ventas-producto'],
+            ['name' => 'Ventas por vendedor', 'url' => '/reportes/ventas-vendedor'],
             ['name' => 'Ventas por cliente por producto', 'url' => '/reportes/ventas-cliente-producto'],
             ['name' => 'Ventas por vendedor por producto', 'url' => '/reportes/ventas-vendedor-producto'],
             ['name' => 'Ventas por centro de costo', 'url' => '/reportes/ventas-centro-costo'],
@@ -42,8 +42,8 @@ return [
             ['name' => 'Recibos de caja detallado por facturas', 'url' => '/reportes/recibos-caja-facturas'],
         ]],
         ['name' => 'Movimiento de documentos de ventas', 'reports' => [
-            ['name' => 'Movimiento facturas de venta / Ingresos', 'url' => '/movimientos'],
-            ['name' => 'Movimiento notas crédito y débito (ventas)', 'url' => '/ventas?tipo=NC'],
+            ['name' => 'Movimiento facturas de venta / Ingresos', 'url' => '/reportes/movimiento-facturas-venta'],
+            ['name' => 'Movimiento notas crédito y débito (ventas)', 'url' => '/reportes/movimiento-notas-venta'],
         ]],
     ]],
     ['section' => 'Clientes y proveedores', 'groups' => [
@@ -51,7 +51,7 @@ return [
             ['name' => 'Cuentas por cobrar/pagar general por cliente/proveedor', 'url' => '/ventas/clientes'],
             ['name' => 'Cuentas por cobrar/pagar detallada por documento', 'url' => '/reportes/cartera-detallada'],
             ['name' => 'Movimiento de cuentas por cobrar/pagar por documento', 'url' => '/reportes/cartera-movimiento'],
-            ['name' => 'Movimiento de recibos de caja/pago', 'url' => '/ventas/recaudos'],
+            ['name' => 'Movimiento de recibos de caja/pago', 'url' => '/reportes/movimiento-recibos'],
             ['name' => 'Cuentas por cobrar con corte a una fecha', 'url' => '/reportes/cxc-corte'],
         ]],
         ['name' => 'Clientes', 'reports' => [
@@ -67,7 +67,7 @@ return [
             ['name' => 'Cruce orden de compra vs factura de compra', 'url' => '/reportes/cruce-orden-compra'],
         ]],
         ['name' => 'Movimiento de documentos compras', 'reports' => [
-            ['name' => 'Movimiento facturas de compra', 'url' => '/compras'],
+            ['name' => 'Movimiento facturas de compra', 'url' => '/reportes/movimiento-facturas-venta?clase=FC'],
             ['name' => 'Movimiento notas débito', 'url' => '/reportes/movimiento-notas-debito'],
         ]],
     ]],
@@ -85,7 +85,7 @@ return [
             ['name' => 'Saldos de inventario', 'url' => '/reportes/saldos-inventario'],
             ['name' => 'Movimiento de productos / Kárdex', 'url' => '/productos'],
             ['name' => 'Movimiento de productos', 'url' => '/reportes/movimiento-productos'],
-            ['name' => 'Listado de productos / servicios', 'url' => '/productos'],
+            ['name' => 'Listado de productos / servicios', 'url' => '/reportes/listado-productos'],
         ]],
         ['name' => 'Remisiones', 'reports' => [
             ['name' => 'Informe de remisiones cruzadas', 'url' => '/reportes/remisiones-cruzadas'],
@@ -93,7 +93,10 @@ return [
     ]],
     ['section' => 'Nómina', 'groups' => [
         ['name' => 'Reportes de nómina', 'reports' => [
+            ['name' => 'Prima de Servicios', 'url' => '/reportes/prima-servicios'],
+            ['name' => 'Provisiones', 'url' => '/reportes/provisiones'],
             ['name' => 'Acumulados', 'url' => '/reportes/acumulados'],
+            ['name' => 'Seguridad Social', 'url' => '/reportes/seguridad-social'],
         ]],
     ]],
     ['section' => 'Contables', 'groups' => [
@@ -156,11 +159,11 @@ return [
             ['name' => 'Cuentas por cobrar general por cliente', 'url' => '/ventas/clientes'],
             ['name' => 'Cuentas por cobrar detallada por documento', 'url' => '/reportes/cartera-detallada?modulo=ventas'],
             ['name' => 'Movimiento de cuentas por cobrar por documento', 'url' => '/reportes/cartera-movimiento?modulo=ventas'],
-            ['name' => 'Movimiento de recibos de caja', 'url' => '/ventas/recaudos'],
+            ['name' => 'Movimiento de recibos de caja', 'url' => '/reportes/movimiento-recibos?clase=RC'],
             ['name' => 'Cuentas por pagar general por proveedor', 'url' => '/compras/proveedores'],
             ['name' => 'Cuentas por pagar detallada por documento', 'url' => '/reportes/cartera-detallada?modulo=compras'],
             ['name' => 'Movimiento de cuentas por pagar por documento', 'url' => '/reportes/cartera-movimiento?modulo=compras'],
-            ['name' => 'Movimiento de recibos de pago / egreso', 'url' => '/compras/pagos'],
+            ['name' => 'Movimiento de recibos de pago / egreso', 'url' => '/reportes/movimiento-recibos?clase=RP'],
         ]],
         ['name' => 'Contables', 'reports' => [
             ['name' => 'Listado de cuentas contables', 'url' => '/contabilidad/cuentas'],

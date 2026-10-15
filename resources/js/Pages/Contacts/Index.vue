@@ -1,4 +1,5 @@
 <script setup>
+import DownloadMenu from '../../Components/DownloadMenu.vue';
 import { computed, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
@@ -35,6 +36,7 @@ const roleTabs = [
     { key: 'empleado', label: 'Empleados' },
     { key: 'otro', label: 'Otros' },
 ];
+const download = (base, f) => (window.location.href = base + (base.includes('?') ? '&' : '?') + 'formato=' + f);
 </script>
 
 <template>
@@ -60,7 +62,7 @@ const roleTabs = [
                 </button>
             </div>
             <div class="ml-auto flex gap-2">
-                <a :href="exportUrl" class="s-btn s-btn-outline"><Icon icon="file-excel" /> Exportar</a>
+                <DownloadMenu icon="file-excel" label="Exportar" @download="(f) => download(exportUrl, f)" />
                 <Link :href="`/terceros/crear${tipo ? '?tipo=' + tipo : ''}`" class="s-btn s-btn-primary w-[150px]">{{ createLabel }}</Link>
             </div>
         </div>

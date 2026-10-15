@@ -2,31 +2,46 @@
 
 namespace App\Http\Controllers\Reports;
 
+use App\Exports\ArrayExport;
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\Product;
 use App\Models\ProductLine;
 use App\Models\Seller;
 use App\Reports\ReportRegistry;
+use App\Services\Reports\TablePdf;
 use App\Support\CurrentCompany;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
-/** Pantalla unica para los informes de ReportRegistry: filtros, tabla, totales y descarga a Excel. */
+/** Pantalla unica para los informes de ReportRegistry: filtros, tabla, totales y descarga a Excel o PDF. */
 class GenericReportController extends Controller
 {
-    public function show(Request $request, string $slug): Response|StreamedResponse
+    /** Etiquetas de los filtros, como las muestra Siigo. */
+    public const FILTER_LABELS = [
+        'range' => 'Fecha de elaboración', 'cutoff' => 'Fecha de corte', 'year' => 'Año', 'contact' => 'Cliente', 'product' => 'Producto',
+        'seller' => 'Vendedor', 'line' => 'Línea de producto', 'group' => 'Grupo inventario', 'cost_center' => 'Centro de costo',
+        'module' => 'Tipo de cartera', 'level' => 'Nivel de cuenta', 'account' => 'Cuenta contable', 'doctype' => 'Tipo de comprobante',
+        'dian' => 'Estado DIAN', 'q' => 'Buscar', 'nc' => 'Incluye nota crédito', 'pos' => 'Solo ventas pos', 'payment' => 'Forma de pago',
+        'creator' => 'Creado por', 'currency' => 'Moneda', 'status' => 'Estado', 'warehouse' => 'Bodega', 'kind' => 'Tipo transacción',
+    ];
+
+    public function show(Request $request, string $slug)
     {
         $def = ReportRegistry::all()[$slug] ?? abort(404);
         $f = $this->filters($request);
+        foreach ($def['defaults'] ?? [] as $k => $v) {
+            $f[$k] ??= $v;
+        }
+        $format = $request->input('formato') ?? ($request->boolean('export') ? 'xlsx' : null);
 
         if (isset($def['rows'])) {
             $rows = collect(($def['rows'])($f));
-            if ($request->boolean('export')) {
-                return $this->export($slug, $def, $rows);
+            if ($format) {
+                return $this->export($slug, $def, $f, $rows, null, $format);
             }
 
             return $this->render($slug, $def, $f, ['data' => $rows->values()], []);
@@ -35,26 +50,26 @@ class GenericReportController extends Controller
         $query = ($def['query'])($f);
         $map = $def['map'] ?? null;
 
-        if ($request->boolean('export')) {
-            $rows = $query->limit(200000)->get();
-
-            return $this->export($slug, $def, $map ? $rows->map($map) : $rows);
-        }
-
         $totals = [];
         if ($def['totals']) {
             $sums = implode(', ', array_map(fn ($k) => "sum(`$k`) `$k`", $def['totals']));
             $totals = (array) DB::query()->fromSub((clone $query)->reorder(), 't')->selectRaw($sums)->first();
             if ($map) {
-                $totals = $map((object) [...$totals, 'entradas' => $totals['entradas'] ?? 0, 'salidas' => $totals['salidas'] ?? 0]);
+                $totals = (array) $map((object) [...$totals, 'entradas' => $totals['entradas'] ?? 0, 'salidas' => $totals['salidas'] ?? 0]);
             }
+        }
+
+        if ($format) {
+            $rows = $query->limit(200000)->get();
+
+            return $this->export($slug, $def, $f, $map ? $rows->map($map) : $rows, $totals ?: null, $format);
         }
 
         if (($def['paginate'] ?? true) === false) {
             $rows = $query->get();
             $page = ['data' => $map ? $rows->map($map) : $rows];
         } else {
-            $page = $query->paginate($request->integer('per_page', 50))->withQueryString();
+            $page = $query->paginate(min(max($request->integer('per_page', 50), 10), 500))->withQueryString();
             if ($map) {
                 $page->setCollection($page->getCollection()->map($map));
             }
@@ -65,9 +80,15 @@ class GenericReportController extends Controller
 
     private function render(string $slug, array $def, array $f, $rows, array $totals): Response
     {
+        $uses = fn (string $k) => in_array($k, $def['filters'], true);
+
         return Inertia::render('Reports/Generic', [
             'slug' => $slug,
-            'report' => ['title' => $def['title'], 'note' => $def['note'] ?? null, 'filters' => $def['filters'], 'columns' => $def['columns'], 'totals' => $def['totals']],
+            'report' => [
+                'title' => $def['title'], 'note' => $def['note'] ?? null, 'filters' => $def['filters'], 'primary' => $def['primary'] ?? [],
+                'columns' => $def['columns'], 'totals' => $def['totals'], 'links' => $def['links'] ?? [],
+                'labels' => [...self::FILTER_LABELS, ...($def['labels'] ?? [])], 'defaults' => $def['defaults'] ?? [],
+            ],
             'rows' => $rows,
             'totals' => $totals ?: null,
             'filters' => [
@@ -76,10 +97,17 @@ class GenericReportController extends Controller
                 'product_label' => $f['product'] ? Product::find($f['product'])?->only('code', 'name') : null,
             ],
             'options' => [
-                'sellers' => in_array('seller', $def['filters'], true) ? Seller::orderBy('name')->get(['id', 'name']) : [],
-                'lines' => in_array('line', $def['filters'], true) ? ProductLine::orderByRaw('CAST(code AS UNSIGNED)')->get(['id', 'code', 'name']) : [],
-                'doctypes' => in_array('doctype', $def['filters'], true)
+                'sellers' => $uses('seller') ? Seller::orderBy('name')->get(['id', 'name']) : [],
+                'lines' => $uses('line') ? ProductLine::orderByRaw('CAST(code AS UNSIGNED)')->get(['id', 'code', 'name']) : [],
+                'groups' => $uses('group') ? DB::table('account_groups')->where('company_id', $f['cid'])->orderBy('name')->get(['id', 'name']) : [],
+                'cost_centers' => $uses('cost_center') ? DB::table('cost_centers')->where('company_id', $f['cid'])->orderBy('code')->get(['id', 'code', 'name']) : [],
+                'payments' => $uses('payment') ? DB::table('payment_methods')->where('company_id', $f['cid'])->orderBy('name')->get(['id', 'name']) : [],
+                'creators' => $uses('creator') ? DB::table('users')->where('company_id', $f['cid'])->orderBy('name')->get(['id', 'name']) : [],
+                'warehouses' => $uses('warehouse') ? DB::table('warehouses')->where('company_id', $f['cid'])->orderBy('name')->get(['id', 'name']) : [],
+                'doctypes' => $uses('doctype')
                     ? DB::table('ledger_lines')->where('company_id', $f['cid'])->distinct()->orderBy('document_type')->pluck('document_type') : [],
+                'kinds' => $def['kinds'] ?? [],
+                'statuses' => $def['statuses'] ?? [],
                 'years' => range((int) now()->year, 2021),
             ],
         ]);
@@ -88,44 +116,83 @@ class GenericReportController extends Controller
     private function filters(Request $request): array
     {
         $date = fn (string $k, string $default) => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $request->input($k)) ? $request->input($k) : $default;
+        $id = fn (string $k) => $request->integer($k) ?: null;
 
         return [
             'cid' => CurrentCompany::id(),
             'from' => $date('desde', now()->startOfMonth()->toDateString()),
-            'to' => $date('hasta', now()->toDateString()),
+            'to' => $date('hasta', now()->endOfMonth()->toDateString()),
             'cutoff' => $date('corte', now()->toDateString()),
             'year' => min(max($request->integer('anio', (int) now()->year), 2000), 2100),
-            'contact' => $request->integer('tercero') ?: null,
-            'product' => $request->integer('producto') ?: null,
-            'seller' => $request->integer('vendedor') ?: null,
-            'line' => $request->integer('linea') ?: null,
+            'contact' => $id('tercero'),
+            'product' => $id('producto'),
+            'seller' => $id('vendedor'),
+            'line' => $id('linea'),
+            'group' => $id('grupo'),
+            'cost_center' => $id('centro'),
+            'payment' => $id('forma_pago'),
+            'creator' => $id('creador'),
+            'warehouse' => $id('bodega'),
             'module' => $request->input('modulo') === 'compras' ? 'compras' : 'ventas',
             'level' => min(max($request->integer('nivel', 3), 1), 5),
             'account' => preg_replace('/\D/', '', (string) $request->input('cuenta')) ?: null,
             'doctype' => $request->input('tipo') ?: null,
+            'kind' => $request->input('clase') ?: null,
+            'status' => $request->input('estado') ?: null,
             'dian' => in_array($request->input('dian'), ['Accepted', 'Rejected', 'Pending'], true) ? $request->input('dian') : null,
             'q' => trim((string) $request->input('q')) ?: null,
+            'nc' => $request->input('nc', '1') !== '0',
+            'pos' => $request->input('pos') === '1',
+            'preset' => $request->input('periodo') ?: null,
         ];
     }
 
-    private function export(string $slug, array $def, $rows): StreamedResponse
+    private function export(string $slug, array $def, array $f, $rows, ?array $totals, string $format)
     {
         DB::table('report_exports')->insert([
             'company_id' => CurrentCompany::id(), 'user_id' => auth()->id(), 'slug' => $slug, 'title' => $def['title'],
             'rows_count' => $rows->count(), 'created_at' => now(),
         ]);
         $cols = $def['columns'];
+        $keys = array_keys($cols);
+        $data = $rows->map(fn ($r) => array_map(fn ($k) => ((array) $r)[$k] ?? null, $keys));
+        $foot = $totals ? array_map(fn ($k, $i) => in_array($k, $def['totals'], true) ? ($totals[$k] ?? null) : ($i === 0 ? 'Total' : null), $keys, array_keys($keys)) : null;
+        $filters = $this->describe($def, $f);
+        $file = $def['title'].' '.now()->format('Y-m-d');
 
-        return response()->streamDownload(function () use ($rows, $cols) {
-            $out = fopen('php://output', 'w');
-            fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, array_map(fn ($c) => $c[0], $cols), ';');
-            foreach ($rows as $r) {
-                $r = (array) $r;
-                fputcsv($out, array_map(fn ($k, $c) => in_array($c[1], ['money', 'qty', 'pct'], true) && $r[$k] !== null
-                    ? number_format((float) $r[$k], 2, ',', '') : ($r[$k] ?? ''), array_keys($cols), $cols), ';');
+        if ($format === 'pdf') {
+            return TablePdf::download("$file.pdf", $def['title'], array_values($cols), $data, $foot, $filters);
+        }
+
+        return ArrayExport::download("$file.xlsx", array_column($cols, 0), $data, $def['title'], array_column($cols, 1), $def['title'], $filters, $foot);
+    }
+
+    /** Filtros aplicados en texto, para el encabezado del Excel y del PDF. */
+    private function describe(array $def, array $f): array
+    {
+        $labels = [...self::FILTER_LABELS, ...($def['labels'] ?? [])];
+        $d = fn ($v) => Carbon::parse($v)->format('d/m/Y');
+        $out = [];
+        foreach ($def['filters'] as $k) {
+            $v = match ($k) {
+                'range' => $d($f['from']).' a '.$d($f['to']),
+                'cutoff' => $d($f['cutoff']),
+                'year' => (string) $f['year'],
+                'contact' => $f['contact'] ? Contact::find($f['contact'])?->name : null,
+                'product' => $f['product'] ? Product::find($f['product'])?->name : null,
+                'seller' => $f['seller'] ? Seller::find($f['seller'])?->name : null,
+                'nc' => $f['nc'] ? 'Sí' : 'No',
+                'pos' => $f['pos'] ? 'Sí' : 'No',
+                'module' => $f['module'] === 'compras' ? 'Cuentas por pagar' : 'Cuentas por cobrar',
+                'account' => $f['account'],
+                'q' => $f['q'],
+                default => null,
+            };
+            if ($v !== null && $v !== '') {
+                $out[$labels[$k] ?? $k] = $v;
             }
-            fclose($out);
-        }, $slug.'-'.now()->format('Ymd').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }
+
+        return $out;
     }
 }

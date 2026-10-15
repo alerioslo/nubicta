@@ -1,4 +1,5 @@
 <script setup>
+import DownloadMenu from '../Components/DownloadMenu.vue';
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PageHeader from '../Components/PageHeader.vue';
@@ -64,6 +65,10 @@ function upload(b, file) {
 }
 const year = computed(() => f.anio);
 const fill = (s) => String(s ?? '').replace(':anio', year.value);
+function goDownload(b, formato) {
+    const url = downloadHref(b);
+    window.location.href = `${url}${url.includes('?') ? '&' : '?'}formato=${formato}`;
+}
 function downloadHref(b) {
     const qs = new URLSearchParams(Object.fromEntries(Object.entries(f).filter(([, v]) => v))).toString();
     const url = fill(b.download);
@@ -136,10 +141,8 @@ function downloadHref(b) {
                         <Icon v-if="b.icon" :icon="b.icon" /> {{ b.label }}
                         <input type="file" class="hidden" :accept="b.accept" :disabled="busy" @change="upload(b, $event.target.files[0]); $event.target.value = ''" />
                     </label>
-                    <a v-else-if="b.download" :href="downloadHref(b)"
-                        class="s-btn" :class="b.style === 'outline' ? 's-btn-outline' : 's-btn-primary'">
-                        <Icon v-if="b.icon" :icon="b.icon" /> {{ b.label }}
-                    </a>
+                    <DownloadMenu v-else-if="b.download" :label="b.label" :icon="b.icon || 'download'" :button-class="`s-btn ${b.style === 'outline' ? 's-btn-outline' : 's-btn-primary'}`"
+                        @download="(x) => goDownload(b, x)" />
                     <button v-else type="button" class="s-btn disabled:opacity-60" :class="b.style === 'outline' ? 's-btn-outline' : 's-btn-primary'" :disabled="busy" @click="runButton(b)">
                         <Icon v-if="b.icon" :icon="b.icon" /> {{ b.label }}
                     </button>

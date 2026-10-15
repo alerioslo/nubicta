@@ -11,7 +11,7 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 /** Mismo formato de columnas que el Excel "Cuentas contables" de Siigo. */
 class AccountsExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapping
 {
-    public function query()
+    public function query(): \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Eloquent\Relations\Relation
     {
         return Account::query()->orderBy('code');
     }

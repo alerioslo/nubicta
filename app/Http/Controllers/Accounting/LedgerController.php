@@ -10,7 +10,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Services\Reports\TablePdf;
+use App\Services\Reports\XlsxStream;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /** Reportes del libro contable: auxiliar, balance de prueba, libro mayor, libro diario y estados financieros. */
 class LedgerController extends Controller
@@ -54,7 +56,7 @@ class LedgerController extends Controller
         ];
     }
 
-    public function auxiliary(Request $request): Response|StreamedResponse
+    public function auxiliary(Request $request): Response|BinaryFileResponse
     {
         [$from, $to] = $this->range($request);
         $query = $this->filtered($request)->whereBetween('date', [$from, $to])
@@ -68,9 +70,9 @@ class LedgerController extends Controller
             ->mapWithKeys(fn ($r) => ["$r->account_code|$r->identification|$r->branch" => (float) $r->bal])->all() : [];
 
         $names = $this->names();
-        $map = function ($lines) use ($openings, $names) {
-            $open = $openings($lines->map(fn ($l) => [$l->account_code, $l->identification])->unique()->values()->all());
-            $seen = [];
+        $seen = [];
+        $map = function ($lines, ?array $open = null) use ($openings, $names, &$seen) {
+            $open ??= $openings($lines->map(fn ($l) => [$l->account_code, $l->identification])->unique()->values()->all());
 
             return $lines->map(function ($l) use ($open, $names, &$seen) {
                 $key = "$l->account_code|$l->identification|$l->branch";
@@ -87,11 +89,24 @@ class LedgerController extends Controller
             });
         };
 
-        if ($request->boolean('export')) {
-            return $this->csv('libro_auxiliar.csv', ['Identificación', 'Sucursal', 'Nombre tercero', 'Código cuenta contable', 'Cuenta contable', 'Comprobante', 'Fecha elaboración', 'Saldo inicial', 'Débito', 'Crédito', 'Nuevo saldo'],
-                function ($out) use ($query, $map) {
-                    $query->chunk(5000, fn ($chunk) => $map($chunk)->each(fn ($r) => fputcsv($out, array_values($r))));
-                });
+        if ($format = $this->format($request)) {
+            $columns = [['Identificación', 'text'], ['Sucursal', 'text'], ['Nombre tercero', 'text'], ['Código cuenta contable', 'text'], ['Cuenta contable', 'text'],
+                ['Comprobante', 'text'], ['Fecha elaboración', 'date'], ['Saldo inicial', 'money'], ['Débito', 'money'], ['Crédito', 'money'], ['Nuevo saldo', 'money']];
+            $open = $this->filtered($request)->where('date', '<', $from)->groupBy('account_code', 'identification', 'branch')
+                ->selectRaw('account_code, identification, branch, SUM(debit - credit) AS bal')->toBase()->get()
+                ->mapWithKeys(fn ($r) => ["$r->account_code|$r->identification|$r->branch" => (float) $r->bal])->all();
+            $lines = (clone $query)->reorder()->select('id', 'account_code', 'identification', 'branch', 'contact_name', 'document', 'date', 'debit', 'credit')
+                ->selectRaw('SUM(debit - credit) OVER (PARTITION BY account_code, identification, branch ORDER BY date, id) AS running')
+                ->orderBy('account_code')->orderBy('identification')->orderBy('date')->orderBy('id');
+            $rows = function () use ($lines, $map, $open) {
+                foreach ($lines->cursor()->chunk(1000) as $chunk) {
+                    yield from $map($chunk, $open)->all();
+                }
+            };
+            $t = $this->filtered($request)->whereBetween('date', [$from, $to])->selectRaw('SUM(debit) d, SUM(credit) c')->first();
+
+            return $this->export($request, $format, 'libro_auxiliar', 'Movimiento auxiliar por cuenta contable', $columns, $rows(),
+                [null, null, null, null, null, null, null, null, (float) $t->d, (float) $t->c, null]);
         }
 
         $page = $query->paginate($request->integer('per_page', 50))->withQueryString();
@@ -149,17 +164,22 @@ class LedgerController extends Controller
         }, $out), fn ($r) => abs($r['opening']) > 0.004 || $r['debit'] || $r['credit']));
     }
 
-    public function trialBalance(Request $request): Response|StreamedResponse
+    public function trialBalance(Request $request): Response|BinaryFileResponse
     {
         $level = max(1, min(5, $request->integer('nivel', 4)));
         $byContact = $request->boolean('por_tercero');
         $rows = $this->balances($request, $level, $byContact);
 
-        if ($request->boolean('export')) {
-            return $this->csv('balance_de_prueba.csv', ['Nivel', 'Código cuenta contable', 'Nombre cuenta contable', 'Identificación', 'Nombre tercero', 'Saldo inicial', 'Débito', 'Crédito', 'Saldo final'],
-                fn ($out) => collect($rows)->each(fn ($r) => fputcsv($out, [self::LEVEL_NAMES[$r['level']], $r['code'], $r['name'], $r['identification'], $r['contact'], $r['opening'], $r['debit'], $r['credit'], $r['balance']])));
-        }
         $classes = array_filter($rows, fn ($r) => $r['level'] === 1);
+        if ($format = $this->format($request)) {
+            $columns = [['Nivel', 'text'], ['Código cuenta contable', 'text'], ['Nombre cuenta contable', 'text'], ['Identificación', 'text'], ['Nombre tercero', 'text'],
+                ['Saldo inicial', 'money'], ['Movimiento débito', 'money'], ['Movimiento crédito', 'money'], ['Saldo final', 'money']];
+            $sum = fn ($k) => array_sum(array_column($classes, $k));
+
+            return $this->export($request, $format, 'balance_de_prueba', 'Balance de prueba general', $columns,
+                array_map(fn ($r) => [self::LEVEL_NAMES[$r['level']], $r['code'], $r['name'], $r['identification'], $r['contact'], $r['opening'], $r['debit'], $r['credit'], $r['balance']], $rows),
+                [null, null, null, null, null, $sum('opening'), $sum('debit'), $sum('credit'), $sum('balance')]);
+        }
 
         return Inertia::render('Accounting/Ledger/TrialBalance', [
             ...$this->base($request, 'Balance de prueba general'),
@@ -172,12 +192,17 @@ class LedgerController extends Controller
         ]);
     }
 
-    public function generalLedger(Request $request): Response|StreamedResponse
+    public function generalLedger(Request $request): Response|BinaryFileResponse
     {
         $rows = $this->balances($request, 3, false, false);
-        if ($request->boolean('export')) {
-            return $this->csv('libro_mayor_y_balance.csv', ['Código', 'Cuenta', 'Saldo anterior débito', 'Saldo anterior crédito', 'Movimiento débito', 'Movimiento crédito', 'Nuevo saldo débito', 'Nuevo saldo crédito'],
-                fn ($out) => collect($rows)->each(fn ($r) => fputcsv($out, [$r['code'], $r['name'], max($r['opening'], 0), max(-$r['opening'], 0), $r['debit'], $r['credit'], max($r['balance'], 0), max(-$r['balance'], 0)])));
+        if ($format = $this->format($request)) {
+            $columns = [['Código', 'text'], ['Cuenta', 'text'], ['Saldo anterior débito', 'money'], ['Saldo anterior crédito', 'money'], ['Movimiento débito', 'money'],
+                ['Movimiento crédito', 'money'], ['Nuevo saldo débito', 'money'], ['Nuevo saldo crédito', 'money']];
+            $data = array_map(fn ($r) => [$r['code'], $r['name'], max($r['opening'], 0), max(-$r['opening'], 0), $r['debit'], $r['credit'], max($r['balance'], 0), max(-$r['balance'], 0)], $rows);
+            $sum = fn ($i) => array_sum(array_column($data, $i));
+
+            return $this->export($request, $format, 'libro_mayor_y_balance', 'Libro Mayor y Balance', $columns, $data,
+                [null, null, $sum(2), $sum(3), $sum(4), $sum(5), $sum(6), $sum(7)]);
         }
 
         return Inertia::render('Accounting/Ledger/GeneralLedger', [
@@ -186,7 +211,7 @@ class LedgerController extends Controller
         ]);
     }
 
-    public function journalBook(Request $request): Response|StreamedResponse
+    public function journalBook(Request $request): Response|BinaryFileResponse
     {
         [$from, $to] = $this->range($request);
         $query = $this->filtered($request)->whereBetween('date', [$from, $to])
@@ -199,9 +224,16 @@ class LedgerController extends Controller
             'code' => $r->account_code, 'account' => $names[$r->account_code] ?? '', 'documents' => (int) $r->documents,
             'debit' => (float) $r->debit, 'credit' => (float) $r->credit,
         ];
-        if ($request->boolean('export')) {
-            return $this->csv('libro_diario.csv', ['Fecha', 'Tipo comprobante', 'Código cuenta', 'Cuenta', 'Comprobantes', 'Débito', 'Crédito'],
-                fn ($out) => $query->get()->each(fn ($r) => fputcsv($out, array_values($map($r)))));
+        if ($format = $this->format($request)) {
+            $columns = [['Fecha', 'date'], ['Tipo comprobante', 'text'], ['Código cuenta', 'text'], ['Cuenta', 'text'], ['Comprobantes', 'count'], ['Débito', 'money'], ['Crédito', 'money']];
+            $t = $this->filtered($request)->whereBetween('date', [$from, $to])->selectRaw('SUM(debit) d, SUM(credit) c')->first();
+            $rows = function () use ($query, $map) {
+                foreach ($query->cursor() as $r) {
+                    yield array_values($map($r));
+                }
+            };
+
+            return $this->export($request, $format, 'libro_diario', 'Libro diario', $columns, $rows(), [null, null, null, null, null, (float) $t->d, (float) $t->c]);
         }
         $page = $query->paginate($request->integer('per_page', 50))->withQueryString()->through($map);
         $totals = $this->filtered($request)->whereBetween('date', [$from, $to])->selectRaw('SUM(debit) d, SUM(credit) c')->first();
@@ -258,14 +290,43 @@ class LedgerController extends Controller
         ]);
     }
 
-    private function csv(string $name, array $header, callable $write): StreamedResponse
+    /** Formato de descarga pedido: ?formato=xlsx|pdf (export=1 se mantiene como Excel). */
+    private function format(Request $request): ?string
     {
-        return response()->streamDownload(function () use ($header, $write) {
-            $out = fopen('php://output', 'w');
-            fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, $header);
-            $write($out);
-            fclose($out);
-        }, $name, ['Content-Type' => 'text/csv; charset=UTF-8']);
+        $f = $request->input('formato') ?? ($request->boolean('export') ? 'xlsx' : null);
+
+        return in_array($f, ['xlsx', 'pdf'], true) ? $f : null;
+    }
+
+    /**
+     * Descarga en Excel (escrito fila a fila, sin limite practico) o PDF con el encabezado de la empresa.
+     *
+     * @param  list<array{0:string,1:string}>  $columns
+     * @param  list<float|null>  $totals  alineado con las columnas
+     */
+    private function export(Request $request, string $format, string $file, string $title, array $columns, iterable $rows, array $totals): BinaryFileResponse
+    {
+        [$from, $to] = $this->range($request);
+        $d = fn ($v) => \Illuminate\Support\Carbon::parse($v)->format('d/m/Y');
+        $filters = array_filter([
+            'Fecha' => $d($from).' a '.$d($to),
+            'Cuenta desde' => $request->input('cuenta_desde'), 'Cuenta hasta' => $request->input('cuenta_hasta'),
+            'Tercero' => $request->input('tercero'), 'Tipo de comprobante' => $request->input('tipo'),
+            'Nivel' => $request->filled('nivel') ? (self::LEVEL_NAMES[(int) $request->input('nivel')] ?? null) : null,
+        ], fn ($v) => filled($v));
+        \Illuminate\Support\Facades\DB::table('report_exports')->insert([
+            'company_id' => \App\Support\CurrentCompany::id(), 'user_id' => auth()->id(), 'slug' => $file, 'title' => $title,
+            'rows_count' => is_array($rows) ? count($rows) : 0, 'created_at' => now(),
+        ]);
+        if ($format === 'pdf') {
+            return TablePdf::download("$file.pdf", $title, $columns, $rows, $totals, $filters);
+        }
+        $book = new XlsxStream($title, $columns, $title, implode('   ', array_map(fn ($k, $v) => "$k: $v", array_keys($filters), $filters)));
+        foreach ($rows as $r) {
+            $book->add($r);
+        }
+        $book->totals(array_filter($totals, fn ($v) => $v !== null));
+
+        return $book->download("$file.xlsx");
     }
 }

@@ -188,6 +188,9 @@ class DianService
             'dian_response_path' => $responsePath,
             'attached_path' => $attachedPath,
         ], fn ($v) => $v !== null))->save();
+        if ($valid && ! $purchase && ! in_array($doc->mail_status, ['sent', 'read'], true)) {
+            \App\Jobs\SendDocumentMail::queue($doc);
+        }
 
         return ['valid' => $valid, 'status' => $status, 'message' => $message, 'key' => $built['key']];
     }
