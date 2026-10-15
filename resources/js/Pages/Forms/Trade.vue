@@ -104,7 +104,7 @@ const totals = computed(() => {
 const summaryOptions = (kind) => props.withholdings.filter((w) => w.type === kind);
 const byRate = (a, b) => b.percentage - a.percentage;
 const itemCharges = computed(() => (f.sorted_taxes
-    ? ['IVA', 'Impoconsumo'].flatMap((type) => props.charges.filter((c) => c.type === type && (type === 'IVA' || Number(c.percentage) > 0)).sort(byRate))
+    ? ['IVA', 'Impoconsumo'].flatMap((type) => props.charges.filter((c) => c.type === type && (type === 'IVA' || f.sorted_taxes === 'all' || Number(c.percentage) > 0)).sort(byRate))
     : props.charges));
 const itemWithholdings = computed(() => {
     const list = props.withholdings.filter((w) => (f.item_withholdings ? f.item_withholdings.includes(w.type) : w.type !== 'ReteICA' || !f.retentions?.includes('ReteICA')));
@@ -274,7 +274,7 @@ function submit(action) {
                             <p v-if="doc.errors.document_type" class="text-[10px] text-danger">{{ doc.errors.document_type }}</p>
                         </div>
                     </div>
-                    <div class="grid grid-cols-[76px_1fr] items-start gap-[8px]" :class="{ 'order-1': !f.purchase }">
+                    <div v-if="!f.seller_left" class="grid grid-cols-[76px_1fr] items-start gap-[8px]" :class="{ 'order-1': !f.purchase }">
                         <span class="doc-label">Fecha de elaboración</span>
                         <input v-model="doc.date" type="date" class="doc-input req w-[150px]" />
                     </div>
@@ -296,6 +296,14 @@ function submit(action) {
                             <option v-for="p in people" :key="p.id" :value="p.id">{{ p.email ? `${p.name} (${p.email})` : p.name }}</option>
                         </select>
                     </div>
+                    <div v-if="f.seller_left" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
+                        <span class="doc-label">{{ f.seller_label ?? 'Vendedor' }}</span>
+                        <DocSearch v-model="doc.seller_id" v-model:label="sellerLabel" :options="sellerOptions" />
+                    </div>
+                    <div v-if="f.reason && f.seller_left" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
+                        <span class="doc-label">Motivo de remisión</span>
+                        <select v-model="doc.reason" class="doc-input"><option value=""></option><option v-for="r in f.reason" :key="r">{{ r }}</option></select>
+                    </div>
                     <div v-if="f.seller && f.related" class="order-2 grid grid-cols-[76px_1fr] items-start gap-[8px]">
                         <span class="doc-label">Vendedor</span>
                         <DocSearch v-model="doc.seller_id" v-model:label="sellerLabel" :options="sellerOptions" />
@@ -312,6 +320,7 @@ function submit(action) {
                         <div class="flex items-start justify-between gap-[8px]">
                             <input v-if="editNumber || (f.purchase && !currentType)" v-model="doc.number" class="doc-input" :placeholder="currentType ? String(currentType.consecutive) : ''" />
                             <input v-else-if="f.classic" class="doc-input" placeholder="Numeración automática" disabled />
+                            <span v-else-if="f.number_text" class="text-[11.5px]">{{ f.number_text }}</span>
                             <span v-else-if="currentType" class="text-[11.5px]">{{ currentType.consecutive }} (Numeración Automática)</span>
                             <button v-if="f.logo" type="button" class="doc-link whitespace-nowrap" @click="editNumber = !editNumber">Editar consecutivo</button>
                         </div>
@@ -335,11 +344,15 @@ function submit(action) {
                         <span class="doc-label">Centro de costo</span>
                         <select v-model="doc.cost_center_id" class="doc-input"><option :value="null">Buscar</option><option v-for="c in costCenters" :key="c.id" :value="c.id">{{ c.code }} - {{ c.name }}</option></select>
                     </div>
-                    <div v-if="f.seller && !f.related" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
+                    <div v-if="f.seller_left" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
+                        <span class="doc-label">Fecha de elaboración</span>
+                        <input v-model="doc.date" type="date" class="doc-input req w-[150px]" />
+                    </div>
+                    <div v-if="f.seller && !f.related && !f.seller_left" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
                         <span class="doc-label">{{ f.seller_label ?? 'Vendedor' }} <Icon icon="circle-info" class="text-[9px] text-primary" /></span>
                         <DocSearch v-model="doc.seller_id" v-model:label="sellerLabel" :options="sellerOptions" />
                     </div>
-                    <div v-if="f.reason" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
+                    <div v-if="f.reason && !f.seller_left" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
                         <span class="doc-label">Motivo de remisión</span>
                         <select v-model="doc.reason" class="doc-input"><option value=""></option><option v-for="r in f.reason" :key="r">{{ r }}</option></select>
                     </div>
@@ -347,7 +360,7 @@ function submit(action) {
             </div>
 
             <div v-if="f.header_text" class="mt-[18px]">
-                <p class="doc-section">{{ f.header_text }}</p>
+                <p class="text-[15px] font-bold text-ink">{{ f.header_text }}</p>
                 <textarea v-model="doc.header_text" rows="3" class="doc-input mt-[4px] h-auto py-[4px]" />
             </div>
 
@@ -496,7 +509,7 @@ function submit(action) {
             </div>
 
             <div v-if="f.footer_text" class="mt-[18px]">
-                <p class="doc-section">{{ f.footer_text }}</p>
+                <p class="text-[15px] font-bold text-ink">{{ f.footer_text }}</p>
                 <textarea v-model="doc.footer_text" rows="3" class="doc-input mt-[4px] h-auto py-[4px]" />
             </div>
 

@@ -41,7 +41,7 @@ class DocumentFormController extends Controller
         'ND' => [['code' => '1', 'name' => 'Nota débito', 'consecutive' => 1]],
         'CE' => [['code' => '1', 'name' => 'Comprobante de Egreso x PC', 'consecutive' => 1]],
         'CT' => [['code' => '1', 'name' => 'Cotización', 'consecutive' => 1]],
-        'RM' => [['code' => '1', 'name' => 'Remisión', 'consecutive' => 5]],
+        'RM' => [['code' => '1', 'name' => 'Remisión No', 'consecutive' => 5]],
         'OC' => [['code' => '1', 'name' => 'Orden de compra principal', 'consecutive' => 1]],
         'NE' => [['code' => '1', 'name' => 'Nota de ensamble', 'consecutive' => 5]],
     ];
@@ -66,11 +66,12 @@ class DocumentFormController extends Controller
         'ventas/cotizaciones/crear' => [
             'page' => 'Trade', 'perm' => 'ventas.crear', 'title' => 'Nueva Cotización', 'doc' => 'CT', 'party' => 'cliente', 'seller' => true,
             'seller_label' => 'Responsable de la cotización', 'header_text' => 'Encabezado', 'footer_text' => 'Condiciones Comerciales', 'net' => true,
-            'item_taxes' => true, 'buttons' => ['Guardar', 'Guardar y enviar por email'],
+            'item_taxes' => true, 'item_withholdings' => ['Retefuente'], 'sorted_taxes' => 'all', 'seller_left' => true, 'number_text' => 'Numeración Automática', 'buttons' => ['Guardar', 'Guardar y enviar por email'],
         ],
         'ventas/remisiones/crear' => [
             'page' => 'Trade', 'perm' => 'ventas.crear', 'title' => 'Nueva Remisión', 'doc' => 'RM', 'party' => 'cliente', 'seller' => true,
-            'reason' => ['Operación constituye venta', 'Ventas por efectuar', 'Consignaciones', 'Productos en demostración', 'Traslados internos', 'Otros traslados no venta', 'Guía de devolución electrónica'], 'item_taxes' => true, 'net' => true, 'observations' => true,
+            'reason' => ['Operación constituye venta', 'Ventas por efectuar', 'Consignaciones', 'Productos en demostración', 'Traslados internos', 'Otros traslados no venta', 'Guía de devolución electrónica'], 'item_taxes' => true,
+            'item_withholdings' => ['Retefuente'], 'sorted_taxes' => 'all', 'seller_left' => true, 'net' => true, 'observations' => true,
             'buttons' => ['Guardar', 'Guardar y enviar por mail'],
         ],
         'compras/facturas/crear' => [
@@ -392,11 +393,11 @@ class DocumentFormController extends Controller
     {
         $prefix = self::PREFIX[$type] ?? $type;
         $rows = DocumentType::query()->where('type', $type)->where('active', true)->orderBy('code')->get(['id', 'code', 'name', 'consecutive', 'electronic_type'])
-            ->map(fn ($d) => ['id' => $d->id, 'code' => $d->code, 'label' => "{$prefix} - {$d->code} - {$d->name}", 'consecutive' => $d->consecutive, 'electronic' => $d->electronic_type !== 'NoElectronic'])
+            ->map(fn ($d) => ['id' => $d->id, 'code' => $d->code, 'label' => in_array($type, ['CT', 'RM'], true) ? "{$prefix}-{$d->code}-{$d->name}" : "{$prefix} - {$d->code} - {$d->name}", 'consecutive' => $d->consecutive, 'electronic' => $d->electronic_type !== 'NoElectronic'])
             ->all();
 
         return $rows ?: array_map(fn ($d) => [
-            'id' => "{$type}-{$d['code']}", 'code' => $d['code'], 'label' => "{$prefix} - {$d['code']} - {$d['name']}", 'consecutive' => $d['consecutive'], 'electronic' => in_array($type, ['DS', 'NA'], true),
+            'id' => "{$type}-{$d['code']}", 'code' => $d['code'], 'label' => in_array($type, ['CT', 'RM'], true) ? "{$prefix}-{$d['code']}-{$d['name']}" : "{$prefix} - {$d['code']} - {$d['name']}", 'consecutive' => $d['consecutive'], 'electronic' => in_array($type, ['DS', 'NA'], true),
         ], self::FALLBACK_TYPES[$type] ?? []);
     }
 

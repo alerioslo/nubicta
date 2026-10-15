@@ -36,7 +36,7 @@ const submit = () => doc.transform((d) => ({ ...d, items: d.items.filter((i) => 
 <template>
     <Head :title="f.title" />
     <div class="fixed inset-0 z-40 bg-black/25" />
-    <form class="fixed left-1/2 top-[112px] z-50 w-[874px] max-w-[calc(100vw-120px)] -translate-x-1/2 overflow-hidden rounded-[6px] bg-white text-[13px] shadow-2xl" @submit.prevent="submit">
+    <form class="fixed left-1/2 top-[126px] z-50 w-[calc(100vw-74px)] -translate-x-1/2 overflow-hidden rounded-[6px] bg-white text-[13px] shadow-2xl" @submit.prevent="submit">
         <header class="flex items-center justify-between bg-primary px-[16px] py-[14px] text-white">
             <h1 class="text-[14px] font-semibold">{{ f.title }}</h1>
             <div class="flex gap-[16px] text-[13px]"><Icon icon="up-right-and-down-left-from-center" /><Link :href="f.back" title="Cerrar"><Icon icon="xmark" /></Link></div>
@@ -44,14 +44,15 @@ const submit = () => doc.transform((d) => ({ ...d, items: d.items.filter((i) => 
         <div class="p-[16px]">
             <div class="rounded-[6px] border border-line p-[16px]">
                 <div class="grid grid-cols-3 gap-[16px]">
-                    <label class="block"><span class="text-[12px] text-ink">Fecha de elaboración *</span><input v-model="doc.date" type="date" class="s-input mt-[4px] w-full" /></label>
+                    <label class="block"><span class="text-[12px] text-ink">Fecha de elaboración *</span><input v-model="doc.date" type="date" class="s-input mt-[4px] h-[40px] w-full" /></label>
                     <label class="block"><span class="text-[12px] text-ink">Tipo de cuenta *</span>
-                        <select v-model="doc.module" class="s-input mt-[4px] w-full" @change="loadDocuments"><option value="">Selecciona un módulo</option><option v-for="(l, k) in MODULES" :key="k" :value="k">{{ l }}</option></select></label>
+                        <select v-model="doc.module" class="s-input mt-[4px] h-[40px] w-full" @change="loadDocuments"><option value="">Selecciona un módulo</option><option v-for="(l, k) in MODULES" :key="k" :value="k">{{ l }}</option></select></label>
                     <div><span class="text-[12px] text-ink">Cliente, proveedor u otro *</span>
-                        <DocSearch v-model="doc.contact_id" v-model:label="doc.contact_label" class="mt-[4px]" input-class="s-input w-full" placeholder="Buscar Cliente, proveedor u otro" url="/api/buscar/terceros" :invalid="!!doc.errors.contact_id" @pick="loadDocuments" />
+                        <DocSearch v-model="doc.contact_id" v-model:label="doc.contact_label" class="mt-[4px]" input-class="s-input h-[40px] w-full" placeholder="Buscar Cliente, proveedor u otro" url="/api/buscar/terceros" :invalid="!!doc.errors.contact_id" @pick="loadDocuments" />
                         <p v-if="doc.errors.contact_id" class="s-error">{{ doc.errors.contact_id }}</p></div>
                     <label class="block"><span class="text-[12px] text-ink">Documento</span>
-                        <select v-model="doc.document_id" class="s-input mt-[4px] w-full"><option :value="null">Seleccionar documento</option><option v-for="d in documents" :key="d.id" :value="d.id">{{ d.name }} — saldo {{ money(d.balance) }}</option></select></label>
+                        <span class="relative mt-[4px] block"><Icon icon="magnifying-glass" class="pointer-events-none absolute left-[12px] top-[13px] text-[13px] text-[#555]" />
+                            <select v-model="doc.document_id" class="s-input h-[40px] w-full pl-[34px]"><option :value="null">Seleccionar documento</option><option v-for="d in documents" :key="d.id" :value="d.id">{{ d.name }} — saldo {{ money(d.balance) }}</option></select></span></label>
                 </div>
 
                 <p class="mt-[16px] text-[12px]">Agrega el concepto que deseas aplicar <b>(máximo 5 conceptos)</b>:</p>
