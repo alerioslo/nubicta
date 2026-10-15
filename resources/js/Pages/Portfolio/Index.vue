@@ -1,6 +1,6 @@
 <script setup>
 import DownloadMenu from '../../Components/DownloadMenu.vue';
-import { reactive, ref } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
 import Pager from '../../Components/Pager.vue';
@@ -43,6 +43,8 @@ const toggleColumn = (k) => {
     localStorage.setItem(storeKey, JSON.stringify(visible));
 };
 const menu = ref(null);
+const createOpen = ref(false);
+onMounted(() => document.addEventListener('click', () => (createOpen.value = false)));
 const adjustUrl = (r) => `/contabilidad/ajustes-cartera/crear?modulo=${props.side === 'clientes' ? 'ventas' : 'compras'}&tercero=${r.id}&nombre=${encodeURIComponent(`${r.identification} - ${r.name}`)}`;
 const download = (base, f) => (window.location.href = base + (base.includes('?') ? '&' : '?') + 'formato=' + f);
 </script>
@@ -59,7 +61,9 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                     <Icon icon="magnifying-glass" class="absolute left-3 top-[10px] text-muted" />
                     <input v-model="f.q" class="s-input pl-9" placeholder="Buscar por nombre o identificación" @input="search" />
                 </div>
-                <button type="button" class="s-btn s-btn-outline" @click="open = !open"><Icon icon="sliders" /> Más filtros</button>
+                <button type="button" class="s-btn s-btn-outline relative" @click="open = !open"><Icon icon="sliders" /> Más filtros
+                    <span class="absolute -right-[7px] -top-[7px] grid h-[16px] min-w-[16px] place-items-center rounded-full bg-[#e53935] px-[3px] text-[10px] text-white">2</span>
+                </button>
                 <div class="ml-auto flex gap-2">
                     <div class="relative">
                         <button type="button" class="s-btn s-btn-link" @click="columnsOpen = !columnsOpen"><Icon icon="table-columns" /> Columnas</button>
@@ -71,7 +75,14 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                     </div>
                     <DownloadMenu @download="(f) => download(`/terceros/excel?tipo=${party}`, f)" />
                     <Link href="/movimientos" class="s-btn s-btn-outline">Ver reportes <Icon icon="chevron-down" /></Link>
-                    <Link :href="cfg.create" class="s-btn s-btn-primary">{{ cfg.create_label }}</Link>
+                    <div class="relative flex" @click.stop>
+                        <Link :href="cfg.create" class="s-btn s-btn-primary rounded-r-none">{{ cfg.create_label }}</Link>
+                        <button type="button" class="s-btn s-btn-primary rounded-l-none border-l border-[#ffffff55] px-[10px]" @click="createOpen = !createOpen"><Icon icon="caret-down" /></button>
+                        <div v-if="createOpen" class="absolute right-0 top-[40px] z-30 w-[192px] rounded-[6px] bg-white py-[6px] shadow-lg">
+                            <Link :href="`/terceros/importar/${side}`" class="block px-[14px] py-[8px] text-[13px] text-ink hover:bg-[#f0f7fd]">Importar {{ side }}</Link>
+                            <Link href="/terceros/importar/contactos" class="block px-[14px] py-[8px] text-[13px] text-ink hover:bg-[#f0f7fd]">Importar contactos</Link>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div v-if="open" class="mt-3 flex flex-wrap items-end gap-3">
@@ -87,9 +98,11 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                 </label>
             </div>
             <div class="flex flex-wrap items-center gap-2 py-3 text-[12px]">
-                <span class="rounded-full border border-line bg-[#f5f6f7] px-2 py-[2px]">Saldo de cartera: {{ SALDO[f.saldo] }}</span>
-                <span class="rounded-full border border-line bg-[#f5f6f7] px-2 py-[2px]">Estado de {{ party }}: {{ ESTADO[f.estado] }}</span>
-                <button type="button" class="s-btn-link" @click="clear">Limpiar filtros</button>
+                <span class="inline-flex items-center gap-[6px] rounded-full border border-line bg-[#f5f6f7] px-2 py-[2px]">Saldo de cartera: {{ SALDO[f.saldo] }}
+                    <button type="button" class="grid h-[12px] w-[12px] place-items-center rounded-full bg-[#9aa5ae] text-[8px] text-white" title="Quitar filtro" @click="f.saldo = 'todos'; reload()"><Icon icon="xmark" /></button></span>
+                <span class="inline-flex items-center gap-[6px] rounded-full border border-line bg-[#f5f6f7] px-2 py-[2px]">Estado de {{ party }}: {{ ESTADO[f.estado] }}
+                    <button type="button" class="grid h-[12px] w-[12px] place-items-center rounded-full bg-[#9aa5ae] text-[8px] text-white" title="Quitar filtro" @click="f.estado = 'activo'; reload()"><Icon icon="xmark" /></button></span>
+                <button type="button" class="s-btn-link disabled:text-[#c3c9ce]" :disabled="!f.q && f.saldo === 'todos' && f.estado === 'activo'" @click="clear">Limpiar filtros</button>
             </div>
         </div>
 
@@ -108,8 +121,8 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
             </thead>
             <tbody>
                 <tr v-for="r in rows.data" :key="r.id">
-                    <td class="max-w-[240px]">
-                        <Link :href="`${cfg.url}/${r.id}`" class="block truncate text-primary">{{ r.name }}</Link>
+                    <td class="max-w-[128px]">
+                        <Link :href="`${cfg.url}/${r.id}`" class="block truncate text-primary" :title="r.name">{{ r.name }}</Link>
                         <div class="text-[12px]">{{ r.identification }}</div>
                     </td>
                     <td v-if="visible.branch">{{ r.branch }}</td>

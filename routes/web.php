@@ -151,6 +151,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/excel', [ContactController::class, 'export'])->middleware('can:terceros.exportar');
         Route::get('/crear', [ContactController::class, 'create'])->middleware('can:terceros.crear');
         Route::post('/', [ContactController::class, 'store'])->middleware('can:terceros.crear');
+        $ci = \App\Http\Controllers\Contacts\ContactImportController::class;
+        $ciKinds = array_keys(\App\Http\Controllers\Contacts\ContactImportController::KINDS);
+        Route::middleware('can:terceros.crear')->group(function () use ($ci, $ciKinds) {
+            Route::get('/importar/{kind}', [$ci, 'show'])->whereIn('kind', $ciKinds);
+            Route::get('/importar/{kind}/plantilla', [$ci, 'template'])->whereIn('kind', $ciKinds);
+            Route::post('/importar/{kind}', [$ci, 'upload'])->whereIn('kind', $ciKinds);
+            Route::post('/importar/{kind}/confirmar', [$ci, 'confirm'])->whereIn('kind', $ciKinds);
+        });
         Route::get('/{contact}', [ContactController::class, 'show'])->whereNumber('contact');
         Route::get('/{contact}/editar', [ContactController::class, 'edit'])->whereNumber('contact');
         Route::put('/{contact}', [ContactController::class, 'update'])->whereNumber('contact')->middleware('can:terceros.editar');
