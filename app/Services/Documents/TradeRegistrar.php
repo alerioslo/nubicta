@@ -11,7 +11,6 @@ use App\Models\PurchaseDocument;
 use App\Models\SalesDocument;
 use App\Models\Tax;
 use App\Models\Warehouse;
-use App\Models\WarehouseStock;
 use App\Services\Accounting\AccountResolver;
 use App\Services\Accounting\LedgerEntry;
 use App\Services\Inventory\InventoryService;
@@ -57,9 +56,6 @@ class TradeRegistrar
         $payments = $this->payments($form, $data, $calc['total'], $purchase, $contact);
 
         return DB::transaction(function () use ($kind, $purchase, $type, $contact, $calc, $related, $payments, $data) {
-            if (in_array($kind, ['FV', 'RM'], true)) {
-                $this->assertStock($calc);
-            }
             [$number, $name] = $this->numbering->take($type, $purchase ? 'purchase_documents' : 'sales_documents');
             $credit = round(collect($payments)->where('credit', true)->sum('value'), 2);
             $dueDate = collect($payments)->where('credit', true)->max('due_date') ?? $data['date'];
@@ -346,43 +342,6 @@ class TradeRegistrar
         }
 
         return $costs;
-    }
-
-    /** No deja vender mas de lo que hay en la bodega (los combos piden el saldo de cada producto que los compone). */
-    private function assertStock(array $calc): void
-    {
-        $need = [];
-        $add = function (Product $p, float $qty) use (&$need) {
-            if ($p->stock_control && $qty > 0) {
-                $need[$p->id] = [$p, ($need[$p->id][1] ?? 0) + $qty];
-            }
-        };
-        foreach ($calc['lines'] as $l) {
-            $p = $l['product'];
-            if ($p?->type === 'Combo') {
-                foreach ($p->comboItems()->with('product')->get() as $c) {
-                    $c->product && $add($c->product, $l['quantity'] * (float) $c->quantity);
-                }
-            } elseif ($p) {
-                $add($p, $l['quantity']);
-            }
-        }
-        if (! $need) {
-            return;
-        }
-        $stock = WarehouseStock::query()->where('warehouse_id', $this->warehouse())->whereIn('product_id', array_keys($need))
-            ->lockForUpdate()->pluck('quantity', 'product_id');
-        $fmt = fn (float $v) => rtrim(rtrim(number_format($v, 2, ',', '.'), '0'), ',');
-        $errors = [];
-        foreach ($need as $id => [$p, $qty]) {
-            $available = (float) ($stock[$id] ?? 0);
-            if ($qty > $available + 0.000001) {
-                $errors[] = "Producto sin saldo: {$p->code} - {$p->name}. Disponible {$fmt($available)}, solicitado {$fmt($qty)}.";
-            }
-        }
-        if ($errors) {
-            throw ValidationException::withMessages(['items' => implode(' ', $errors)]);
-        }
     }
 
     /** Un combo mueve el inventario de cada producto que lo compone; devuelve el costo total. */
