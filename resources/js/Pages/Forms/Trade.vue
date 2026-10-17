@@ -139,20 +139,46 @@ watch(() => totals.value.net, (net) => {
 
 watch(() => doc.date, () => doc.payments.forEach((p) => { if (methodById(p.method_id)?.credit) p.due_date = addDays(doc.date, p.range); }));
 
-onMounted(async () => {
-    if (f.related && doc.related_id && !doc.items.some((i) => i.item_id)) await pickRelated({ id: doc.related_id, contact_id: doc.contact_id, contact_label: doc.contact_label });
+async function loadPeople() {
     if (!doc.contact_id) return;
     const res = await fetch(`/api/buscar/terceros?id=${doc.contact_id}`, { headers: { Accept: 'application/json' } });
     const [c] = await res.json();
     if (c) pickContact(c, true);
+}
+
+onMounted(async () => {
+    if (f.related && doc.related_id && !doc.items.some((i) => i.item_id)) return pickRelated({ id: doc.related_id, contact_id: doc.contact_id, contact_label: doc.contact_label });
+    await loadPeople();
 });
 
+/* La nota toma de la factura el cliente, su contacto, el vendedor, las formas de pago y los items. */
 async function pickRelated(d) {
     if (!d) return;
     doc.contact_id = d.contact_id;
     doc.contact_label = d.contact_label;
-    const res = await fetch(`/api/buscar/documentos/${d.id}/items?modulo=${f.related}`, { headers: { Accept: 'application/json' } });
-    const items = await res.json();
+    const json = (url) => fetch(url, { headers: { Accept: 'application/json' } }).then((r) => r.json());
+    const [head, items] = await Promise.all([
+        json(`/api/buscar/documentos/${d.id}/encabezado?modulo=${f.related}`),
+        json(`/api/buscar/documentos/${d.id}/items?modulo=${f.related}`),
+    ]);
+    if (head.contact_id) {
+        doc.contact_id = head.contact_id;
+        doc.contact_label = head.contact_label;
+    }
+    await loadPeople();
+    if (head.person_id && people.value.some((p) => p.id === head.person_id)) doc.person_id = head.person_id;
+    const seller = props.sellers.find((s) => s.id === head.seller_id);
+    if (seller) {
+        doc.seller_id = seller.id;
+        sellerLabel.value = seller.name;
+    }
+    if ('cost_center_id' in head && head.cost_center_id) doc.cost_center_id = head.cost_center_id;
+    if (f.credit_toggle && head.credit) {
+        doc.credit = true;
+    } else if (head.payments?.length) {
+        doc.payments = head.payments.filter((p) => methodById(p.method_id)).map((p) => ({ ...blankPayment(), method_id: p.method_id, label: methodById(p.method_id).label, value: p.value, due_date: p.due_date }));
+        if (!doc.payments.length) doc.payments = [blankPayment()];
+    }
     doc.items = items.length
         ? items.map((i) => ({ ...blankItem(), type: i.type, item_id: i.product_id ?? i.account_id, label: i.label, description: i.description, quantity: i.quantity, price: i.price, discount: i.discount, tax_id: i.tax_id }))
         : [blankItem()];

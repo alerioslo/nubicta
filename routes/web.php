@@ -375,6 +375,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/buscar/anticipos', [LookupController::class, 'advances']);
         Route::get('/buscar/activos', [LookupController::class, 'fixedAssets']);
         Route::get('/buscar/documentos/{id}/items', [LookupController::class, 'documentItems'])->whereNumber('id');
+        Route::get('/buscar/documentos/{id}/encabezado', [LookupController::class, 'documentHeader'])->whereNumber('id');
     });
 
     Route::prefix('documentos/{kind}/{id}')->whereIn('kind', array_keys(\App\Services\Documents\DocumentLocator::KINDS))->whereNumber('id')->group(function () {

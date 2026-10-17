@@ -102,6 +102,16 @@ class LookupController extends Controller
     }
 
     /** Items de un documento para precargar notas credito/debito y notas de ajuste. */
+    /** Encabezado de la factura que se corrige: la nota toma su cliente, contacto, vendedor y formas de pago. */
+    public function documentHeader(Request $request, int $id): JsonResponse
+    {
+        $purchases = $request->input('modulo') === 'compras';
+        $doc = ($purchases ? PurchaseDocument::class : SalesDocument::class)::query()->findOrFail($id);
+
+        return response()->json(collect(\App\Services\Documents\DocumentLocator::payload($doc))
+            ->only(['contact_id', 'contact_label', 'person_id', 'seller_id', 'cost_center_id', 'credit', 'due_date', 'payments']));
+    }
+
     public function documentItems(Request $request, int $id): JsonResponse
     {
         $purchases = $request->input('modulo') === 'compras';
