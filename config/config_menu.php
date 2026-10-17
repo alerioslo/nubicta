@@ -150,7 +150,7 @@ return [
     ],
     'Alianzas e integraciones' => [
         ['title' => 'Configuraciones e integraciones', 'column' => 0, 'items' => [
-            $item('Credenciales de integración a plataformas digitales (Siigo API)', '/configuracion/ajustes/api'),
+            $item('Credenciales de integración a plataformas digitales (API)', '/configuracion/ajustes/api'),
         ]],
         ['title' => 'Gestión de recaudo', 'column' => 1, 'items' => [$reminders]],
     ],

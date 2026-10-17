@@ -18,7 +18,7 @@ use Illuminate\Http\Request;
 /** Busquedas para selectores (autocompletar) del frontend. */
 class LookupController extends Controller
 {
-    /** Ademas del tercero devuelve lo que Siigo autollena en los documentos: contacto, vendedor, lista de precios, credito y responsabilidades. */
+    /** Ademas del tercero devuelve lo que se autollena en los documentos: contacto, vendedor, lista de precios, credito y responsabilidades. */
     public function contacts(Request $request): JsonResponse
     {
         $fields = ['id', 'name', 'identification', 'dv', 'branch_office', 'seller_id', 'collector_id', 'price_list_id', 'credit_days', 'credit_limit',
@@ -161,7 +161,7 @@ class LookupController extends Controller
             'category' => $a->category, 'due_type' => $a->due_type, 'third' => (bool) $a->requires_third_party, 'inventory_group' => $groups[$a->id] ?? null]));
     }
 
-    /** Ciudades con su departamento, como el campo "Ciudad" de Siigo. */
+    /** Ciudades con su departamento para el campo "Ciudad". */
     public function municipalities(Request $request): JsonResponse
     {
         $term = trim((string) $request->input('q'));
