@@ -220,6 +220,8 @@ class DocumentLocator
                     return ['at' => \Illuminate\Support\Carbon::parse($l->created_at)->locale('es')->translatedFormat('j M Y - H:i'), 'to' => $v['to'] ?? '', 'name' => $v['name'] ?? ''];
                 }),
             'modified_at' => $doc->updated_at && $doc->updated_at->ne($doc->created_at) && $doc->source === 'erp' ? $doc->updated_at->format('d/m/Y H:i') : null,
+            'collection_task' => in_array($doc->type, ['FV', 'ND'], true) ? DB::table('crm_tasks')->where('company_id', $doc->company_id)->where('origin', 'Cobranza')
+                ->where('source_document', $doc->name)->first(['id', 'status']) : null,
         ] + (in_array($doc->type, ['CT', 'RM'], true) ? self::quoteExtra($doc) : []);
     }
 

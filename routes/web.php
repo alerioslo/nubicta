@@ -26,6 +26,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/documentos-firmados/{id}/imprimir', [\App\Http\Controllers\DocumentController::class, 'signedPrint'])
     ->whereNumber('id')->middleware('signed')->name('documents.signed-print');
+Route::get('/documento/{id}', \App\Http\Controllers\PublicDocumentController::class)
+    ->whereNumber('id')->middleware(['signed', 'throttle:60,1'])->name('documents.public');
 Route::get('/nomina-firmada/{id}/imprimir', [\App\Http\Controllers\Payroll\ElectronicPayrollController::class, 'signedPrint'])
     ->whereNumber('id')->middleware('signed')->name('payroll.signed-print');
 
@@ -385,6 +387,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/estado', [\App\Http\Controllers\DocumentController::class, 'quoteStatus']);
         Route::post('/correo', [\App\Http\Controllers\DocumentController::class, 'mail']);
         Route::post('/dian', [\App\Http\Controllers\DocumentController::class, 'resendDian']);
+        Route::post('/actualizar-dian', [\App\Http\Controllers\DocumentController::class, 'refreshDian']);
+        Route::post('/enlace', [\App\Http\Controllers\DocumentController::class, 'shareLink']);
+        Route::post('/cobranza', [\App\Http\Controllers\DocumentController::class, 'collection']);
         Route::post('/adjuntos', [\App\Http\Controllers\DocumentController::class, 'attach']);
         Route::get('/editar', [\App\Http\Controllers\DocumentFormController::class, 'edit']);
         Route::post('/editar', [\App\Http\Controllers\DocumentFormController::class, 'update']);

@@ -56,12 +56,12 @@ class DocumentFormController extends Controller
         'ventas/notas-credito/crear' => [
             'page' => 'Trade', 'perm' => 'ventas.crear', 'title' => 'Nueva nota crédito', 'doc' => 'NC', 'party' => 'cliente', 'related' => 'ventas',
             'related_label' => 'Factura', 'seller' => true, 'payments' => true, 'item_taxes' => true, 'net' => true, 'observations' => true,
-            'item_withholdings' => ['Retefuente'], 'buttons' => ['Guardar', 'Guardar y enviar'],
+            'item_withholdings' => ['Retefuente'], 'buttons' => ['Guardar', 'Guardar y enviar'], 'dian_reason' => \App\Services\Dian\CorrectionConcepts::NC,
         ],
         'ventas/notas-debito/crear' => [
             'page' => 'Trade', 'perm' => 'ventas.crear', 'title' => 'Nueva nota débito (Ventas)', 'doc' => 'ND', 'party' => 'cliente', 'related' => 'ventas',
             'related_label' => 'Factura', 'seller' => true, 'payments' => true, 'item_taxes' => true, 'net' => true, 'observations' => true,
-            'item_withholdings' => ['Retefuente'], 'buttons' => ['Guardar', 'Guardar y enviar'],
+            'item_withholdings' => ['Retefuente'], 'buttons' => ['Guardar', 'Guardar y enviar'], 'dian_reason' => \App\Services\Dian\CorrectionConcepts::ND,
         ],
         'ventas/cotizaciones/crear' => [
             'page' => 'Trade', 'perm' => 'ventas.crear', 'title' => 'Nueva Cotización', 'doc' => 'CT', 'party' => 'cliente', 'seller' => true,
@@ -140,6 +140,12 @@ class DocumentFormController extends Controller
                     'observations' => $request->input('cruce') === 'ventas' ? 'Cruce cartera con anticipos' : 'Cruce deuda con anticipos',
                 ]);
             }
+        }
+        if (in_array($key, ['ventas/notas-credito/crear', 'ventas/notas-debito/crear'], true)
+            && ($invoice = \App\Models\SalesDocument::query()->where('type', 'FV')->where('status', '!=', 'annulled')->with('contact:id,name,identification')->find($request->integer('factura')))) {
+            \Illuminate\Support\Facades\Gate::authorize('ventas.ver');
+            $initial = ['related_id' => $invoice->id, 'related_label' => "{$invoice->name} - ".($invoice->contact?->name ?? ''), 'contact_id' => $invoice->contact_id,
+                'contact_label' => $invoice->contact ? "{$invoice->contact->identification} - {$invoice->contact->name}" : '', 'seller_id' => $invoice->seller_id, 'items' => []];
         }
         if ($key === 'compras/egresos/crear' && ($bill = \App\Models\PurchaseDocument::query()->where('status', '!=', 'annulled')->where('balance', '>', 0)->find($request->integer('factura')))) {
             $supplier = \App\Models\Contact::query()->find($bill->contact_id);
@@ -266,6 +272,11 @@ class DocumentFormController extends Controller
             'document_type.required' => 'El campo tipo es obligatorio',
             'date.required' => 'La fecha de elaboración es obligatoria',
         ];
+        if (isset($form['dian_reason'])) {
+            $rules['reason'] = ['required', \Illuminate\Validation\Rule::in(array_map('strval', array_keys($form['dian_reason'])))];
+            $messages['reason.required'] = 'Selecciona el motivo DIAN';
+            $messages['reason.in'] = 'Selecciona el motivo DIAN';
+        }
         $rules['attachment'] = ['nullable', 'file', 'max:10240'];
         $messages['attachment.max'] = 'El archivo adjunto no puede superar 10 MB';
         $request->validate($rules, $messages);

@@ -140,6 +140,7 @@ watch(() => totals.value.net, (net) => {
 watch(() => doc.date, () => doc.payments.forEach((p) => { if (methodById(p.method_id)?.credit) p.due_date = addDays(doc.date, p.range); }));
 
 onMounted(async () => {
+    if (f.related && doc.related_id && !doc.items.some((i) => i.item_id)) await pickRelated({ id: doc.related_id, contact_id: doc.contact_id, contact_label: doc.contact_label });
     if (!doc.contact_id) return;
     const res = await fetch(`/api/buscar/terceros?id=${doc.contact_id}`, { headers: { Accept: 'application/json' } });
     const [c] = await res.json();
@@ -387,6 +388,16 @@ async function submit(action) {
                     <div v-if="f.reason && !f.seller_left" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
                         <span class="doc-label">Motivo de remisión</span>
                         <select v-model="doc.reason" class="doc-input"><option value=""></option><option v-for="r in f.reason" :key="r">{{ r }}</option></select>
+                    </div>
+                    <div v-if="f.dian_reason" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
+                        <span class="doc-label">Motivo DIAN</span>
+                        <div>
+                            <select v-model="doc.reason" class="doc-input req" :class="{ 'is-invalid': doc.errors.reason }">
+                                <option value=""></option>
+                                <option v-for="(label, code) in f.dian_reason" :key="code" :value="code">{{ label }}</option>
+                            </select>
+                            <p v-if="doc.errors.reason" class="text-[10px] text-danger">{{ doc.errors.reason }}</p>
+                        </div>
                     </div>
                 </div>
             </div>

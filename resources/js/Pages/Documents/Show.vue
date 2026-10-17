@@ -2,7 +2,7 @@
 import { printInPlace } from '../../composables/print';
 import { computed, ref } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { confirmDialog, promptDialog } from '../../composables/dialog';
+import { alertDialog, confirmDialog, promptDialog } from '../../composables/dialog';
 import PageHeader from '../../Components/PageHeader.vue';
 import DocumentSheet from '../../Components/DocumentSheet.vue';
 
@@ -47,10 +47,58 @@ const annulled = d.status === 'annulled';
 const STATUS = { Accepted: 'Aceptado por la DIAN', Rejected: 'Rechazado por la DIAN', Sent: 'Enviado, pendiente de respuesta', Draft: 'Pendiente de envío', Pending: 'En cola: la DIAN no respondió, se reintenta automáticamente' };
 const ledgerTotal = (k) => d.ledger.reduce((a, l) => a + l[k], 0);
 
+const blocked = () => alertDialog(`No es posible realizar ajustes\n\n${d.blocker}`);
 async function annul() {
+    menu.value = '';
+    if (d.blocker) return blocked();
     if (!await confirmDialog(`¿Anular el documento ${d.name}? Se reversará su contabilización, inventario y saldos.`)) return;
     router.post(`/documentos/${d.kind}/${d.id}/anular`, {}, { preserveScroll: true, preserveState: false });
 }
+async function remove() {
+    menu.value = '';
+    if (d.blocker && !annulled) return blocked();
+    if (d.dian?.status === 'Accepted') return alertDialog('No es posible realizar ajustes\n\nLa DIAN ya aceptó este documento electrónico: no se puede eliminar.');
+    const effects = annulled ? '' : ' Se reversará su contabilización, inventario y saldos.';
+    if (!await confirmDialog(`¿Eliminar definitivamente el documento ${d.name}?${effects}`)) return;
+    router.post(`/documentos/${d.kind}/${d.id}/eliminar`, {}, { preserveState: false });
+}
+const post = (path) => { menu.value = ''; router.post(`/documentos/${d.kind}/${d.id}/${path}`, {}, { preserveScroll: true, preserveState: false }); };
+const refreshing = ref(false);
+function refreshDian() {
+    menu.value = '';
+    router.post(`/documentos/${d.kind}/${d.id}/actualizar-dian`, {}, { preserveScroll: true, preserveState: false, onStart: () => { refreshing.value = true; }, onFinish: () => { refreshing.value = false; } });
+}
+const notify = (text, error = false) => { page.props.flash = error ? { error: text } : { success: text }; };
+async function copyLink() {
+    menu.value = '';
+    const token = decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '');
+    const res = await fetch(`/documentos/${d.kind}/${d.id}/enlace`, { method: 'POST', headers: { Accept: 'application/json', 'X-XSRF-TOKEN': token } });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.url) return notify(body.message || 'No se pudo generar el enlace del documento.', true);
+    try {
+        await navigator.clipboard.writeText(body.url);
+        notify('Enlace copiado al portapapeles');
+    } catch {
+        await promptDialog('Copia el enlace del documento', body.url);
+    }
+}
+const invoice = d.type === 'FV' && !annulled && d.source === 'erp';
+const electronic = !!d.dian && d.source === 'erp';
+const more = computed(() => [
+    invoice && { label: 'Aplicar nota crédito', href: `/ventas/notas-credito/crear?factura=${d.id}` },
+    invoice && { label: 'Aplicar nota débito', href: `/ventas/notas-debito/crear?factura=${d.id}` },
+    electronic && !annulled && { label: 'Actualizar documento electrónico', run: refreshDian },
+    { label: showLedger.value ? 'Ocultar contabilización' : 'Ver contabilización', run: () => { showLedger.value = !showLedger.value; menu.value = ''; } },
+    !annulled && { label: 'Anular', run: annul },
+    { label: 'Eliminar', run: remove },
+    !annulled && { label: 'Copiar enlace', run: copyLink },
+    d.dian?.xml && { label: 'Descargar XML', href: `/documentos/${d.kind}/${d.id}/xml`, download: true },
+    d.dian?.response && { label: 'Respuesta DIAN', href: `/documentos/${d.kind}/${d.id}/xml?tipo=respuesta`, download: true },
+    d.dian?.attached && { label: 'AttachedDocument', href: `/documentos/${d.kind}/${d.id}/xml?tipo=contenedor`, download: true },
+    invoice && { label: 'Crear factura recurrente', href: `/ventas/facturas-recurrentes/crear?factura=${d.id}` },
+    ['FV', 'ND'].includes(d.type) && !annulled && { label: 'Actualizar seguimiento de cobranza', run: () => post('cobranza') },
+    d.copy_url && { label: 'Copiar', href: d.copy_url },
+].filter(Boolean));
 const resending = ref(false);
 async function resendDian() {
     if (!await confirmDialog(`¿Reenviar ${d.name} a la DIAN?`)) return;
@@ -78,10 +126,11 @@ async function sendMail() {
             <div class="relative">
                 <button type="button" class="s-btn s-btn-outline h-[34px] px-[16px] text-[13px] font-semibold" @click="menu = menu === 'mas' ? '' : 'mas'">Más <Icon icon="caret-down" class="ml-[6px]" /></button>
                 <div v-if="menu === 'mas'" class="absolute left-0 top-[38px] z-20 min-w-[210px] rounded-[4px] border border-line bg-white py-[4px] text-[13px] shadow-lg">
-                    <Link v-if="d.copy_url" :href="d.copy_url" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Copiar</Link>
-                    <button v-if="!d.blocker && !annulled" type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f9ff]" @click="annul">Anular</button>
-                    <button type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f9ff]" @click="showLedger = !showLedger; menu = ''">{{ showLedger ? 'Ocultar contabilización' : 'Ver contabilización' }}</button>
-                    <a v-if="d.dian?.xml" :href="`/documentos/${d.kind}/${d.id}/xml`" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Descargar XML</a>
+                    <template v-for="m in more" :key="m.label">
+                        <a v-if="m.download" :href="m.href" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">{{ m.label }}</a>
+                        <Link v-else-if="m.href" :href="m.href" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">{{ m.label }}</Link>
+                        <button v-else type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f9ff]" @click="m.run">{{ m.label }}</button>
+                    </template>
                 </div>
             </div>
         </div>
@@ -131,12 +180,11 @@ async function sendMail() {
                 <div class="relative" @click.stop>
                     <button type="button" class="s-btn s-btn-outline h-[34px] px-[16px] text-[13px]" @click="menu = menu === 'mas' ? '' : 'mas'">Más <Icon icon="caret-down" class="ml-[6px]" /></button>
                     <div v-if="menu === 'mas'" class="absolute left-0 top-[38px] z-20 min-w-[210px] rounded-[4px] border border-line bg-white py-[4px] text-[13px] shadow-lg">
-                        <Link v-if="d.copy_url" :href="d.copy_url" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Copiar</Link>
-                        <button v-if="!d.blocker && !annulled" type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f9ff]" @click="annul">Anular</button>
-                        <button type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f9ff]" @click="showLedger = !showLedger; menu = ''">{{ showLedger ? 'Ocultar contabilización' : 'Ver contabilización' }}</button>
-                        <a v-if="d.dian?.xml" :href="`/documentos/${d.kind}/${d.id}/xml`" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Descargar XML</a>
-                        <a v-if="d.dian?.response" :href="`/documentos/${d.kind}/${d.id}/xml?tipo=respuesta`" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Respuesta DIAN</a>
-                        <a v-if="d.dian?.attached" :href="`/documentos/${d.kind}/${d.id}/xml?tipo=contenedor`" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">AttachedDocument</a>
+                        <template v-for="m in more" :key="m.label">
+                            <a v-if="m.download" :href="m.href" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">{{ m.label }}</a>
+                            <Link v-else-if="m.href" :href="m.href" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">{{ m.label }}</Link>
+                            <button v-else type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f9ff]" @click="m.run">{{ m.label }}</button>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -161,6 +209,9 @@ async function sendMail() {
             </div>
         </div>
 
+        <p v-if="refreshing" class="mt-[8px] text-[12px] text-ink"><Icon icon="rotate" class="mr-[6px] animate-spin" />Consultando el documento en la DIAN…</p>
+        <p v-if="d.collection_task" class="mt-[8px] text-[12px] text-ink">Seguimiento de cobranza:
+            <Link :href="`/ventas/seguimiento-comercial/${d.collection_task.id}/editar`" class="font-semibold text-primary hover:underline">{{ d.collection_task.status }}</Link></p>
         <div v-if="steps.length" class="mt-[8px] rounded-[4px] bg-white px-[24px] pb-[10px] pt-[14px]">
             <div class="flex items-center">
                 <template v-for="(st, k) in steps" :key="st.label">

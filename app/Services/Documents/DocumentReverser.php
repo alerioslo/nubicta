@@ -86,7 +86,7 @@ class DocumentReverser
         $this->reverse($doc, 'Edición');
         $keep = [$doc->number, $doc->name];
         match (true) {
-            $doc instanceof SalesDocument => $this->deleteSale($doc),
+            $doc instanceof SalesDocument => $this->removeSale($doc),
             $doc instanceof PurchaseDocument => $this->deletePurchase($doc),
             $doc instanceof JournalEntry => tap($doc->lines()->delete(), fn () => $doc->delete()),
             $doc instanceof Receipt => $this->deleteReceipt($doc),
@@ -168,7 +168,7 @@ class DocumentReverser
         return $model::query()->where('name', $line->due_prefix.'-'.$line->due_number)->first();
     }
 
-    private function deleteSale(SalesDocument $doc): void
+    private function removeSale(SalesDocument $doc): void
     {
         $items = $doc->items()->pluck('id');
         DB::table('sales_document_item_taxes')->whereIn('sales_document_item_id', $items)->delete();
@@ -203,6 +203,34 @@ class DocumentReverser
         DB::transaction(function () use ($doc) {
             $this->reverse($doc, 'Eliminación');
             $this->deleteReceipt($doc);
+        });
+    }
+
+    /**
+     * "Eliminar" de un documento de venta que la DIAN no ha aceptado: si esta vigente reversa contabilidad, inventario y saldos;
+     * si ya esta anulado solo lo borra (sus efectos se reversaron al anular).
+     */
+    public function deleteSale(SalesDocument $doc): void
+    {
+        if ($doc->status === 'annulled') {
+            if (($doc->source ?? 'erp') !== 'erp') {
+                throw ValidationException::withMessages(['items' => 'Los documentos importados de Siigo son de solo consulta.']);
+            }
+            if ($doc->dian_status === 'Accepted') {
+                throw ValidationException::withMessages(['items' => 'La DIAN ya aceptó este documento electrónico: no se puede eliminar.']);
+            }
+            if (\App\Http\Controllers\Accounting\VerificationController::isVerified(DocumentLocator::kind($doc), $doc->id)) {
+                throw ValidationException::withMessages(['items' => 'El comprobante está verificado y bloqueado.']);
+            }
+        } else {
+            $this->guard($doc);
+        }
+        DB::transaction(function () use ($doc) {
+            if ($doc->status !== 'annulled') {
+                $this->reverse($doc, 'Eliminación');
+            }
+            \App\Models\AuditLog::record('deleted', $doc, $doc->only(['name', 'date', 'total', 'contact_id', 'status', 'dian_status']), []);
+            $this->removeSale($doc);
         });
     }
 

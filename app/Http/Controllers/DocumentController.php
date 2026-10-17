@@ -70,6 +70,13 @@ class DocumentController extends Controller
 
             return redirect('/ventas/cotizaciones')->with('success', "Se borró la cotización {$doc->name}.");
         }
+        if ($doc instanceof \App\Models\SalesDocument && $doc->type !== 'CT') {
+            Gate::authorize('ventas.anular');
+            app(DocumentReverser::class)->deleteSale($doc);
+            \App\Services\Documents\DocumentShare::disk()->delete(\App\Services\Documents\DocumentShare::path($doc));
+
+            return redirect('/ventas')->with('success', "Se eliminó el documento {$doc->name}.");
+        }
         if ($doc instanceof \App\Models\JournalEntry) {
             $module = DocumentLocator::module($doc);
             Gate::authorize($module.($module === 'inventario' ? '.editar' : '.anular'));
@@ -138,6 +145,67 @@ class DocumentController extends Controller
         $message = app(DocumentFormController::class)->emit($doc);
 
         return back()->with($doc->fresh()->dian_status === 'Accepted' ? 'success' : 'error', "{$doc->name}: $message");
+    }
+
+    /** "Actualizar documento electronico": consulta el estado en la DIAN y recupera respuesta, AttachedDocument y QR. */
+    public function refreshDian(string $kind, int $id): RedirectResponse
+    {
+        $doc = DocumentLocator::find($kind, $id);
+        abort_unless($doc instanceof \App\Models\SalesDocument || $doc instanceof \App\Models\PurchaseDocument, 404);
+        Gate::authorize(DocumentLocator::module($doc).'.editar');
+        if ($doc->status !== 'issued' || $doc->source !== 'erp' || ! \App\Models\DocumentType::query()->find($doc->document_type_id)?->isElectronic()) {
+            return back()->with('error', 'Este documento no es electrónico o es de solo consulta.');
+        }
+        try {
+            $dian = \App\Services\Dian\DianService::forCurrent();
+            $r = $dian->refresh($doc);
+        } catch (\App\Services\Dian\DianUnavailableException|\Illuminate\Http\Client\ConnectionException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+        $prefix = $dian->settings()->simulated ? 'DIAN (simulado): ' : 'DIAN: ';
+
+        return back()->with($r['valid'] ? 'success' : 'error', "{$doc->name}: {$prefix}{$r['message']}");
+    }
+
+    /** "Copiar enlace": genera el PDF del documento y devuelve el enlace publico firmado. */
+    public function shareLink(string $kind, int $id, \App\Services\Documents\DocumentShare $share): \Illuminate\Http\JsonResponse
+    {
+        $doc = DocumentLocator::find($kind, $id);
+        abort_unless($doc instanceof \App\Models\SalesDocument && $doc->status !== 'annulled', 404);
+        Gate::authorize('ventas.ver');
+        try {
+            $url = $share->publish($doc);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+        \App\Models\AuditLog::record('shared', $doc, [], ['name' => $doc->name]);
+
+        return response()->json(['url' => $url]);
+    }
+
+    /** "Actualizar seguimiento de cobranza": crea o reabre la tarea de cobranza del cliente para esta factura. */
+    public function collection(string $kind, int $id): RedirectResponse
+    {
+        $doc = DocumentLocator::find($kind, $id);
+        abort_unless($doc instanceof \App\Models\SalesDocument && in_array($doc->type, ['FV', 'ND'], true) && $doc->status !== 'annulled', 404);
+        Gate::authorize('ventas.editar');
+        $task = \App\Models\CrmTask::query()->where('origin', 'Cobranza')->where('source_document', $doc->name)->first();
+        $values = ['contact_id' => $doc->contact_id, 'due_date' => $doc->due_date ?? $doc->date, 'expected_value' => (float) $doc->balance];
+        if ($task) {
+            $reopen = $task->status !== 'Pendiente';
+            $task->update($values + ($reopen ? ['status' => 'Pendiente', 'completed_at' => null] : []));
+            $message = $reopen ? "Se reabrió el seguimiento de cobranza de {$doc->name}." : "Se actualizó el seguimiento de cobranza de {$doc->name}.";
+        } else {
+            \App\Models\CrmTask::create($values + [
+                'created_by' => \Illuminate\Support\Facades\Auth::id(), 'assigned_to' => \Illuminate\Support\Facades\Auth::id(), 'category' => '1 - General',
+                'description' => "Cobranza de la factura {$doc->name}", 'origin' => 'Cobranza', 'status' => 'Pendiente', 'source_document' => $doc->name,
+            ]);
+            $message = "Se creó el seguimiento de cobranza de {$doc->name}.";
+        }
+
+        return back()->with('success', $message);
     }
 
     public function attach(\Illuminate\Http\Request $request, string $kind, int $id): RedirectResponse

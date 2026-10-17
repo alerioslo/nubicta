@@ -204,6 +204,57 @@ class DianService
     }
 
     /**
+     * "Actualizar documento electronico": consulta en la DIAN el estado del documento ya firmado (por su CUFE/CUDS) y, si lo
+     * valido, deja la respuesta, el AttachedDocument y el QR. Si nunca se envio, o la DIAN no lo tiene y estaba pendiente, lo emite.
+     *
+     * @return array{valid:bool, status:string, message:string}
+     */
+    public function refresh(SalesDocument|PurchaseDocument $doc): array
+    {
+        $purchase = $doc instanceof PurchaseDocument;
+        $key = $purchase ? $doc->cuds : $doc->cufe;
+        if (blank($key) || blank($doc->xml_path) || ! Storage::disk('local')->exists($doc->xml_path)) {
+            return $this->emit($doc);
+        }
+        $log = ['scope' => $purchase ? 'ds' : 'fe', 'document_kind' => $doc->type, 'document_number' => $doc->name, ($purchase ? 'purchase_document_id' : 'sales_document_id') => $doc->id];
+        $r = $this->send('GetStatus', ['trackId' => $key, 'number' => $doc->name, 'kind' => $doc->type, 'cufe' => $key], $log + ['track_id' => $key]);
+        if ($r['http'] === 0 || $r['http'] >= 500) {
+            throw new DianUnavailableException("El servicio de la DIAN no está disponible (HTTP {$r['http']}). Intenta de nuevo más tarde.");
+        }
+        $message = (string) ($this->text($r['xml'], 'StatusMessage') ?? $this->text($r['xml'], 'StatusDescription') ?? 'Sin respuesta de la DIAN');
+        if (! $r['valid']) {
+            if (in_array($doc->dian_status, ['Draft', 'Rejected', 'Pending'], true)) {
+                return $this->emit($doc);
+            }
+
+            return ['valid' => false, 'status' => (string) $doc->dian_status, 'message' => $message];
+        }
+
+        $mapper = new DocumentMapper($this->settings, $this->company);
+        $data = $purchase ? $mapper->purchase($doc) : $mapper->sales($doc);
+        $prefix = self::FILE_PREFIX[$doc->type] ?? 'fv';
+        $file = pathinfo($doc->xml_path, PATHINFO_FILENAME);
+        [$responsePath, $attachedPath] = $this->storeResponse($r['xml'], dirname($doc->xml_path), substr($file, strlen($prefix)), $data,
+            Storage::disk('local')->get($doc->xml_path), $key, true);
+        $doc->forceFill(array_filter([
+            'dian_status' => 'Accepted',
+            'dian_message' => mb_substr($message, 0, 500),
+            'qr_data' => $purchase || filled($doc->qr_data) ? null : ((new UblBuilder)->build($data)['qr'] ?? null),
+            'dian_response_path' => $responsePath,
+            'attached_path' => $attachedPath,
+        ], fn ($v) => $v !== null))->save();
+        if (! $purchase && ! in_array($doc->mail_status, ['sent', 'read'], true)) {
+            try {
+                \App\Jobs\SendDocumentMail::enqueue($doc);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        return ['valid' => true, 'status' => 'Accepted', 'message' => $message];
+    }
+
+    /**
      * Firma y envia un documento soporte de pago de nomina electronica o su nota de ajuste (SendNominaSync).
      * En habilitacion real va al set de pruebas de nomina (SendTestSetAsync + GetStatusZip).
      *

@@ -141,10 +141,9 @@ class DocumentMapper
                 'number' => (DocumentType::query()->whereKey($related->document_type_id)->value('prefix') ?? '').$related->number,
                 'key' => $related->cufe ?? $related->cuds ?? '', 'date' => $related->date->toDateString(),
             ] : null,
-            'discrepancy' => [
-                'code' => match ($kind) { 'NC' => '1', 'ND' => '3', default => '2' },
-                'description' => $doc->reason ?? ($doc->observations ?: ($kind === 'ND' ? 'Ajuste de valor' : 'Devolución de bienes')),
-            ],
+            'discrepancy' => in_array($kind, ['NC', 'ND'], true)
+                ? CorrectionConcepts::for($kind, $doc->reason)
+                : ['code' => '2', 'description' => $doc->observations ?: 'Ajuste de valor'],
         ];
     }
 
