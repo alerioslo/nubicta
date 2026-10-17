@@ -196,7 +196,7 @@ class DocumentReverser
         $doc->delete();
     }
 
-    /** "Eliminar" de Siigo para recibos: reversa sus efectos y borra el documento. */
+    /** "Eliminar" para recibos: reversa sus efectos y borra el documento. */
     public function delete(Receipt $doc): void
     {
         $this->guard($doc);

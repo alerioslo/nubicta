@@ -20,7 +20,7 @@ use Inertia\Response;
 /** Pantalla unica para los informes de ReportRegistry: filtros, tabla, totales y descarga a Excel o PDF. */
 class GenericReportController extends Controller
 {
-    /** Etiquetas de los filtros, como las muestra Siigo. */
+    /** Etiquetas de los filtros. */
     public const FILTER_LABELS = [
         'range' => 'Fecha de elaboración', 'cutoff' => 'Fecha de corte', 'year' => 'Año', 'period' => 'Periodo', 'contact' => 'Cliente', 'product' => 'Producto',
         'seller' => 'Vendedor', 'line' => 'Línea de producto', 'group' => 'Grupo inventario', 'cost_center' => 'Centro de costo',

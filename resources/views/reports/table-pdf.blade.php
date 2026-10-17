@@ -7,7 +7,7 @@
         @page { size: A4 {{ $landscape ? 'landscape' : 'portrait' }}; margin: 10mm 9mm 12mm; }
         * { box-sizing: border-box; }
         body { font: 9px/1.35 Arial, Helvetica, sans-serif; color: #2d3748; margin: 0; }
-        .head { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #00a6e0; padding-bottom: 8px; margin-bottom: 8px; }
+        .head { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #0275b3; padding-bottom: 8px; margin-bottom: 8px; }
         .head img { max-height: 46px; max-width: 150px; }
         .head .co { flex: 1; }
         .head .co b { font-size: 12px; display: block; }
@@ -18,7 +18,7 @@
         table { width: 100%; border-collapse: collapse; }
         thead { display: table-header-group; }
         tr { page-break-inside: avoid; }
-        th { background: #e9f3fb; color: #1a4b8c; text-align: left; padding: 4px 5px; border-bottom: 1px solid #b8d4ea; font-weight: bold; }
+        th { background: #f0f9ff; color: #1a4b8c; text-align: left; padding: 4px 5px; border-bottom: 1px solid #b8d4ea; font-weight: bold; }
         td { padding: 3px 5px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
         .r { text-align: right; white-space: nowrap; }
         tfoot td { font-weight: bold; border-top: 1.5px solid #1a4b8c; background: #f7fafc; }

@@ -4,7 +4,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import DocSearch from '../../Components/Forms/DocSearch.vue';
 import NumInput from '../../Components/Forms/NumInput.vue';
 
-/* Saldos iniciales de Siigo (cuentas por cobrar, por pagar, inventario y otras cuentas): se contabilizan en el CC-999. */
+/* Saldos iniciales (cuentas por cobrar, por pagar, inventario y otras cuentas): se contabilizan en el CC-999. */
 const props = defineProps({ kind: String, title: String, info: String, operations: Object, costCenters: Array, taxes: Array, today: String });
 
 const portfolio = ['cuentas-por-cobrar', 'cuentas-por-pagar'].includes(props.kind);
@@ -90,7 +90,7 @@ const submit = () => doc.transform((d) => ({ ...d, items: d.items.map((i) => (cu
             </div>
             <p v-if="doc.errors.date" class="mt-[4px] pl-[20px] text-[11px] text-danger">{{ doc.errors.date }}</p>
 
-            <div v-if="byExcel" class="mt-[14px] flex flex-wrap items-center gap-[14px] rounded border border-dashed border-[#b9dcf3] bg-[#f4f9fd] px-[16px] py-[12px] text-[12px]">
+            <div v-if="byExcel" class="mt-[14px] flex flex-wrap items-center gap-[14px] rounded border border-dashed border-[#bae6fd] bg-[#f0f9ff] px-[16px] py-[12px] text-[12px]">
                 <a :href="`/contabilidad/saldos-iniciales/${kind}/plantilla`" class="font-semibold text-primary underline"><Icon icon="download" /> Descargar plantilla de Excel</a>
                 <label class="doc-btn doc-btn-blue inline-flex cursor-pointer items-center gap-[6px]"><Icon icon="file-excel" /> {{ loading ? 'Cargando…' : 'Cargar archivo' }}
                     <input type="file" class="hidden" accept=".xlsx,.xls,.csv" :disabled="loading" @change="upload" /></label>

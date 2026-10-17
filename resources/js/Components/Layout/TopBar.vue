@@ -149,7 +149,7 @@ function logout() {
                             </button>
                             <ul v-if="showKinds" class="s-card absolute left-0 top-[32px] z-50 max-h-[290px] w-[200px] overflow-y-auto py-[6px] shadow-lg" role="menu">
                                 <li v-for="k in SEARCH_KINDS" :key="k" role="menuitem">
-                                    <button type="button" class="block w-full truncate px-[14px] py-[7px] text-left text-[12px] text-ink hover:bg-[#f2f2f2]" :class="k === kind && 'bg-[#e3f1fb]'" @click="pickKind(k)">{{ k }}</button>
+                                    <button type="button" class="block w-full truncate px-[14px] py-[7px] text-left text-[12px] text-ink hover:bg-[#f2f2f2]" :class="k === kind && 'bg-[#e0f2fe]'" @click="pickKind(k)">{{ k }}</button>
                                 </li>
                             </ul>
                         </div>
@@ -164,7 +164,7 @@ function logout() {
                                             <tr><th v-for="col in table.columns" :key="col" class="px-[12px] py-[8px]">{{ col }}</th></tr>
                                         </thead>
                                         <tbody>
-                                            <tr v-for="(r, i) in table.rows" :key="i" class="border-t border-[#eee] text-[#555]" :class="[r.href && 'cursor-pointer hover:bg-[#e3f1fb]', i === active && 'bg-[#e3f1fb]']" @click="go(r)">
+                                            <tr v-for="(r, i) in table.rows" :key="i" class="border-t border-[#eee] text-[#555]" :class="[r.href && 'cursor-pointer hover:bg-[#e0f2fe]', i === active && 'bg-[#e0f2fe]']" @click="go(r)">
                                                 <td v-for="(cell, j) in r.cells" :key="j" class="max-w-[220px] truncate px-[12px] py-[7px]">{{ cell }}</td>
                                             </tr>
                                         </tbody>
@@ -177,7 +177,7 @@ function logout() {
                                 <template v-else>
                                     <template v-for="(list, g) in grouped" :key="g">
                                         <div class="px-3 pb-1 pt-2 text-[11px] font-bold uppercase text-muted">{{ g }}</div>
-                                        <button v-for="r in list" :key="r.i" type="button" class="block w-full px-3 py-[6px] text-left hover:bg-[#e3f1fb]" :class="r.i === active && 'bg-[#e3f1fb]'" @click="go(r)">
+                                        <button v-for="r in list" :key="r.i" type="button" class="block w-full px-3 py-[6px] text-left hover:bg-[#e0f2fe]" :class="r.i === active && 'bg-[#e0f2fe]'" @click="go(r)">
                                             <div class="truncate text-[13px] text-ink">{{ r.label }}</div>
                                             <div v-if="r.sub" class="truncate text-[11px] text-muted">{{ r.sub }}</div>
                                         </button>
@@ -208,11 +208,11 @@ function logout() {
                     <Icon icon="circle-question" />
                 </button>
                 <div v-if="showHelp" class="s-card fixed inset-x-2 top-[56px] z-50 py-2 shadow-lg md:absolute md:inset-x-auto md:right-0 md:top-[42px] md:w-[230px]">
-                    <Link v-for="[label, href] in HELP" :key="href" :href="href" class="block px-4 py-[6px] text-[13px] text-ink hover:bg-[#e3f1fb]" :class="href === '/ayuda' && 'font-semibold'" @click="showHelp = false">
+                    <Link v-for="[label, href] in HELP" :key="href" :href="href" class="block px-4 py-[6px] text-[13px] text-ink hover:bg-[#e0f2fe]" :class="href === '/ayuda' && 'font-semibold'" @click="showHelp = false">
                         {{ label }}
                     </Link>
                     <hr class="my-1 border-line" />
-                    <a v-if="company?.email" :href="`mailto:${company.email}?subject=Soporte ERP`" class="block px-4 py-[6px] text-[13px] text-ink hover:bg-[#e3f1fb]"><Icon icon="envelope" /> Escribir a soporte</a>
+                    <a v-if="company?.email" :href="`mailto:${company.email}?subject=Soporte ERP`" class="block px-4 py-[6px] text-[13px] text-ink hover:bg-[#e0f2fe]"><Icon icon="envelope" /> Escribir a soporte</a>
                 </div>
             </div>
 

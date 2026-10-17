@@ -1,5 +1,5 @@
 <script setup>
-/* Representacion grafica de recibos de caja y de pago, igual a la hoja que muestra Siigo al abrir el recibo. */
+/* Representacion grafica de recibos de caja y de pago. */
 const props = defineProps({ doc: Object, company: Object });
 const d = props.doc;
 const c = props.company ?? {};

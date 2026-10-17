@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Deja los impuestos igual que en Siigo: código visible, ReteICA por mil (6 = 6/1000), sin bases mínimas
+ * Deja los impuestos: código visible, ReteICA por mil (6 = 6/1000), sin bases mínimas
  * y sin los impuestos y cuentas que no existen en Siigo (solo si no se han usado).
  */
 return new class extends Migration

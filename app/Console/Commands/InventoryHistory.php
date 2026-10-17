@@ -6,7 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Reconstruye el kárdex anterior a la apertura del inventario en Friigo como lo muestra Siigo: ventas y notas crédito importadas
+ * Reconstruye el kárdex anterior a la apertura del inventario en Nubicta: ventas y notas crédito importadas
  * al costo de los comprobantes de costeo CC-3 del mes (repartido por unidad; esos comprobantes no se listan salvo que el mes no
  * tenga unidades vendidas), compras a cantidad x precio (Siigo lleva el descuento al ingreso 4210 y no al inventario) y comprobantes de inventario por débito - crédito. La diferencia de unidades con
  * el saldo inicial (movimientos anteriores a la historia importada) queda como un renglón "Saldo inicial" sin valor, porque Siigo no le asigna costo.

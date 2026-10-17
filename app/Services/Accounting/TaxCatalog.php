@@ -7,8 +7,8 @@ use App\Models\Tax;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Impuestos que trae Siigo Nube por defecto (Configuración > Contabilidad > Impuestos), con su código, tarifa y
- * las cuatro cuentas: ventas, compras, devolución ventas y devolución compras. La ReteICA se guarda como en Siigo,
+ * Impuestos estándar en Colombia (Configuración > Contabilidad > Impuestos), con su código, tarifa y
+ * las cuatro cuentas: ventas, compras, devolución ventas y devolución compras. La ReteICA se guarda,
  * con la tarifa por mil (6 = 6/1000).
  */
 class TaxCatalog
@@ -35,7 +35,7 @@ class TaxCatalog
         [23, 'Retefuente 1.5%', 'Retefuente', 1.5, false, '13551519', '23654006', '13551520', '23654007'],
     ];
 
-    /** Crea los impuestos que falten y alinea código, tarifa y cuentas con Siigo. @return array{created: int, updated: int} */
+    /** Crea los impuestos que falten y alinea código, tarifa y cuentas con el catálogo. @return array{created: int, updated: int} */
     public function install(int $companyId): array
     {
         return DB::transaction(function () use ($companyId) {

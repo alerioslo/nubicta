@@ -18,8 +18,8 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * Nominas del ERP: liquidacion, contabilizacion (un CC por empleado como en Siigo), pago y prestaciones
- * (prima CC-995, cesantias e intereses CC-991, liquidacion de contrato CC-994); el pago va en CC-8 "Nomina pagos" como en Siigo.
+ * Nominas del ERP: liquidacion, contabilizacion (un CC por empleado), pago y prestaciones
+ * (prima CC-995, cesantias e intereses CC-991, liquidacion de contrato CC-994); el pago va en CC-8 "Nomina pagos".
  */
 class PayrollService
 {
@@ -174,7 +174,7 @@ class PayrollService
     }
 
     /**
-     * Base de prima y cesantias: salario mensual + auxilio de transporte vigentes al final del periodo, como se pagaban en Siigo.
+     * Base de prima y cesantias: salario mensual + auxilio de transporte vigentes al final del periodo.
      * Para periodos pasados se toman del ultimo comprobante de nomina (CC-992) del empleado en el periodo.
      */
     private function averageBase(Employee $e, string $from, string $to, float $current): float

@@ -15,7 +15,7 @@ const submit = (action = 'save') => {
 <template>
     <Head :title="def.title" />
     <PageHeader :title="def.title" back="/configuracion" />
-    <p v-if="def.notice" class="mt-[12px] flex max-w-[900px] items-start gap-[10px] rounded-[6px] border border-[#b8e1ff] bg-primary-light px-[14px] py-[10px] text-[13px] text-ink">
+    <p v-if="def.notice" class="mt-[12px] flex max-w-[900px] items-start gap-[10px] rounded-[6px] border border-[#bae6fd] bg-primary-light px-[14px] py-[10px] text-[13px] text-ink">
         <Icon icon="circle-info" class="mt-[2px] text-primary" /> {{ def.notice }}
     </p>
 

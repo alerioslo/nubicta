@@ -15,7 +15,7 @@ use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Throwable;
 
 /**
- * Envia al cliente la factura o nota cuando la DIAN la acepta, como hace Siigo.
+ * Envia al cliente la factura o nota cuando la DIAN la acepta.
  * mail_status: queued, sent, failed, no_email (el cliente no tiene correo) o blocked (correo en la lista de bloqueo).
  */
 class SendDocumentMail implements ShouldQueue

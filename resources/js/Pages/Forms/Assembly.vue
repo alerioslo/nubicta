@@ -23,7 +23,7 @@ function fill(row, p) {
     row.unit = p.unit ?? '';
 }
 
-/* Como Siigo: al elegir el producto a ensamblar se cargan su materia prima y la cantidad requerida por unidad. */
+/* al elegir el producto a ensamblar se cargan su materia prima y la cantidad requerida por unidad. */
 function pickTarget(p) {
     fill(doc.target, p);
     if (p?.components?.length) doc.items = [...p.components.map((c) => ({ ...blank(), ...c })), blank()];

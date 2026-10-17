@@ -80,7 +80,7 @@ const cell = (c) => (c && typeof c === 'object' ? c : { text: c ?? '' });
         <div class="s-table-wrap">
             <table class="sticky-actions mt-[10px] w-full text-left text-[12px] text-ink">
                 <thead class="text-[13px] text-white">
-                    <tr class="bg-[#0072ce]"><th class="px-[6px] py-[6px] font-semibold">Documento soporte</th><th class="font-semibold">Fecha creación</th><th class="font-semibold">Nombre Comprobante</th><th class="font-semibold">Número de comprobante</th><th class="font-semibold">Estado</th><th class="font-semibold">Acción</th></tr>
+                    <tr class="bg-[#0275b3]"><th class="px-[6px] py-[6px] font-semibold">Documento soporte</th><th class="font-semibold">Fecha creación</th><th class="font-semibold">Nombre Comprobante</th><th class="font-semibold">Número de comprobante</th><th class="font-semibold">Estado</th><th class="font-semibold">Acción</th></tr>
                 </thead>
                 <tbody>
                     <tr v-for="(r, i) in rows.data" :key="i" class="border-b border-line">

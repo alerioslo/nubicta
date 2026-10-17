@@ -157,7 +157,7 @@ class DocumentLocator
             'tax_summary' => $lineTaxes->groupBy(fn ($t) => (string) (float) $t->percentage)->map(fn ($g, $rate) => [
                 'rate' => (float) $rate, 'base' => (float) $g->sum(fn ($t) => $bases[$t->$fk]->subtotal ?? 0), 'value' => (float) $g->sum('value'),
             ])->sortByDesc('rate')->values(),
-            // Siigo imprime "Efectivo" en todas las formas de pago y agrega el vencimiento en las de crédito.
+            // Se imprime "Efectivo" en todas las formas de pago y agrega el vencimiento en las de crédito.
             'payments' => $payments->map(fn ($p) => ['name' => $p->name, 'value' => (float) $p->value, 'due_date' => $p->due_date, 'form' => 'Efectivo']),
             'number_label' => $sales && $doc->prefix ? "{$doc->prefix} {$doc->number}" : null,
             'created' => ['by' => $doc->created_by ? DB::table('users')->where('id', $doc->created_by)->value('name')
@@ -173,7 +173,7 @@ class DocumentLocator
         ] + ($sales ? self::salesExtra($doc) : self::purchaseExtra($doc));
     }
 
-    /** Formato de Siigo para compras: datos del proveedor, valor en letras y estado de cuenta de la factura. */
+    /** Formato para compras: datos del proveedor, valor en letras y estado de cuenta de la factura. */
     private static function purchaseExtra(PurchaseDocument $doc): array
     {
         $contact = DB::table('contacts as c')->leftJoin('municipalities as m', 'm.code', '=', 'c.municipality_code')->where('c.id', $doc->contact_id)

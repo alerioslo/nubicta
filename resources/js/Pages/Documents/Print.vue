@@ -28,7 +28,7 @@ onMounted(printWhenReady);
 
 <style scoped>
 .print-bar { padding: 10px; text-align: center; }
-.print-bar button { background: #00a6e0; color: #fff; border: 0; padding: 6px 16px; border-radius: 2px; cursor: pointer; }
+.print-bar button { background: #0275b3; color: #fff; border: 0; padding: 6px 16px; border-radius: 2px; cursor: pointer; }
 .print-purchase { width: 980px; margin: 0 auto 30px; }
 @media print { .print-bar { display: none; } .print-purchase { width: auto; margin: 0; } }
 </style>

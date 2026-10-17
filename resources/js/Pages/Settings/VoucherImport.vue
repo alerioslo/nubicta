@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 
-/* Importación de facturas de venta, documentos de ingreso y comprobantes contables (Siigo TabID 1483). */
+/* Importación de facturas de venta, documentos de ingreso y comprobantes contables. */
 const props = defineProps({ step: Number, kind: String, kinds: Object, preview: Object, types: Array });
 
 const base = '/configuracion/importacion-comprobantes';

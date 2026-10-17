@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue';
 import QRCode from 'qrcode';
 
-/* Formato clasico de Siigo para notas credito: recuadros con tercero, fechas, items y totales. */
+/* Formato clasico para notas credito: recuadros con tercero, fechas, items y totales. */
 const props = defineProps({ doc: Object, company: Object, software: String });
 const d = props.doc;
 const c = props.company ?? {};

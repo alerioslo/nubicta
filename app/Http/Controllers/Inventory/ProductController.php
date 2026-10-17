@@ -136,7 +136,7 @@ class ProductController extends Controller
             : redirect("/productos/{$product->id}/editar")->with('success', 'Producto creado correctamente.');
     }
 
-    /** Perfil del producto como en Siigo: datos generales, stock, lista de precios, impuestos y costo promedio mensual. */
+    /** Perfil del producto: datos generales, stock, lista de precios, impuestos y costo promedio mensual. */
     public function show(Request $request, Product $product): Response
     {
         $product->load(['accountGroup:id,name', 'taxes:id,name,type', 'prices.priceList:id,name,position']);

@@ -102,8 +102,8 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
             <div class="relative">
                 <button type="button" class="s-btn s-btn-outline h-[26px] px-[10px] text-[11px]" @click="tutorials = !tutorials">Ver tutoriales <Icon icon="caret-down" /></button>
                 <div v-if="tutorials" class="absolute left-0 top-[30px] z-20 w-[260px] rounded border border-line bg-white py-1 text-[12px] shadow-lg" @mouseleave="tutorials = false">
-                    <a href="/ayuda?q=cuentas" class="block px-3 py-2 hover:bg-[#f4f9fd]">Cómo crear una cuenta contable</a>
-                    <a href="/ayuda?q=plan" class="block px-3 py-2 hover:bg-[#f4f9fd]">Cómo editar el plan de cuentas</a>
+                    <a href="/ayuda?q=cuentas" class="block px-3 py-2 hover:bg-[#f0f9ff]">Cómo crear una cuenta contable</a>
+                    <a href="/ayuda?q=plan" class="block px-3 py-2 hover:bg-[#f0f9ff]">Cómo editar el plan de cuentas</a>
                 </div>
             </div>
             <button type="button" class="s-btn s-btn-outline ml-auto font-semibold" @click="download('/contabilidad/cuentas/excel', 'xlsx')"><Icon icon="file-excel" /> Descargar Excel</button>

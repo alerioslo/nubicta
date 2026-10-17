@@ -19,7 +19,7 @@ use Inertia\Response;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
-/** Configuración > Nómina > Importación: empleados, contratos y salarios con las plantillas de Siigo (máximo 500 registros). */
+/** Configuración > Nómina > Importación: empleados, contratos y salarios compatible con las plantillas de Siigo para migrar datos (máximo 500 registros). */
 class PayrollImportController extends Controller
 {
     public const KINDS = [

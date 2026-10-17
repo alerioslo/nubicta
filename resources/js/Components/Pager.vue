@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 
-/* Paginador estilo Siigo: "Items por pagina", "1 a 20 de N", flechas. Recibe un paginador de Laravel. */
+/* Paginador: "Items por pagina", "1 a 20 de N", flechas. Recibe un paginador de Laravel. */
 const props = defineProps({ paginator: { type: Object, required: true } });
 
 const p = computed(() => props.paginator);

@@ -2,7 +2,7 @@
 
 /*
  * Pantallas de configuracion de cada tipo de comprobante (Configuracion > Ventas / Compras / Productos / Contabilidad > Documentos).
- * slug => tipo interno, textos, columnas del listado y secciones del formulario tal como las muestra Siigo Nube.
+ * slug => tipo interno, textos, columnas del listado y secciones del formulario.
  */
 
 $saleColumns = ['% Desc.', 'Bodega', 'Código', 'Código arancelario', 'Descripción', 'Impuesto cargo', 'Impuesto cargo dos', 'Impuesto retención', 'Marca',

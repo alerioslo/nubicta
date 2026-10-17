@@ -274,7 +274,7 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
     <div v-if="generating" class="fixed inset-0 z-50 flex items-start justify-center p-3 bg-black/40 pt-[60px] md:pt-[160px]" @click.self="generating = null">
         <div class="w-[480px] max-w-full max-h-[calc(100vh-24px)] overflow-y-auto rounded-[4px] bg-white p-[20px] text-[13px] shadow-xl">
             <div class="flex items-start justify-between"><p class="text-[16px] font-semibold">Generar documentos</p><button type="button" class="text-primary" @click="generating = null"><Icon icon="xmark" /></button></div>
-            <p class="mt-[12px] rounded-[3px] bg-[#e9f5fe] px-[10px] py-[8px]"><Icon icon="circle-info" class="text-[#2196f3]" /> Solamente se generarán las nóminas que se encuentren en estado terminado</p>
+            <p class="mt-[12px] rounded-[3px] bg-[#f0f9ff] px-[10px] py-[8px]"><Icon icon="circle-info" class="text-[#0275b3]" /> Solamente se generarán las nóminas que se encuentren en estado terminado</p>
             <p class="mt-[12px]">Selecciona el periodo de nómina que necesites generar y enviar a la DIAN.</p>
             <label class="mt-[10px] block">
                 <span class="s-label">Periodo de nómina <span class="req">*</span></span>

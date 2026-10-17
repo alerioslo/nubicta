@@ -5,7 +5,7 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { confirmDialog } from '../../composables/dialog';
 import PurchaseSheet from '../../Components/PurchaseSheet.vue';
 
-/* Detalle de compras como en Siigo: titulo y acciones, representacion grafica y debajo informacion general, estado de cuenta y anexos. */
+/* Detalle de compras: titulo y acciones, representacion grafica y debajo informacion general, estado de cuenta y anexos. */
 const props = defineProps({ doc: { type: Object, required: true }, company: Object });
 const d = props.doc;
 const TITLES = { FC: 'Factura de compra / gasto', DS: 'Documento soporte', ND: 'Nota débito', NA: 'Nota de ajuste documento soporte', OC: 'Orden de compra', SI: 'Saldo inicial' };
@@ -41,12 +41,12 @@ function upload(e) {
             <div class="relative">
                 <button type="button" class="s-btn s-btn-outline h-[30px] px-[12px] text-[12px] font-semibold" @click="menu = !menu">Más <Icon icon="caret-down" class="ml-[6px]" /></button>
                 <div v-if="menu" class="absolute left-0 top-[34px] z-20 min-w-[210px] rounded-[4px] border border-line bg-white py-[4px] text-[13px] shadow-lg">
-                    <Link v-if="d.editable && !d.blocker && !annulled" :href="`/documentos/${d.kind}/${d.id}/editar`" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Editar</Link>
-                    <Link v-if="d.copy_url" :href="d.copy_url" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Copiar</Link>
-                    <button v-if="!d.blocker && !annulled" type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff]" @click="annul">Anular</button>
-                    <button type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff]" @click="showLedger = !showLedger; menu = false">{{ showLedger ? 'Ocultar contabilización' : 'Ver contabilización' }}</button>
-                    <a v-if="d.dian?.xml" :href="`/documentos/${d.kind}/${d.id}/xml`" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Descargar XML</a>
-                    <a v-if="d.dian?.response" :href="`/documentos/${d.kind}/${d.id}/xml?tipo=respuesta`" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Respuesta DIAN</a>
+                    <Link v-if="d.editable && !d.blocker && !annulled" :href="`/documentos/${d.kind}/${d.id}/editar`" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Editar</Link>
+                    <Link v-if="d.copy_url" :href="d.copy_url" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Copiar</Link>
+                    <button v-if="!d.blocker && !annulled" type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f9ff]" @click="annul">Anular</button>
+                    <button type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f9ff]" @click="showLedger = !showLedger; menu = false">{{ showLedger ? 'Ocultar contabilización' : 'Ver contabilización' }}</button>
+                    <a v-if="d.dian?.xml" :href="`/documentos/${d.kind}/${d.id}/xml`" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Descargar XML</a>
+                    <a v-if="d.dian?.response" :href="`/documentos/${d.kind}/${d.id}/xml?tipo=respuesta`" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Respuesta DIAN</a>
                 </div>
             </div>
         </div>

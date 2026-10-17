@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import PageHeader from '../../../Components/PageHeader.vue';
 
-/* Importación / Subir productos desde excel (Siigo): paso 1 plantilla y archivo, paso 2 revisión y confirmación. */
+/* Importación / Subir productos desde excel: paso 1 plantilla y archivo, paso 2 revisión y confirmación. */
 const props = defineProps({ step: Number, preview: Object, fields: Array });
 
 const upload = useForm({ file: null });
@@ -42,7 +42,7 @@ const send = () => upload.post('/productos/importar', { forceFormData: true });
         <p class="mt-[4px] text-muted">Máximo 500 registros por archivo</p>
         <form class="mt-[14px]" @submit.prevent="send">
             <label class="flex cursor-pointer flex-col items-center justify-center rounded-[6px] border-2 border-dashed py-[28px]"
-                :class="dragging ? 'border-primary bg-[#f0f7fd]' : 'border-line'"
+                :class="dragging ? 'border-primary bg-[#f0f9ff]' : 'border-line'"
                 @dragover.prevent="dragging = true" @dragleave="dragging = false" @drop.prevent="pick($event.dataTransfer.files[0])">
                 <Icon icon="cloud-arrow-up" class="text-[26px] text-primary" />
                 <span class="mt-[8px]"><span class="text-primary underline">Selecciona un archivo</span> o arrastra aquí el archivo .XLSX - Máx. 1 MB</span>

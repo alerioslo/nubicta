@@ -109,7 +109,7 @@ class PayrollController extends Controller
         ]);
     }
 
-    /** Envios por correo: documentos aprobados por la DIAN con el estado del envio al empleado (filtros de Siigo). */
+    /** Envios por correo: documentos aprobados por la DIAN con el estado del envio al empleado. */
     public static function mailQuery(Request $request)
     {
         return PayrollDocument::query()->whereIn('type', \App\Services\Payroll\ElectronicPayroll::TYPES)->where('status', 'Aprobado')

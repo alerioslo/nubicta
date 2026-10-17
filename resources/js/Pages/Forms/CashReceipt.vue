@@ -6,7 +6,7 @@ import { alertDialog } from '../../composables/dialog';
 import DocSearch from '../../Components/Forms/DocSearch.vue';
 import { onClickOutside } from '../../composables/clickOutside';
 
-/* Recibo de caja igual al de Siigo: pago o abono a deuda (con impuestos y descuentos por documento), anticipo u otro ingreso. */
+/* Recibo de caja: pago o abono a deuda (con impuestos y descuentos por documento), anticipo u otro ingreso. */
 const props = defineProps({ form: Object, initial: Object, docTypes: Array, paymentMethods: Array, withholdings: Array, concepts: Array, today: String });
 const f = props.form;
 const init = props.initial;

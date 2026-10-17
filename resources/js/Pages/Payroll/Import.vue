@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
-/* Importación de empleados, contratos o salarios en tres pasos como Siigo: plantilla, carga y resultados. */
+/* Importación de empleados, contratos o salarios en tres pasos: plantilla, carga y resultados. */
 const props = defineProps({ kind: String, title: String, noun: String, preview: Object });
 
 const base = `/configuracion/nomina/importacion/${props.kind}`;

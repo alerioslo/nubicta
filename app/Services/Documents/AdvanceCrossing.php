@@ -10,7 +10,7 @@ use App\Services\Accounting\AccountResolver;
 use Illuminate\Support\Facades\DB;
 
 /**
- * "Cruce deuda con anticipos" (recibo de pago) y "Cruce cartera con anticipos" (recibo de caja), como en Siigo:
+ * "Cruce deuda con anticipos" (recibo de pago) y "Cruce cartera con anticipos" (recibo de caja):
  * arma un comprobante contable que abona las facturas pendientes más antiguas contra el saldo de anticipos del tercero.
  */
 class AdvanceCrossing

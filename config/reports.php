@@ -1,6 +1,6 @@
 <?php
 
-/* Catalogo de reportes de Siigo Nube. url = pantalla del ERP que ya lo cubre. */
+/* Catalogo de reportes. url = pantalla del ERP que ya lo cubre. */
 return [
     ['section' => 'Favoritos', 'groups' => [
         ['name' => 'Favoritos', 'reports' => [

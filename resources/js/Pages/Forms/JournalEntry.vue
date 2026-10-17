@@ -5,7 +5,7 @@ import DocSearch from '../../Components/Forms/DocSearch.vue';
 import NumInput from '../../Components/Forms/NumInput.vue';
 import { onClickOutside } from '../../composables/clickOutside';
 
-/* Comprobante contable (CC) igual al de Siigo: partida doble con tercero, detalle de cartera / proveedores y "Guardar y ...". */
+/* Comprobante contable (CC): partida doble con tercero, detalle de cartera / proveedores y "Guardar y ...". */
 const props = defineProps({ form: Object, docTypes: Array, today: String, initial: { type: Object, default: null } });
 const f = props.form;
 const money = (v) => Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -31,7 +31,7 @@ function pickAccount(l, idx, a) {
     l.due = null;
     l.inventory_group = a?.inventory_group ?? null;
     l.inventory = null;
-    /* Como Siigo: la linea nueva toma el tercero de la anterior y la diferencia para cuadrar el comprobante. */
+    /* la linea nueva toma el tercero de la anterior y la diferencia para cuadrar el comprobante. */
     const above = doc.items.slice(0, idx).reverse().find((x) => x.contact_id);
     if (a && !l.contact_id && above) {
         l.contact_id = above.contact_id;
@@ -84,7 +84,7 @@ function remove(idx) {
     if (!doc.items.length) doc.items.push(blank());
 }
 
-/* Recomendacion de Siigo al usar cuentas de cartera o proveedores. */
+/* Recomendacion al usar cuentas de cartera o proveedores. */
 const recommend = ref(false);
 
 /* Ventana "Detalle de cartera / proveedores". */

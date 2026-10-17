@@ -107,7 +107,7 @@ class PortfolioController extends Controller
         ]);
     }
 
-    /** Envia por correo el estado de cuenta del cliente (boton "Enviar estado de cuenta" de Siigo). */
+    /** Envia por correo el estado de cuenta del cliente (boton "Enviar estado de cuenta"). */
     public function sendStatement(Request $request, Contact $contact): RedirectResponse
     {
         $data = $request->validate(['email' => ['required', 'email']]);
@@ -139,7 +139,7 @@ class PortfolioController extends Controller
         return back()->with('success', "Estado de cuenta enviado a {$data['email']}");
     }
 
-    /** Vencimientos del tercero con las columnas del estado de cuenta de Siigo (saldo negativo = valor a favor). */
+    /** Vencimientos del tercero con las columnas del estado de cuenta (saldo negativo = valor a favor). */
     public function dues(string $side, Contact $contact, bool $all): Collection
     {
         $cfg = self::SIDES[$side];

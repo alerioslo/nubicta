@@ -19,7 +19,7 @@ use Inertia\Response;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
-/** Importación de facturas de venta, documentos de ingreso y comprobantes contables: la plantilla de Siigo en tres pasos. */
+/** Importación de facturas de venta, documentos de ingreso y comprobantes contables en tres pasos, compatible con la plantilla de Siigo para migrar datos. */
 class VoucherImportController extends Controller
 {
     public const HEAD = ['Tipo de comprobante', 'Consecutivo comprobante', 'Fecha de elaboración ', 'Sigla moneda', 'Tasa de cambio', 'Código cuenta contable',

@@ -10,7 +10,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Pestanas de Siigo que son listados sencillos (muchos vacios en la empresa): misma cabecera, filtros y columnas.
+ * Pestanas que son listados sencillos (muchos vacios en la empresa): cabecera, filtros y columnas.
  * Las que tienen datos propios usan un "source".
  */
 class ModuleViewController extends Controller
@@ -64,7 +64,7 @@ class ModuleViewController extends Controller
         ],
     ];
 
-    /** Pestanas "Mas procesos": tarjetas con los procesos de Siigo (url = pantalla del ERP cuando existe). */
+    /** Pestanas "Mas procesos": tarjetas con los procesos del modulo (url = pantalla del ERP cuando existe). */
     private const PROCESSES = [
         'nomina/mas-procesos' => ['title' => 'Nómina', 'module' => 'nomina', 'tab' => 'Más procesos', 'cards' => [
             ['Planilla pago seguridad social', [['Liquidación planilla integrada de aportes', '/nomina/pila']]],
@@ -255,7 +255,7 @@ class ModuleViewController extends Controller
             });
     }
 
-    /** Acciones del mes como en Siigo: Descargar detalle con desplegable Ver comprobante / Volver a costear. */
+    /** Acciones del mes: Descargar detalle con desplegable Ver comprobante / Volver a costear. */
     private function costingActions(?InventoryCosting $c, bool $ok, bool $canRun, string $url, string $month, int $year, int $m): array
     {
         $confirm = "Se recalculará el costo promedio de los movimientos de {$month} {$year} y se contabilizará la diferencia en el costo de ventas. ¿Continuar?";

@@ -9,7 +9,7 @@ use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** Configuracion general de nomina (pantalla "Configuracion de nomina" de Siigo). */
+/** Configuracion general de nomina (pantalla "Configuracion de nomina"). */
 class PayrollSettingsController extends Controller
 {
     public const PILA_OPERATORS = ['Aportes en Línea', 'Asopagos', 'Compensar - Mi Planilla', 'Enlace Operativo', 'Pila Fácil (Simple)', 'SOI'];

@@ -6,7 +6,7 @@ import { confirmDialog, promptDialog } from '../../composables/dialog';
 import ReceiptSheet from '../../Components/ReceiptSheet.vue';
 import { onClickOutside } from '../../composables/clickOutside';
 
-/* Recibo de caja / de pago abierto como en Siigo: barra de acciones, "Creado:" y la hoja del recibo. */
+/* Recibo de caja / de pago abierto: barra de acciones, "Creado:" y la hoja del recibo. */
 const props = defineProps({ doc: { type: Object, required: true }, company: Object });
 const d = props.doc;
 const page = usePage();

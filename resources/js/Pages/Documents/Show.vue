@@ -7,7 +7,7 @@ import PageHeader from '../../Components/PageHeader.vue';
 import DocumentSheet from '../../Components/DocumentSheet.vue';
 
 /* Detalle de un documento con su contabilizacion, movimientos de inventario y acciones (editar, anular, imprimir, XML).
-   Los documentos de venta se ven como en Siigo: estado DIAN y correo arriba y la representacion grafica debajo. */
+   Los documentos de venta muestran el estado DIAN y correo arriba y la representacion grafica debajo. */
 const props = defineProps({ doc: { type: Object, required: true }, company: Object, resolution: Object });
 const d = props.doc;
 const sale = d.kind === 'ventas';
@@ -78,10 +78,10 @@ async function sendMail() {
             <div class="relative">
                 <button type="button" class="s-btn s-btn-outline h-[34px] px-[16px] text-[13px] font-semibold" @click="menu = menu === 'mas' ? '' : 'mas'">Más <Icon icon="caret-down" class="ml-[6px]" /></button>
                 <div v-if="menu === 'mas'" class="absolute left-0 top-[38px] z-20 min-w-[210px] rounded-[4px] border border-line bg-white py-[4px] text-[13px] shadow-lg">
-                    <Link v-if="d.copy_url" :href="d.copy_url" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Copiar</Link>
-                    <button v-if="!d.blocker && !annulled" type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff]" @click="annul">Anular</button>
-                    <button type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff]" @click="showLedger = !showLedger; menu = ''">{{ showLedger ? 'Ocultar contabilización' : 'Ver contabilización' }}</button>
-                    <a v-if="d.dian?.xml" :href="`/documentos/${d.kind}/${d.id}/xml`" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Descargar XML</a>
+                    <Link v-if="d.copy_url" :href="d.copy_url" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Copiar</Link>
+                    <button v-if="!d.blocker && !annulled" type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f9ff]" @click="annul">Anular</button>
+                    <button type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f9ff]" @click="showLedger = !showLedger; menu = ''">{{ showLedger ? 'Ocultar contabilización' : 'Ver contabilización' }}</button>
+                    <a v-if="d.dian?.xml" :href="`/documentos/${d.kind}/${d.id}/xml`" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Descargar XML</a>
                 </div>
             </div>
         </div>
@@ -91,15 +91,15 @@ async function sendMail() {
                     <Link :href="`/ventas/facturas/crear?desde=${d.id}`" class="s-btn h-[34px] rounded-r-none bg-[#6cb42c] px-[16px] text-[13px] font-semibold text-white hover:bg-[#5ea226]">Facturar</Link>
                     <button type="button" class="s-btn h-[34px] rounded-l-none border-l border-[#ffffff66] bg-[#6cb42c] px-[8px] text-white hover:bg-[#5ea226]" @click="menu = menu === 'fac' ? '' : 'fac'"><Icon icon="caret-down" /></button>
                     <div v-if="menu === 'fac'" class="absolute left-[66px] top-[38px] z-20 min-w-[178px] rounded-[4px] bg-white py-[4px] text-[13px] shadow-lg">
-                        <Link :href="`/ventas/remisiones/crear?desde=${d.id}`" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Remisionar</Link>
+                        <Link :href="`/ventas/remisiones/crear?desde=${d.id}`" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Remisionar</Link>
                     </div>
                 </div>
                 <div class="relative flex">
                     <button type="button" class="s-btn s-btn-outline h-[34px] rounded-r-none px-[16px] text-[13px] font-semibold disabled:opacity-60" :disabled="!!d.blocker" :title="d.blocker" @click="setStatus(d.quote_status === 'approved' ? 'pendiente' : 'aprobar')">{{ d.quote_status === 'approved' ? 'Aprobada' : 'Aprobar' }}</button>
                     <button type="button" class="s-btn s-btn-outline h-[34px] rounded-l-none border-l-0 px-[8px] disabled:opacity-60" :disabled="!!d.blocker" @click="menu = menu === 'apr' ? '' : 'apr'"><Icon icon="caret-down" /></button>
                     <div v-if="menu === 'apr'" class="absolute right-0 top-[38px] z-20 min-w-[178px] rounded-[4px] bg-white py-[4px] text-[13px] shadow-lg">
-                        <button v-if="d.quote_status !== 'discarded'" type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff]" @click="setStatus('descartar')">Descartar</button>
-                        <button v-else type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff]" @click="setStatus('pendiente')">Volver a pendiente</button>
+                        <button v-if="d.quote_status !== 'discarded'" type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f9ff]" @click="setStatus('descartar')">Descartar</button>
+                        <button v-else type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f9ff]" @click="setStatus('pendiente')">Volver a pendiente</button>
                     </div>
                 </div>
                 <span class="h-[26px] border-l border-line"></span>
@@ -108,11 +108,11 @@ async function sendMail() {
                 <div class="relative">
                     <button type="button" class="s-btn s-btn-outline h-[34px] px-[14px] text-[13px] font-semibold" @click="menu = menu === 'mas' ? '' : 'mas'">Más <Icon icon="caret-down" class="ml-[6px]" /></button>
                     <div v-if="menu === 'mas'" class="absolute left-[-120px] top-[38px] z-20 min-w-[178px] rounded-[4px] bg-white py-[4px] text-[13px] shadow-lg">
-                        <Link v-if="d.copy_url" :href="d.copy_url" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Copiar cotización</Link>
-                        <button type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff] disabled:text-[#bdbdbd]" :disabled="!!d.blocker" :title="d.blocker" @click="removeQuote">Borrar</button>
-                        <Link href="/ventas/recibos/crear" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Registrar anticipo</Link>
-                        <Link href="/ventas/seguimiento-comercial/crear" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Crear seguimiento comercial</Link>
-                        <button type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff]" @click="copyUrl">Copiar URL cotización</button>
+                        <Link v-if="d.copy_url" :href="d.copy_url" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Copiar cotización</Link>
+                        <button type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f9ff] disabled:text-[#bdbdbd]" :disabled="!!d.blocker" :title="d.blocker" @click="removeQuote">Borrar</button>
+                        <Link href="/ventas/recibos/crear" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Registrar anticipo</Link>
+                        <Link href="/ventas/seguimiento-comercial/crear" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Crear seguimiento comercial</Link>
+                        <button type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f9ff]" @click="copyUrl">Copiar URL cotización</button>
                     </div>
                 </div>
             </div>
@@ -131,12 +131,12 @@ async function sendMail() {
                 <div class="relative" @click.stop>
                     <button type="button" class="s-btn s-btn-outline h-[34px] px-[16px] text-[13px]" @click="menu = menu === 'mas' ? '' : 'mas'">Más <Icon icon="caret-down" class="ml-[6px]" /></button>
                     <div v-if="menu === 'mas'" class="absolute left-0 top-[38px] z-20 min-w-[210px] rounded-[4px] border border-line bg-white py-[4px] text-[13px] shadow-lg">
-                        <Link v-if="d.copy_url" :href="d.copy_url" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Copiar</Link>
-                        <button v-if="!d.blocker && !annulled" type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff]" @click="annul">Anular</button>
-                        <button type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f7ff]" @click="showLedger = !showLedger; menu = ''">{{ showLedger ? 'Ocultar contabilización' : 'Ver contabilización' }}</button>
-                        <a v-if="d.dian?.xml" :href="`/documentos/${d.kind}/${d.id}/xml`" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Descargar XML</a>
-                        <a v-if="d.dian?.response" :href="`/documentos/${d.kind}/${d.id}/xml?tipo=respuesta`" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">Respuesta DIAN</a>
-                        <a v-if="d.dian?.attached" :href="`/documentos/${d.kind}/${d.id}/xml?tipo=contenedor`" class="block px-[14px] py-[7px] hover:bg-[#f0f7ff]">AttachedDocument</a>
+                        <Link v-if="d.copy_url" :href="d.copy_url" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Copiar</Link>
+                        <button v-if="!d.blocker && !annulled" type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f9ff]" @click="annul">Anular</button>
+                        <button type="button" class="block w-full px-[14px] py-[7px] text-left hover:bg-[#f0f9ff]" @click="showLedger = !showLedger; menu = ''">{{ showLedger ? 'Ocultar contabilización' : 'Ver contabilización' }}</button>
+                        <a v-if="d.dian?.xml" :href="`/documentos/${d.kind}/${d.id}/xml`" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Descargar XML</a>
+                        <a v-if="d.dian?.response" :href="`/documentos/${d.kind}/${d.id}/xml?tipo=respuesta`" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">Respuesta DIAN</a>
+                        <a v-if="d.dian?.attached" :href="`/documentos/${d.kind}/${d.id}/xml?tipo=contenedor`" class="block px-[14px] py-[7px] hover:bg-[#f0f9ff]">AttachedDocument</a>
                     </div>
                 </div>
             </div>
@@ -366,5 +366,5 @@ async function sendMail() {
 
 <style scoped>
 .icon-btn { display: inline-flex; height: 34px; width: 34px; align-items: center; justify-content: center; border-radius: 9999px; border: 1px solid #d5dbe3; background: #fff; color: #0b4f8a; font-size: 14px; }
-.icon-btn:hover { background: #f0f7ff; }
+.icon-btn:hover { background: #f0f9ff; }
 </style>

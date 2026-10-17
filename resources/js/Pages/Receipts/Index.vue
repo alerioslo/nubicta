@@ -47,14 +47,14 @@ function send() {
             <div class="relative" @click.stop>
                 <button type="button" class="s-btn s-btn-outline" @click="menu = menu === 'rep' ? null : 'rep'">Ver reportes <Icon icon="caret-down" /></button>
                 <div v-if="menu === 'rep'" class="absolute right-0 top-[40px] z-30 w-[280px] rounded-[6px] bg-white py-[6px] shadow-lg">
-                    <Link v-for="[l, u] in REPORTS" :key="l" :href="u" class="block px-[14px] py-[8px] text-[13px] text-ink hover:bg-[#f0f7fd]">{{ l }}</Link>
+                    <Link v-for="[l, u] in REPORTS" :key="l" :href="u" class="block px-[14px] py-[8px] text-[13px] text-ink hover:bg-[#f0f9ff]">{{ l }}</Link>
                 </div>
             </div>
             <div class="relative inline-flex" @click.stop>
                 <Link :href="rc ? '/ventas/recibos/crear' : '/compras/egresos/crear'" class="s-btn s-btn-primary rounded-r-none">{{ rc ? 'Crear Recibo de caja' : 'Crear Recibo de pago' }}</Link>
                 <button type="button" class="s-btn s-btn-primary rounded-l-none border-l border-white/40 px-[12px]" aria-label="Más opciones" @click="menu = menu === 'crear' ? null : 'crear'"><Icon icon="caret-down" /></button>
                 <div v-if="menu === 'crear'" class="absolute right-0 top-[40px] z-30 w-[230px] rounded-[6px] bg-white py-[6px] shadow-lg">
-                    <Link href="/contabilidad/ajustes-cartera/crear" class="block px-[14px] py-[8px] text-[13px] text-ink hover:bg-[#f0f7fd]">Ajuste de cartera / proveedores</Link>
+                    <Link href="/contabilidad/ajustes-cartera/crear" class="block px-[14px] py-[8px] text-[13px] text-ink hover:bg-[#f0f9ff]">Ajuste de cartera / proveedores</Link>
                 </div>
             </div>
         </ListFilters>

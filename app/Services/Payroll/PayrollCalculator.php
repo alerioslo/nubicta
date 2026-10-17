@@ -8,7 +8,7 @@ use Illuminate\Support\Collection;
 
 /**
  * Liquida un empleado en un periodo (mensual o quincenal) con sus novedades.
- * Devengos, deducciones del trabajador, aportes del empleador y provisiones de prestaciones, igual que el CC-992 de Siigo.
+ * Devengos, deducciones del trabajador, aportes del empleador y provisiones de prestaciones, contabilizados en el CC-992.
  */
 class PayrollCalculator
 {

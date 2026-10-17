@@ -5,7 +5,7 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { confirmDialog } from '../../composables/dialog';
 import JournalSheet from '../../Components/JournalSheet.vue';
 
-/* Comprobante contable como en Siigo: titulo, "Descargar e imprimir" y "Más" centrados, la hoja del comprobante y los adjuntos. */
+/* Comprobante contable: titulo, "Descargar e imprimir" y "Más" centrados, la hoja del comprobante y los adjuntos. */
 const props = defineProps({ doc: { type: Object, required: true }, company: Object });
 const d = props.doc;
 const TITLES = { inventory_traslado: 'Nota de traslado entre bodegas', inventory_ensamble: 'Nota de ensamble', money_transfer: 'Traslado de dinero', portfolio_adjustment: 'Ajuste de cartera / proveedores' };
@@ -103,7 +103,7 @@ function upload(e) {
 
 <style scoped>
 .item { display: block; width: 100%; padding: 6px 14px; text-align: left; }
-.item:hover { background: #f0f7ff; }
+.item:hover { background: #f0f9ff; }
 .item.off { color: #bdbdbd; cursor: not-allowed; }
 .item.off:hover { background: transparent; }
 </style>

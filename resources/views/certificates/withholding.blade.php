@@ -6,15 +6,15 @@
     <style>
         body { font: 12px/1.45 Arial, sans-serif; color: #222; margin: 0; background: #f3f6f9; }
         .bar { text-align: center; padding: 10px; }
-        .bar button { background: #00a6e0; color: #fff; border: 0; padding: 6px 16px; border-radius: 2px; cursor: pointer; }
+        .bar button { background: #0275b3; color: #fff; border: 0; padding: 6px 16px; border-radius: 2px; cursor: pointer; }
         .sheet { width: 760px; margin: 0 auto 24px; background: #fff; padding: 36px 40px; box-shadow: 0 0 6px #0002; page-break-after: always; }
         h1 { font-size: 15px; text-align: center; margin: 0 0 4px; }
         h2 { font-size: 13px; text-align: center; margin: 0 0 18px; font-weight: normal; }
         table { width: 100%; border-collapse: collapse; margin: 14px 0; }
-        th { background: #00a6e0; color: #fff; text-align: left; padding: 5px; }
+        th { background: #0275b3; color: #fff; text-align: left; padding: 5px; }
         td { border-bottom: 1px solid #ddd; padding: 5px; }
         .r { text-align: right; }
-        .tt td { font-weight: bold; border-top: 2px solid #00a6e0; }
+        .tt td { font-weight: bold; border-top: 2px solid #0275b3; }
         .sign { margin-top: 60px; width: 280px; border-top: 1px solid #222; padding-top: 4px; }
         .small { font-size: 10.5px; color: #555; }
         @media print { body { background: #fff; } .bar { display: none; } .sheet { box-shadow: none; margin: 0; width: auto; } }

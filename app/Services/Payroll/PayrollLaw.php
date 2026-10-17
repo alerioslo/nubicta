@@ -13,7 +13,7 @@ class PayrollLaw
     /** Tarifa ARL por clase de riesgo (Decreto 1772 de 1994). */
     public const ARL = [1 => 0.00522, 2 => 0.01044, 3 => 0.02436, 4 => 0.0435, 5 => 0.0696];
 
-    /** Factor sobre la hora ordinaria: horas extra (valor total) y recargos (solo el recargo). Se toman de los conceptos de Siigo. */
+    /** Factor sobre la hora ordinaria: horas extra (valor total) y recargos (solo el recargo). */
     public const OVERTIME = [
         'hed' => ['Horas extras diurnas 125%', 1.25], 'hen' => ['Horas extras nocturnas 175%', 1.75], 'rn' => ['Recargo nocturno', 0.35],
         'rdf' => ['Recargo dominical o festivo', 0.90], 'hedf' => ['Hora extra diurna dominical o festiva', 2.15],

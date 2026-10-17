@@ -23,7 +23,7 @@ class BankAccount extends Model
         return $this->belongsTo(Account::class);
     }
 
-    /** Como Siigo: una caja o banco es una cuenta de categoría "Caja - Bancos" relacionada con una forma de pago activa. */
+    /** una caja o banco es una cuenta de categoría "Caja - Bancos" relacionada con una forma de pago activa. */
     public static function syncFromPaymentMethods(int $companyId): void
     {
         $accounts = \Illuminate\Support\Facades\DB::table('payment_methods as p')->join('accounts as a', 'a.id', '=', 'p.account_id')

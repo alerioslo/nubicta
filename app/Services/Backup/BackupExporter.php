@@ -18,7 +18,7 @@ class BackupExporter
         $disk = Storage::disk(config('backup.disk'));
         $tmp = storage_path('app/tmp/backup-'.$backup->id.'-'.bin2hex(random_bytes(4)));
         File::ensureDirectoryExists($tmp.'/data');
-        $relative = 'backups/friigo-respaldo-'.now()->format('Ymd-His').'-'.$backup->id.'.zip';
+        $relative = 'backups/nubicta-respaldo-'.now()->format('Ymd-His').'-'.$backup->id.'.zip';
         $zipPath = $disk->path($relative);
         File::ensureDirectoryExists(dirname($zipPath));
 
@@ -67,15 +67,15 @@ class BackupExporter
 
             $company = DB::table('companies')->orderBy('id')->first(['business_name', 'nit']);
             $manifest = [
-                'app' => 'friigo', 'format' => config('backup.format'), 'edition' => config('backup.edition'), 'created_at' => now()->toIso8601String(),
+                'app' => 'nubicta', 'format' => config('backup.format'), 'edition' => config('backup.edition'), 'created_at' => now()->toIso8601String(),
                 'company' => ['name' => $company?->business_name, 'nit' => $company?->nit],
                 'migrations' => DB::table('migrations')->orderBy('id')->pluck('migration'),
                 'tables' => $tables, 'files' => $files, 'public' => $public,
             ];
             $add('manifest.json', null, json_encode($manifest, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-            $zip->addFromString('LEEME.txt', "Respaldo de Friigo. Contiene toda la información de la empresa {$company?->business_name}.\n"
+            $zip->addFromString('LEEME.txt', "Respaldo de Nubicta. Contiene toda la información de la empresa {$company?->business_name}.\n"
                 ."Los archivos están cifrados (AES-256) con la contraseña que elegiste al generarlo.\n"
-                ."Para restaurarlo: Configuración > Copias de seguridad > Restaurar, en Friigo nube o en Friigo privado.\n");
+                ."Para restaurarlo: Configuración > Copias de seguridad > Restaurar, en Nubicta nube o en Nubicta privado.\n");
             if (! $zip->close()) {
                 throw new RuntimeException('No se pudo terminar el archivo de respaldo.');
             }

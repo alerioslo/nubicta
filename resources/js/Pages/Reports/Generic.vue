@@ -143,7 +143,7 @@ function download(format) {
 }
 
 const data = computed(() => props.rows.data ?? []);
-const colKey = `friigo.report.columns.${props.slug}`;
+const colKey = `nubicta.report.columns.${props.slug}`;
 const hidden = ref(props.report.column_picker ? JSON.parse(localStorage.getItem(colKey) ?? 'null') ?? props.report.hidden ?? [] : props.report.hidden ?? []);
 const pickerOpen = ref(false);
 function toggleColumn(k) {
@@ -182,7 +182,7 @@ function go(page, perPage = p.value.per_page) {
     router.get(`/reportes/${props.slug}`, { ...params(), page, per_page: perPage }, { preserveScroll: true });
 }
 
-const favKey = 'friigo.report.favorites';
+const favKey = 'nubicta.report.favorites';
 const favorites = ref(JSON.parse(localStorage.getItem(favKey) || '[]'));
 const isFav = computed(() => favorites.value.includes(props.slug));
 function toggleFav() {
@@ -201,7 +201,7 @@ function toggleFav() {
             <svg v-else viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2.8l2.8 5.8 6.4.9-4.6 4.5 1.1 6.3L12 17.3l-5.7 3 1.1-6.3-4.6-4.5 6.4-.9z" /></svg>
         </button>
     </div>
-    <p v-if="report.note && report.banner" class="mb-[12px] flex items-center gap-[10px] rounded-[4px] border border-[#9fd3f7] bg-[#e8f5fe] px-[14px] py-[9px] text-[12.5px] text-ink"><Icon icon="circle-info" class="text-primary" /> {{ report.note }}</p>
+    <p v-if="report.note && report.banner" class="mb-[12px] flex items-center gap-[10px] rounded-[4px] border border-[#bae6fd] bg-[#f0f9ff] px-[14px] py-[9px] text-[12.5px] text-ink"><Icon icon="circle-info" class="text-primary" /> {{ report.note }}</p>
     <p v-else-if="report.note" class="mb-[10px] text-[12px] text-muted"><Icon icon="circle-info" class="text-primary" /> {{ report.note }}</p>
 
     <section class="s-card overflow-hidden">
@@ -257,7 +257,7 @@ function toggleFav() {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(r, i) in data" :key="i" class="hover:bg-[#eaf5fd]" :class="{ 'font-bold': r.bold }">
+                    <tr v-for="(r, i) in data" :key="i" class="hover:bg-[#f0f9ff]" :class="{ 'font-bold': r.bold }">
                         <td v-for="[k, c] in columns" :key="k" class="truncate border-b border-[#edf0f2] px-[12px] py-[9px]" :style="{ maxWidth: report.narrow?.includes(k) ? '120px' : '260px' }" :class="{ 'text-right whitespace-nowrap': numeric(c[1]) }" :title="c[1] === 'text' ? r[k] : null">
                             <Link v-if="link(k, r)" :href="link(k, r)" class="text-primary hover:underline">{{ fmt(r[k], c[1]) }}</Link>
                             <template v-else>{{ fmt(r[k], c[1]) }}</template>

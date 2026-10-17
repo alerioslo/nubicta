@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /** Impuestos (retenciones) y descuentos o ajustes de cada documento abonado en un recibo, como en Siigo. */
+    /** Impuestos (retenciones) y descuentos o ajustes de cada documento abonado en un recibo. */
     public function up(): void
     {
         Schema::create('receipt_item_adjustments', function (Blueprint $table) {

@@ -16,7 +16,7 @@ const badge = (s) => ({ aprobado: ['Completado', 'bg-[#5a9e2b] text-white'], en_
             Para iniciar a facturar electrónicamente debes realizar el proceso de habilitación de tus documentos, selecciona el que se ajuste a tus necesidades.
         </p>
 
-        <div class="mt-4 flex overflow-hidden rounded border border-[#8cc8f5] bg-[#eaf5fc] text-[13px]">
+        <div class="mt-4 flex overflow-hidden rounded border border-[#8cc8f5] bg-[#f0f9ff] text-[13px]">
             <div class="flex w-[46px] items-center justify-center bg-primary text-white"><Icon icon="circle-info" /></div>
             <div class="px-4 py-3 text-ink">
                 <p class="font-bold">Recuerda que debes tener a la mano los siguientes datos:</p>
@@ -29,7 +29,7 @@ const badge = (s) => ({ aprobado: ['Completado', 'bg-[#5a9e2b] text-white'], en_
         <div class="mt-4 grid w-full max-w-[790px] grid-cols-1 gap-[18px] md:grid-cols-2">
             <section v-for="c in cards" :key="c.title" class="s-card p-[20px]">
                 <div class="flex gap-4">
-                    <span class="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[6px] border border-line bg-[#f5f9fd] text-[26px] text-primary"><Icon :icon="c.icon" /></span>
+                    <span class="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[6px] border border-line bg-[#f0f9ff] text-[26px] text-primary"><Icon :icon="c.icon" /></span>
                     <div>
                         <h3 class="text-[16px] font-bold text-ink">{{ c.title }}</h3>
                         <span class="rounded-[3px] px-2 py-[1px] text-[11px] font-bold" :class="badge(c.status)[1]">{{ badge(c.status)[0] }}</span>

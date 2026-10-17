@@ -96,7 +96,7 @@ const submitUpload = () => upload.post('/bancos/conciliacion/importar', { forceF
                     <table class="s-table">
                         <thead><tr><th></th><th>Fecha</th><th>Descripción</th><th class="text-right">Valor</th><th>Contabilizar como</th><th></th></tr></thead>
                         <tbody>
-                            <tr v-for="l in s.bank_only" :key="l.id" :class="picked.bank === l.id && 'bg-[#e3f1fb]'">
+                            <tr v-for="l in s.bank_only" :key="l.id" :class="picked.bank === l.id && 'bg-[#e0f2fe]'">
                                 <td><input v-model="picked.bank" type="radio" :value="l.id" /></td>
                                 <td class="whitespace-nowrap">{{ l.date }}</td>
                                 <td class="max-w-[220px]"><div class="truncate" :title="l.description">{{ l.description }}</div><div class="text-[10.5px] text-muted">{{ l.reference }} {{ l.branch }}</div></td>
@@ -126,7 +126,7 @@ const submitUpload = () => upload.post('/bancos/conciliacion/importar', { forceF
                     <table class="s-table">
                         <thead><tr><th></th><th>Fecha</th><th>Comprobante</th><th>Tercero</th><th class="text-right">Valor</th></tr></thead>
                         <tbody>
-                            <tr v-for="l in s.book_only" :key="l.id" :class="[picked.book === l.id && 'bg-[#e3f1fb]', sameAmount(l) && picked.book !== l.id && 'bg-[#fff8e1]']">
+                            <tr v-for="l in s.book_only" :key="l.id" :class="[picked.book === l.id && 'bg-[#e0f2fe]', sameAmount(l) && picked.book !== l.id && 'bg-[#fff8e1]']">
                                 <td><input v-model="picked.book" type="radio" :value="l.id" /></td>
                                 <td class="whitespace-nowrap">{{ l.date }}</td>
                                 <td class="whitespace-nowrap">{{ l.document }}</td>

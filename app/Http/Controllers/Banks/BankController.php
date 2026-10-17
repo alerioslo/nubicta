@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** Cajas y bancos: "Saldos de cuentas bancarias / cajas" de Siigo. */
+/** Cajas y bancos: "Saldos de cuentas bancarias / cajas". */
 class BankController extends Controller
 {
     public function index(): Response

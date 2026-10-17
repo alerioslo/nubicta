@@ -1,6 +1,6 @@
 <?php
 
-/* Menu de Configuracion (engranaje), con los mismos grupos, textos y orden del menu de Siigo Nube. */
+/* Menu de Configuracion (engranaje): grupos, opciones y rutas. */
 
 $item = fn (string $label, string $url) => ['label' => $label, 'url' => $url];
 $sales = [
@@ -25,7 +25,7 @@ return [
         ['title' => 'Organización', 'column' => 0, 'items' => [
             $item('Perfil de la organización', '/configuracion/empresa'),
             $item('Logo para impresión de comprobantes', '/configuracion/empresa?seccion=logo'),
-            $item('Contrato Siigo nube', '/configuracion/ajustes/contrato'),
+            $item('Contrato de servicio', '/configuracion/ajustes/contrato'),
         ]],
         ['title' => 'Usuarios', 'column' => 0, 'items' => [
             $item('Creación Usuarios', '/configuracion/usuarios/crear'),

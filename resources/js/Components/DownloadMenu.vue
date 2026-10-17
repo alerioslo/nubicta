@@ -1,7 +1,7 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
-/* Boton "Descargar" de Siigo con las opciones Excel y PDF; emite el formato elegido. */
+/* Boton "Descargar" con las opciones Excel y PDF; emite el formato elegido. */
 const props = defineProps({
     formats: { type: Array, default: () => ['xlsx', 'pdf'] },
     buttonClass: { type: String, default: '' },

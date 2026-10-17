@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Unico punto de escritura del kardex. Costo promedio ponderado por producto (todas las bodegas),
- * igual que Siigo: las entradas recalculan el promedio, las salidas salen al promedio vigente.
+ * las entradas recalculan el promedio, las salidas salen al promedio vigente.
  */
 class InventoryService
 {

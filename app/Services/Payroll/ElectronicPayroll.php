@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * Documentos electronicos de nomina como en Siigo: un "Soporte de pago" mensual por empleado (DNE-n) que suma las nominas
+ * Documentos electronicos de nomina: un "Soporte de pago" mensual por empleado (DNE-n) que suma las nominas
  * terminadas del periodo, su envio a la DIAN y las notas de ajuste (reemplazar o eliminar).
  */
 class ElectronicPayroll
@@ -21,7 +21,7 @@ class ElectronicPayroll
 
     public const TYPES = ['Soporte de pago', 'Nota de ajuste'];
 
-    /** Configuracion > Prefijos y Provisiones mensuales de Siigo (payroll_settings.electronic de la empresa). */
+    /** Configuracion > Prefijos y Provisiones mensuales (payroll_settings.electronic de la empresa). */
     public const DEFAULT_CONFIG = ['prefix' => 'DNE', 'start' => 1, 'note_prefix' => 'DNA', 'note_start' => 1, 'sum_provisions' => false];
 
     private const FINISHED = ['posted', 'paid', 'Terminada'];

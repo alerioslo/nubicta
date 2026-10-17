@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * En el respaldo los valores cifrados (correos, telefonos, claves, certificados, historial) viajan descifrados
  * dentro del ZIP protegido con la contraseña del respaldo, marcados como ⟦enc:base64⟧. Al restaurar se vuelven a
- * cifrar con la llave del sistema destino, asi el respaldo sirve entre Friigo privado y Friigo nube.
+ * cifrar con la llave del sistema destino, asi el respaldo sirve entre Nubicta privado y Nubicta nube.
  */
 final class SecretCodec
 {

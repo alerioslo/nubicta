@@ -21,7 +21,7 @@ const filtered = computed(() => props.sections
                 <Icon icon="magnifying-glass" class="absolute left-3 top-[10px] text-muted" />
                 <input v-model="q" class="s-input pl-9" placeholder="¿Qué necesitas hacer?" />
             </span>
-            <a v-for="s in sections" :key="s.id" :href="`#${s.id}`" class="rounded-full bg-[#e3f1fb] px-3 py-[5px] text-[12px] text-primary hover:underline">{{ s.title }}</a>
+            <a v-for="s in sections" :key="s.id" :href="`#${s.id}`" class="rounded-full bg-[#e0f2fe] px-3 py-[5px] text-[12px] text-primary hover:underline">{{ s.title }}</a>
         </div>
     </div>
 

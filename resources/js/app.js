@@ -5,8 +5,15 @@ import './icons';
 import AppLayout from './Layouts/AppLayout.vue';
 import AppDialog from './Components/AppDialog.vue';
 
+for (const key of Object.keys(localStorage)) {
+    if (key.startsWith('friigo.')) {
+        localStorage.setItem(`nubicta.${key.slice(7)}`, localStorage.getItem(key));
+        localStorage.removeItem(key);
+    }
+}
+
 createInertiaApp({
-    title: (title) => (title ? `${title} - ERP` : 'ERP'),
+    title: (title) => (title ? `${title} - Nubicta` : 'Nubicta'),
     resolve: (name) => {
         const pages = import.meta.glob('./Pages/**/*.vue', { eager: true });
         const page = pages[`./Pages/${name}.vue`];
@@ -24,5 +31,5 @@ createInertiaApp({
             .component('Icon', FontAwesomeIcon)
             .mount(el);
     },
-    progress: { color: '#009dff' },
+    progress: { color: '#0275b3' },
 });

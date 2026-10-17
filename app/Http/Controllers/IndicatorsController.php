@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** Inicio > Indicadores y Habilitaciones electronicas, con las mismas tarjetas de Siigo. */
+/** Inicio > Indicadores y Habilitaciones electronicas. */
 class IndicatorsController extends Controller
 {
     public const PERIODS = ['mes' => 'Mes actual', 'trimestre' => 'Trimestre actual', 'semestre' => 'Semestre actual', 'anio' => 'Año actual'];
@@ -70,7 +70,7 @@ class IndicatorsController extends Controller
         return Inertia::render('Enablement', [
             'tabs' => self::homeTabs(),
             'cards' => [
-                ['title' => 'Facturación electrónica en Siigo Nube', 'text' => 'Emite cómodamente tus facturas directamente desde tu computador.', 'action' => 'Crear Factura E.', 'href' => '/ventas/facturas/crear', 'status' => $status('fe'), 'icon' => 'file-invoice-dollar'],
+                ['title' => 'Facturación electrónica', 'text' => 'Emite cómodamente tus facturas directamente desde tu computador.', 'action' => 'Crear Factura E.', 'href' => '/ventas/facturas/crear', 'status' => $status('fe'), 'icon' => 'file-invoice-dollar'],
                 ['title' => 'Documento soporte electrónico', 'text' => 'Registra transacciones electrónicas para sujetos no obligados a facturar.', 'action' => 'Crear Doc. Soporte', 'href' => '/compras/documentos-soporte/crear', 'status' => $status('ds'), 'icon' => 'file-lines'],
                 ['title' => 'Nómina electrónica', 'text' => 'Envía tus nóminas de manera electrónica a la DIAN sin complicaciones.', 'action' => 'Continuar', 'href' => '/nomina/documentos', 'status' => $status('nomina'), 'icon' => 'user-tie'],
             ],

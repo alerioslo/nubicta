@@ -4,7 +4,7 @@ import QRCode from 'qrcode';
 import NoteSheet from './NoteSheet.vue';
 import QuoteSheet from './QuoteSheet.vue';
 
-/* Representacion grafica de un documento de venta con el formato de Siigo (impresion individual, por lotes y PDF del correo). */
+/* Representacion grafica de un documento de venta (impresion individual, por lotes y PDF del correo). */
 const props = defineProps({ doc: Object, company: Object, resolution: Object });
 const d = props.doc;
 const c = props.company ?? {};
@@ -25,7 +25,7 @@ const months = (() => {
 })();
 const software = d.source === 'siigo'
     ? 'Fabricante Software y Proveedor tecnológico: Siigo SAS - NIT 830.048.145-8, Nombre Software: Siigo Nube. Firma electrónica: ver en el XML'
-    : `Fabricante Software y Proveedor tecnológico: ${c.name ?? ''} - NIT ${nit(c.nit_number, c.dv)}, Nombre Software: Friigo. Firma electrónica: ver en el XML`;
+    : `Software propio: Nubicta (licencia MIT) · Fabricante del software: ${c.name ?? ''} - NIT ${nit(c.nit_number, c.dv)} · Firma electrónica: ver en el XML`;
 
 onMounted(async () => {
     if (d.dian?.qr) qr.value = await QRCode.toDataURL(d.dian.qr, { margin: 0, width: 140 });
@@ -150,7 +150,7 @@ onMounted(async () => {
 .obs { text-align: left; margin-bottom: 10px !important; white-space: pre-line; }
 .cufe { word-break: break-all; }
 @media print { .sheet { margin: 0; width: auto; page-break-after: always; } }
-/* Tirilla de impresora POS (80 mm): sin logo ni textos laterales, encabezado a la izquierda y QR a la derecha como la de Siigo. */
+/* Tirilla de impresora POS (80 mm): sin logo ni textos laterales, encabezado a la izquierda y QR a la derecha. */
 @media (max-width: 480px) {
     .sheet { width: auto; margin: 0; padding: 2px 6px 10px 8px; font: 11px/1.3 Arial, Helvetica, sans-serif; color: #000; }
     .ribbon, .side, .logo { display: none; }

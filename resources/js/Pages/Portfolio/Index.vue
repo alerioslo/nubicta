@@ -80,8 +80,8 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                         <Link :href="cfg.create" class="s-btn s-btn-primary rounded-r-none">{{ cfg.create_label }}</Link>
                         <button type="button" class="s-btn s-btn-primary rounded-l-none border-l border-[#ffffff55] px-[10px]" @click="createOpen = !createOpen"><Icon icon="caret-down" /></button>
                         <div v-if="createOpen" class="absolute right-0 top-[40px] z-30 w-[192px] rounded-[6px] bg-white py-[6px] shadow-lg">
-                            <Link :href="`/terceros/importar/${side}`" class="block px-[14px] py-[8px] text-[13px] text-ink hover:bg-[#f0f7fd]">Importar {{ side }}</Link>
-                            <Link href="/terceros/importar/contactos" class="block px-[14px] py-[8px] text-[13px] text-ink hover:bg-[#f0f7fd]">Importar contactos</Link>
+                            <Link :href="`/terceros/importar/${side}`" class="block px-[14px] py-[8px] text-[13px] text-ink hover:bg-[#f0f9ff]">Importar {{ side }}</Link>
+                            <Link href="/terceros/importar/contactos" class="block px-[14px] py-[8px] text-[13px] text-ink hover:bg-[#f0f9ff]">Importar contactos</Link>
                         </div>
                     </div>
                 </div>

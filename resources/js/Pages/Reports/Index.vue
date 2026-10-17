@@ -7,7 +7,7 @@ const props = defineProps({ catalog: { type: Array, required: true } });
 
 const q = ref('');
 const closed = reactive({});
-const favKey = 'friigo.report.favorites';
+const favKey = 'nubicta.report.favorites';
 const keyOf = (r) => (r.url?.match(/^\/reportes\/([^?/]+)$/)?.[1] ?? r.url);
 const all = props.catalog.filter((s) => s.section !== 'Favoritos').flatMap((s) => s.groups.flatMap((g) => g.reports)).filter((r) => r.url);
 const defaults = (props.catalog.find((s) => s.section === 'Favoritos')?.groups ?? []).flatMap((g) => g.reports).filter((r) => r.url);

@@ -112,7 +112,7 @@ function downloadHref(b) {
         <p v-if="view.intro" class="mt-[10px] text-[13px] text-ink">{{ view.intro }}</p>
     </div>
 
-    <div v-if="view.info" class="md:mx-[22px] mt-[16px] flex gap-3 rounded border border-[#b9dcf3] bg-[#eaf5fc] px-4 py-3 text-[13px] text-ink">
+    <div v-if="view.info" class="md:mx-[22px] mt-[16px] flex gap-3 rounded border border-[#bae6fd] bg-[#f0f9ff] px-4 py-3 text-[13px] text-ink">
         <Icon icon="circle-info" class="mt-[2px] text-primary" />
         <p>{{ view.info }}</p>
     </div>
@@ -126,7 +126,7 @@ function downloadHref(b) {
         <div class="mt-[12px] rounded-[4px] bg-white shadow-sm">
             <div class="s-table-wrap rounded-t-[4px]">
             <table class="s-table w-full" :class="stickyActions && 'sticky-actions'">
-                <thead><tr><th v-for="c in columns" :key="c" class="!bg-[#0072ce] !text-white">{{ c }}</th></tr></thead>
+                <thead><tr><th v-for="c in columns" :key="c" class="!bg-[#0275b3] !text-white">{{ c }}</th></tr></thead>
                 <tbody>
                     <tr v-for="(r, i) in list" :key="i">
                         <td v-for="(raw, j) in r" :key="j">
@@ -193,7 +193,7 @@ function downloadHref(b) {
         </div>
         <div class="s-table-wrap mt-[8px]">
         <table class="w-full">
-            <thead><tr class="bg-[#0072ce] text-left text-[12px] font-bold text-white">
+            <thead><tr class="bg-[#0275b3] text-left text-[12px] font-bold text-white">
                 <th v-for="(c, j) in columns" :key="c" class="px-[6px] py-[6px]" :class="j === columns.length - 1 && 'text-right'">{{ c }}</th>
             </tr></thead>
             <tbody>
@@ -239,7 +239,7 @@ function downloadHref(b) {
                     <option v-for="o in s.options" :key="o" :value="o">{{ o }}</option>
                 </select>
             </label>
-            <span v-for="c in view.chips ?? []" :key="c.text ?? c" class="inline-flex items-center gap-2 rounded-full bg-[#e3f1fb] px-3 py-[6px] text-[12px] text-primary">{{ c.text ?? c }}
+            <span v-for="c in view.chips ?? []" :key="c.text ?? c" class="inline-flex items-center gap-2 rounded-full bg-[#e0f2fe] px-3 py-[6px] text-[12px] text-primary">{{ c.text ?? c }}
                 <Link v-if="c.clear" :href="c.clear" title="Quitar filtro"><Icon icon="circle-xmark" /></Link>
             </span>
             <Link v-if="(view.chips ?? []).some((c) => c.clear)" :href="view.clear_url ?? view.chips.find((c) => c.clear).clear" class="pb-[6px] text-[12px] text-primary">Limpiar filtros</Link>
@@ -252,7 +252,7 @@ function downloadHref(b) {
                             <Icon v-if="b.icon" :icon="b.icon" /> {{ b.label }} <Icon icon="caret-down" />
                         </button>
                         <div v-if="menuOpen === b.label" class="absolute right-0 top-[40px] z-30 min-w-[240px] rounded-[6px] bg-white py-[6px] shadow-lg">
-                            <Link v-for="m in b.menu" :key="m.label" :href="fill(m.href)" class="block whitespace-nowrap px-[14px] py-[8px] text-[13px] text-ink hover:bg-[#f0f7fd]">{{ m.label }}</Link>
+                            <Link v-for="m in b.menu" :key="m.label" :href="fill(m.href)" class="block whitespace-nowrap px-[14px] py-[8px] text-[13px] text-ink hover:bg-[#f0f9ff]">{{ m.label }}</Link>
                         </div>
                     </div>
                     <a v-else-if="b.external" :href="list.length ? downloadHref({ download: b.href }) : null" class="s-btn s-btn-outline"
@@ -290,13 +290,13 @@ function downloadHref(b) {
                             <span v-else-if="cell(raw).badge" class="s-badge" :class="badgeClass[cell(raw).badge]">{{ cell(raw).text }}</span>
                             <RowMenu v-else-if="cell(raw).split" :open="menuOpen === `row${i}`" @close="menuOpen = null">
                                 <template #anchor>
-                                <a v-if="cell(raw).split.download" :href="cell(raw).split.download" class="rounded-l-[4px] border border-primary px-[34px] py-[4px] text-[12px] text-primary hover:bg-[#f0f7fd]">{{ cell(raw).split.text }}</a>
-                                <Link v-else :href="cell(raw).split.href" class="rounded-l-[4px] border border-primary px-[34px] py-[4px] text-[12px] text-primary hover:bg-[#f0f7fd]">{{ cell(raw).split.text }}</Link>
-                                <button type="button" class="rounded-r-[4px] border border-l-0 border-primary px-[8px] text-primary hover:bg-[#f0f7fd] disabled:opacity-40" :disabled="!cell(raw).menu?.length" @click="menuOpen = menuOpen === `row${i}` ? null : `row${i}`"><Icon icon="caret-down" /></button>
+                                <a v-if="cell(raw).split.download" :href="cell(raw).split.download" class="rounded-l-[4px] border border-primary px-[34px] py-[4px] text-[12px] text-primary hover:bg-[#f0f9ff]">{{ cell(raw).split.text }}</a>
+                                <Link v-else :href="cell(raw).split.href" class="rounded-l-[4px] border border-primary px-[34px] py-[4px] text-[12px] text-primary hover:bg-[#f0f9ff]">{{ cell(raw).split.text }}</Link>
+                                <button type="button" class="rounded-r-[4px] border border-l-0 border-primary px-[8px] text-primary hover:bg-[#f0f9ff] disabled:opacity-40" :disabled="!cell(raw).menu?.length" @click="menuOpen = menuOpen === `row${i}` ? null : `row${i}`"><Icon icon="caret-down" /></button>
                                 </template>
                                 <template v-for="a in cell(raw).menu" :key="a.text">
-                                    <Link v-if="a.href" :href="a.href" class="block whitespace-nowrap px-[14px] py-[7px] text-[13px] hover:bg-[#f0f7fd]">{{ a.text }}</Link>
-                                    <button v-else type="button" class="block w-full whitespace-nowrap px-[14px] py-[7px] text-left text-[13px] hover:bg-[#f0f7fd]" :disabled="busy" @click="menuOpen = null; post(a.post, a.data ?? {}, a.confirm)">{{ a.text }}</button>
+                                    <Link v-if="a.href" :href="a.href" class="block whitespace-nowrap px-[14px] py-[7px] text-[13px] hover:bg-[#f0f9ff]">{{ a.text }}</Link>
+                                    <button v-else type="button" class="block w-full whitespace-nowrap px-[14px] py-[7px] text-left text-[13px] hover:bg-[#f0f9ff]" :disabled="busy" @click="menuOpen = null; post(a.post, a.data ?? {}, a.confirm)">{{ a.text }}</button>
                                 </template>
                             </RowMenu>
                             <template v-else-if="cell(raw).actions">

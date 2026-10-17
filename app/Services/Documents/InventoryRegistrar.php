@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Notas de inventario. Cada nota queda como comprobante (encabezado en journal_entries) con sus movimientos de kardex;
- * solo el ajuste con valores contabiliza, el traslado y el conteo mueven cantidades como en Siigo.
+ * solo el ajuste con valores contabiliza, el traslado y el conteo mueven cantidades.
  */
 class InventoryRegistrar
 {

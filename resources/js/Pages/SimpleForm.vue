@@ -54,7 +54,7 @@ async function confirmSubmit(b) {
                 :class="i + 1 === page.step ? 'bg-[#3d8bc9]' : 'bg-[#9a9a9a]'"><b class="text-[20px]">{{ i + 1 }}</b> {{ st }}</li>
         </ol>
     </div>
-    <div v-if="page.info" class="md:mx-[22px] mt-[14px] flex gap-3 rounded border border-[#b9dcf3] bg-[#eaf5fc] px-4 py-3 text-[13px] text-ink">
+    <div v-if="page.info" class="md:mx-[22px] mt-[14px] flex gap-3 rounded border border-[#bae6fd] bg-[#f0f9ff] px-4 py-3 text-[13px] text-ink">
         <Icon icon="circle-info" class="mt-[2px] text-primary" />
         <p class="whitespace-pre-line">{{ page.info }}</p>
     </div>

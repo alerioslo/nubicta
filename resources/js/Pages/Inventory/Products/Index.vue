@@ -115,14 +115,14 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                 <div class="relative" @click.stop>
                     <button type="button" class="s-btn s-btn-outline" @click="toggle('reportes')">Ver reportes</button>
                     <div v-if="menu === 'reportes'" class="absolute right-0 top-[40px] z-30 w-[260px] rounded-[6px] bg-white py-[6px] shadow-lg">
-                        <Link v-for="[label, href] in reports" :key="href" :href="href" class="block px-[14px] py-[8px] text-[13px] hover:bg-[#f0f7fd]">{{ label }}</Link>
+                        <Link v-for="[label, href] in reports" :key="href" :href="href" class="block px-[14px] py-[8px] text-[13px] hover:bg-[#f0f9ff]">{{ label }}</Link>
                     </div>
                 </div>
                 <div class="relative" @click.stop>
                     <button type="button" class="s-btn s-btn-primary" @click="toggle('crear')">Crear / Importar <Icon icon="caret-down" /></button>
                     <div v-if="menu === 'crear'" class="absolute right-0 top-[40px] z-30 w-[260px] rounded-[6px] bg-white py-[6px] shadow-lg">
-                        <Link href="/productos/crear" class="block px-[14px] py-[8px] text-[13px] hover:bg-[#f0f7fd]">Crear producto</Link>
-                        <Link href="/productos/importar" class="block px-[14px] py-[8px] text-[13px] hover:bg-[#f0f7fd]">Importación de productos y servicios</Link>
+                        <Link href="/productos/crear" class="block px-[14px] py-[8px] text-[13px] hover:bg-[#f0f9ff]">Crear producto</Link>
+                        <Link href="/productos/importar" class="block px-[14px] py-[8px] text-[13px] hover:bg-[#f0f9ff]">Importación de productos y servicios</Link>
                     </div>
                 </div>
             </div>
@@ -166,14 +166,14 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                         <td>
                             <RowMenu :open="menu === p.id" :min-width="150" @close="menu = null">
                                 <template #anchor>
-                                    <Link :href="`/productos/${p.id}/editar`" class="rounded-l-[4px] border border-primary px-[22px] py-[4px] text-[12px] text-primary hover:bg-[#f0f7fd]">Editar</Link>
-                                    <button type="button" class="rounded-r-[4px] border border-l-0 border-primary px-[8px] text-primary hover:bg-[#f0f7fd]" @click="toggle(p.id)"><Icon icon="caret-down" /></button>
+                                    <Link :href="`/productos/${p.id}/editar`" class="rounded-l-[4px] border border-primary px-[22px] py-[4px] text-[12px] text-primary hover:bg-[#f0f9ff]">Editar</Link>
+                                    <button type="button" class="rounded-r-[4px] border border-l-0 border-primary px-[8px] text-primary hover:bg-[#f0f9ff]" @click="toggle(p.id)"><Icon icon="caret-down" /></button>
                                 </template>
-                                    <Link :href="`/productos/${p.id}/editar`" class="block px-[14px] py-[7px] text-[13px] hover:bg-[#f0f7fd]">Editar</Link>
-                                    <button type="button" class="block w-full px-[14px] py-[7px] text-left text-[13px] hover:bg-[#f0f7fd]" @click="post(`/productos/${p.id}/estado`)">{{ p.active ? 'Inactivar' : 'Activar' }}</button>
-                                    <button type="button" class="block w-full px-[14px] py-[7px] text-left text-[13px] hover:bg-[#f0f7fd]" @click="post(`/productos/${p.id}/eliminar`, `¿Eliminar el producto ${p.name}?`)">Eliminar</button>
-                                    <Link :href="`/productos/crear?copiar=${p.id}`" class="block px-[14px] py-[7px] text-[13px] hover:bg-[#f0f7fd]">Duplicar</Link>
-                                    <Link v-if="p.stock !== null" :href="`/productos/${p.id}/kardex`" class="block px-[14px] py-[7px] text-[13px] hover:bg-[#f0f7fd]">Kárdex</Link>
+                                    <Link :href="`/productos/${p.id}/editar`" class="block px-[14px] py-[7px] text-[13px] hover:bg-[#f0f9ff]">Editar</Link>
+                                    <button type="button" class="block w-full px-[14px] py-[7px] text-left text-[13px] hover:bg-[#f0f9ff]" @click="post(`/productos/${p.id}/estado`)">{{ p.active ? 'Inactivar' : 'Activar' }}</button>
+                                    <button type="button" class="block w-full px-[14px] py-[7px] text-left text-[13px] hover:bg-[#f0f9ff]" @click="post(`/productos/${p.id}/eliminar`, `¿Eliminar el producto ${p.name}?`)">Eliminar</button>
+                                    <Link :href="`/productos/crear?copiar=${p.id}`" class="block px-[14px] py-[7px] text-[13px] hover:bg-[#f0f9ff]">Duplicar</Link>
+                                    <Link v-if="p.stock !== null" :href="`/productos/${p.id}/kardex`" class="block px-[14px] py-[7px] text-[13px] hover:bg-[#f0f9ff]">Kárdex</Link>
                             </RowMenu>
                         </td>
                     </tr>

@@ -134,7 +134,7 @@ const fmtDate = (d) => (d ? `${Number(d.slice(8, 10))} ${MONTHS[Number(d.slice(5
             <section v-for="s in mainSections" :key="s.i" :class="style === 'simple' ? '' : 's-card p-[22px]'">
                 <div class="mb-4 flex items-center gap-3">
                     <h2 class="text-[16px] font-bold text-ink">{{ s.title }}</h2>
-                    <a v-if="s.tutorials" href="https://portal.siigo.com/" target="_blank" class="text-[12px] text-primary">Ver tutoriales</a>
+                    <a v-if="s.tutorials" href="/ayuda?q=documentos" class="text-[12px] text-primary">Ver tutoriales</a>
                 </div>
                 <div v-if="s.tabs?.length && !s.fields" class="s-subtabs mb-4">
                     <button v-for="(t, ti) in s.tabs" :key="t.title" type="button" class="s-subtab" :class="{ active: tabs[s.i] === ti }" @click="tabs[s.i] = ti">

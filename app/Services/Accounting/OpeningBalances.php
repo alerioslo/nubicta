@@ -20,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 /**
- * Saldos iniciales de Siigo (Contabilidad > Mas procesos): cartera, proveedores, inventario y otras cuentas.
+ * Saldos iniciales (Contabilidad > Mas procesos): cartera, proveedores, inventario y otras cuentas.
  * Todo se contabiliza en el CC-999 contra la cuenta "Saldos iniciales por conciliar"; las facturas de cartera
  * y proveedores quedan como documentos SI con saldo para recaudarlas o pagarlas con los recibos.
  */

@@ -53,7 +53,7 @@ const submit = () => form.put('/configuracion/nomina', { preserveScroll: true })
                 <section class="s-card">
                     <h3 class="border-b border-[#edf0f2] px-[22px] py-[14px] text-[16px] font-semibold text-ink">Horas laborales</h3>
                     <div class="space-y-[10px] px-[22px] py-[16px]">
-                        <p class="rounded border border-[#bfe0fb] bg-[#e8f4fe] px-[12px] py-[10px]">Según la <b>ley 2101 del 2021</b>, la jornada laboral se reduce gradualmente hasta llegar a 42 horas semanales.</p>
+                        <p class="rounded border border-[#bae6fd] bg-[#f0f9ff] px-[12px] py-[10px]">Según la <b>ley 2101 del 2021</b>, la jornada laboral se reduce gradualmente hasta llegar a 42 horas semanales.</p>
                         <p>Selecciona la cantidad de horas mensuales que aplican de ahora en adelante para el cálculo de horas extras y recargos en los procesos de nómina, liquidación de contrato y PILA.</p>
                         <label v-for="(label, h) in hours" :key="h" class="flex items-center gap-[8px]">
                             <input v-model.number="form.monthly_hours" type="radio" :value="Number(h)" class="accent-primary" /> {{ label }}

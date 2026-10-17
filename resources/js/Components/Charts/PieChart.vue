@@ -4,7 +4,7 @@ import { computed } from 'vue';
 const props = defineProps({
     items: { type: Array, required: true },
     donut: { type: Boolean, default: false },
-    colors: { type: Array, default: () => ['#ffa630', '#ffcf3d', '#5aa02c', '#1e88e5', '#9c27b0'] },
+    colors: { type: Array, default: () => ['#ffa630', '#ffcf3d', '#5aa02c', '#0275b3', '#9c27b0'] },
 });
 
 const R = 80, C = 100;

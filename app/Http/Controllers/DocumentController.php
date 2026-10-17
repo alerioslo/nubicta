@@ -84,7 +84,7 @@ class DocumentController extends Controller
         return redirect($doc->type === 'RC' ? '/ventas/recaudos' : '/compras/pagos')->with('success', "Se eliminó el documento {$doc->name}.");
     }
 
-    /** Cotizacion: Aprobar, Descartar o volver a pendiente, como en Siigo. */
+    /** Cotizacion: Aprobar, Descartar o volver a pendiente. */
     public function quoteStatus(\Illuminate\Http\Request $request, string $kind, int $id): RedirectResponse
     {
         $doc = DocumentLocator::find($kind, $id);

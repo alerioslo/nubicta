@@ -4,8 +4,8 @@ import { onClickOutside } from '../../composables/clickOutside';
 import { useFloating, useListKeys } from '../../composables/floating';
 
 /*
- * Buscador compacto de los documentos de Siigo (input con lupa). La URL debe devolver filas con `id` y `label`;
- * con `options` filtra una lista local. `columns` ([clave, título]) pinta la lista como la tabla de Siigo y
+ * Buscador compacto de los documentos (input con lupa). La URL debe devolver filas con `id` y `label`;
+ * con `options` filtra una lista local. `columns` ([clave, título]) pinta la lista como una tabla y
  * `createUrl` agrega "+ Crear nuevo" / "Ver más". `display` es el campo que queda escrito al elegir.
  */
 const props = defineProps({

@@ -121,7 +121,7 @@ function addDays(date, days) {
     return d.toISOString().slice(0, 10);
 }
 
-/* Como Siigo: al elegir el cliente se llenan el contacto y el vendedor asignado. */
+/* al elegir el cliente se llenan el contacto y el vendedor asignado. */
 function pickContact(c, keep = false) {
     people.value = c?.people ?? [];
     if (keep) return;
@@ -187,7 +187,7 @@ function pickItem(row, idx, item) {
     if (idx === doc.items.length - 1) doc.items.push(blankItem());
 }
 
-/* Precio de otra lista (boton junto al valor unitario, como en Siigo). */
+/* Precio de otra lista (boton junto al valor unitario). */
 const priceMenu = ref(null);
 const priceOptions = (row) => Object.entries(row.prices ?? {}).map(([listId, value]) => ({ name: props.priceLists.find((l) => l.id === Number(listId))?.name ?? 'Lista', value }));
 function pickPrice(row, value) {
@@ -203,7 +203,7 @@ function typedPrice(row) {
     row.price = netPrice(row.price, row.tax_id, true);
 }
 
-/* Al hacer clic fuera de la linea en edicion (y fuera de sus listas), Siigo la vuelve a mostrar como texto. */
+/* Al hacer clic fuera de la linea en edicion (y fuera de sus listas), se vuelve a mostrar como texto. */
 function leaveRows(e) {
     if (editing.value < 0 || taxModal.value || e.target.closest('[data-docsearch-list], [data-edit-row]')) return;
     editing.value = -1;
@@ -270,8 +270,8 @@ function submit(action) {
 <template>
     <Head :title="f.title" />
 
-    <div v-if="f.dian_banner" class="mx-auto mb-[12px] flex max-w-[756px] items-start gap-[12px] rounded-[2px] border border-[#2196f3] bg-[#e9f5fe] px-[14px] py-[10px] text-[11.5px] text-[#333]">
-        <Icon icon="circle-info" class="mt-[2px] text-[16px] text-[#2196f3]" />
+    <div v-if="f.dian_banner" class="mx-auto mb-[12px] flex max-w-[756px] items-start gap-[12px] rounded-[2px] border border-[#0275b3] bg-[#f0f9ff] px-[14px] py-[10px] text-[11.5px] text-[#333]">
+        <Icon icon="circle-info" class="mt-[2px] text-[16px] text-[#0275b3]" />
         <p>Por recomendación de la DIAN, deberías configurar un tipo de factura electrónica como <b>Tipo 03 (Contingencia)</b> para que puedas expedir facturas de talonario o de papel en caso de inconvenientes tecnológicos con el sistema de facturación electrónica. (Art. 31 Res. 42 de 2020).
             <Link href="/configuracion/facturacion-electronica" class="font-semibold text-primary">Aprende más y cómo configurarla.</Link></p>
     </div>
@@ -420,7 +420,7 @@ function submit(action) {
                     </thead>
                     <tbody>
                         <template v-for="(row, idx) in doc.items" :key="idx">
-                            <!-- Linea terminada: Siigo la muestra como texto hasta que se vuelve a hacer clic. -->
+                            <!-- Linea terminada: se muestra como texto hasta que se vuelve a hacer clic. -->
                             <tr v-if="sale && row.item_id && editing !== idx" class="cursor-pointer text-[11.5px]" :class="shortOf(row) ? 'bg-[#fdecec] hover:bg-[#fbdcdc]' : 'hover:bg-[#fafafa]'" @click="editing = idx">
                                 <td class="py-[6px] text-[11px]">{{ idx + 1 }}</td>
                                 <td v-if="f.item_type">{{ row.type }}</td>
@@ -587,7 +587,7 @@ function submit(action) {
             <p class="mt-[10px] font-semibold">Impuesto retención</p>
             <select v-model="taxModal.withholding_id" class="doc-input mt-[2px]"><option :value="null">Ninguno</option><option v-for="t in saleWithholdings" :key="t.id" :value="t.id">{{ t.name }}</option></select>
             <div class="mt-[8px] flex">
-                <button type="button" class="bg-[#00a7e1] px-[10px] py-[5px] text-[12px] text-white" @click="taxModal = null">Cancelar</button>
+                <button type="button" class="bg-[#0275b3] px-[10px] py-[5px] text-[12px] text-white" @click="taxModal = null">Cancelar</button>
                 <button type="button" class="bg-[#7cb342] px-[10px] py-[5px] text-[12px] text-white" @click="saveTaxes">Guardar</button>
             </div>
         </div>

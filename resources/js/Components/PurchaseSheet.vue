@@ -1,5 +1,5 @@
 <script setup>
-/* Representacion grafica de compras con el formato de Siigo: factura de compra / gasto, documento soporte, notas y ordenes de compra. */
+/* Representacion grafica de compras: factura de compra / gasto, documento soporte, notas y ordenes de compra. */
 const props = defineProps({ doc: Object, company: Object });
 const d = props.doc;
 const c = props.company ?? {};

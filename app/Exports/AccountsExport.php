@@ -8,7 +8,7 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 
-/** Mismo formato de columnas que el Excel "Cuentas contables" de Siigo. */
+/** Excel de "Cuentas contables": codigo, nombre, naturaleza y configuracion de cada cuenta. */
 class AccountsExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapping
 {
     public function query(): \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Eloquent\Relations\Relation

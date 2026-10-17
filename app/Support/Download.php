@@ -11,7 +11,7 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
-/** Descarga de listados en Excel o PDF segun ?formato=xlsx|pdf, como el boton Descargar de Siigo. */
+/** Descarga de listados en Excel o PDF segun ?formato=xlsx|pdf. */
 class Download
 {
     public static function wantsPdf(): bool

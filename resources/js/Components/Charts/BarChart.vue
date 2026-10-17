@@ -5,7 +5,7 @@ import { computed } from 'vue';
 const props = defineProps({
     labels: { type: Array, required: true },
     series: { type: Object, required: true },
-    colors: { type: Array, default: () => [['#eef8e6', '#9fd17a'], ['#dcefff', '#8cc8f5'], ['#f6dcf7', '#d58ad8']] },
+    colors: { type: Array, default: () => [['#eef8e6', '#9fd17a'], ['#e0f2fe', '#8cc8f5'], ['#f6dcf7', '#d58ad8']] },
 });
 
 const W = 440, H = 190, L = 70, B = 24;

@@ -63,11 +63,11 @@ const money = (v) => '$ ' + Number(v).toLocaleString('es-CO', { maximumFractionD
                         <td class="whitespace-nowrap">
                             <RowMenu :open="menu === e.id" @close="menu = null">
                                 <template #anchor>
-                                    <Link :href="`/nomina/empleados/${e.id}/editar`" class="rounded-l-[4px] border border-[#c9ced3] px-[18px] py-[3px] text-[12px] text-muted hover:bg-[#f0f7fd]">Editar</Link>
-                                    <button type="button" class="rounded-r-[4px] border border-l-0 border-[#c9ced3] px-[7px] text-muted hover:bg-[#f0f7fd]" aria-label="Más acciones" @click="menu = menu === e.id ? null : e.id"><Icon icon="caret-down" /></button>
+                                    <Link :href="`/nomina/empleados/${e.id}/editar`" class="rounded-l-[4px] border border-[#c9ced3] px-[18px] py-[3px] text-[12px] text-muted hover:bg-[#f0f9ff]">Editar</Link>
+                                    <button type="button" class="rounded-r-[4px] border border-l-0 border-[#c9ced3] px-[7px] text-muted hover:bg-[#f0f9ff]" aria-label="Más acciones" @click="menu = menu === e.id ? null : e.id"><Icon icon="caret-down" /></button>
                                 </template>
-                                <Link :href="`/nomina/empleados/${e.id}/editar`" class="block px-[14px] py-[7px] text-[13px] hover:bg-[#f0f7fd]">Contrato y nómina</Link>
-                                <Link :href="`/terceros/${e.contact_id}/editar`" class="block px-[14px] py-[7px] text-[13px] hover:bg-[#f0f7fd]">Datos del tercero</Link>
+                                <Link :href="`/nomina/empleados/${e.id}/editar`" class="block px-[14px] py-[7px] text-[13px] hover:bg-[#f0f9ff]">Contrato y nómina</Link>
+                                <Link :href="`/terceros/${e.contact_id}/editar`" class="block px-[14px] py-[7px] text-[13px] hover:bg-[#f0f9ff]">Datos del tercero</Link>
                             </RowMenu>
                         </td>
                     </tr>

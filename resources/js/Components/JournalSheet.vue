@@ -1,5 +1,5 @@
 <script setup>
-/* Hoja de un comprobante contable con el formato de Siigo: empresa al centro, recuadro con numero y fecha, y el detalle de cuentas. */
+/* Hoja de un comprobante contable: empresa al centro, recuadro con numero y fecha, y el detalle de cuentas. */
 const props = defineProps({ doc: Object, company: Object });
 const d = props.doc;
 const c = props.company ?? {};

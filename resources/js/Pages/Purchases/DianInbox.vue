@@ -4,7 +4,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import Pager from '../../Components/Pager.vue';
 import EmptyState from '../../Components/EmptyState.vue';
 
-/* Bandeja DIAN > Causacion automatica DIAN, como la pantalla de Siigo. */
+/* Bandeja DIAN > Causacion automatica DIAN. */
 const props = defineProps({
     docs: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },

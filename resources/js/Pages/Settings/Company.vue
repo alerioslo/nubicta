@@ -102,10 +102,10 @@ function submit() {
 
     <form class="mt-3 border border-line bg-white text-[13px]" @submit.prevent="submit">
         <!-- Datos generales -->
-        <button type="button" class="s-siigo-section" @click="open.general = !open.general">
+        <button type="button" class="s-form-section" @click="open.general = !open.general">
             <Icon :icon="open.general ? 'chevron-down' : 'chevron-right'" class="text-[10px]" /> Datos generales
         </button>
-        <div v-show="open.general" class="s-siigo-rows">
+        <div v-show="open.general" class="s-form-rows">
             <div class="s-row"><span>Tipo razón social</span>
                 <div class="flex gap-6">
                     <label class="flex items-center gap-2"><input v-model="form.person_type" type="radio" value="natural" class="accent-primary" /> Es persona</label>
@@ -177,10 +177,10 @@ function submit() {
         </div>
 
         <!-- Datos tributarios -->
-        <button type="button" class="s-siigo-section" @click="open.tributarios = !open.tributarios">
+        <button type="button" class="s-form-section" @click="open.tributarios = !open.tributarios">
             <Icon :icon="open.tributarios ? 'chevron-down' : 'chevron-right'" class="text-[10px]" /> Datos tributarios
         </button>
-        <div v-show="open.tributarios" class="s-siigo-rows">
+        <div v-show="open.tributarios" class="s-form-rows">
             <div class="s-row items-start"><span>Código actividad económica</span>
                 <div class="w-[390px]">
                     <input v-model="form.ciiu" class="s-input" placeholder="Ej: 4620" />
@@ -208,18 +208,18 @@ function submit() {
         </div>
 
         <!-- Moneda extranjera -->
-        <button type="button" class="s-siigo-section" @click="open.moneda = !open.moneda">
+        <button type="button" class="s-form-section" @click="open.moneda = !open.moneda">
             <Icon :icon="open.moneda ? 'chevron-down' : 'chevron-right'" class="text-[10px]" /> Moneda extranjera
         </button>
-        <div v-show="open.moneda" class="s-siigo-rows">
+        <div v-show="open.moneda" class="s-form-rows">
             <div class="s-row"><span>Maneja moneda extranjera</span><input v-model="form.foreign_currency" type="checkbox" class="accent-primary" /></div>
         </div>
 
         <!-- Representante legal -->
-        <button type="button" class="s-siigo-section" @click="open.representante = !open.representante">
+        <button type="button" class="s-form-section" @click="open.representante = !open.representante">
             <Icon :icon="open.representante ? 'chevron-down' : 'chevron-right'" class="text-[10px]" /> Datos del representante legal
         </button>
-        <div v-show="open.representante" class="s-siigo-rows">
+        <div v-show="open.representante" class="s-form-rows">
             <div class="s-row"><span>Nombres</span><input v-model="form.legal_rep_first_name" class="s-input w-[390px]" /></div>
             <div class="s-row"><span>Apellidos</span><input v-model="form.legal_rep_last_name" class="s-input w-[390px]" /></div>
             <div class="s-row"><span>Tipo Identificación</span>
@@ -244,9 +244,9 @@ function submit() {
 </template>
 
 <style scoped>
-.s-siigo-section { display: flex; width: 100%; align-items: center; gap: 10px; border-top: 1px solid #e6e9ec; background: #f5f6f7; padding: 7px 14px; font-size: 13px; color: #36393d; }
-.s-siigo-section:first-child { border-top: 0; }
-.s-siigo-rows { padding: 8px 0 14px; }
+.s-form-section { display: flex; width: 100%; align-items: center; gap: 10px; border-top: 1px solid #e6e9ec; background: #f5f6f7; padding: 7px 14px; font-size: 13px; color: #36393d; }
+.s-form-section:first-child { border-top: 0; }
+.s-form-rows { padding: 8px 0 14px; }
 .s-row { display: flex; align-items: center; gap: 0; padding: 4px 14px; }
 .s-row > span:first-child { width: 296px; flex-shrink: 0; padding-right: 14px; color: #36393d; }
 </style>

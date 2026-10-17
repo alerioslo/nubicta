@@ -82,7 +82,7 @@ class TradeRegistrar
     }
 
     /**
-     * Base y total de una linea como Siigo: el total con impuesto se redondea una sola vez y el impuesto es la diferencia,
+     * Base y total de una linea: el total con impuesto se redondea una sola vez y el impuesto es la diferencia,
      * asi un precio con IVA incluido (base a 6 decimales) da exactamente el precio de lista por la cantidad.
      *
      * @return array{float, float}

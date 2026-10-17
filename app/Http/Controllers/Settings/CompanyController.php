@@ -14,7 +14,7 @@ use Inertia\Response;
 
 class CompanyController extends Controller
 {
-    /** Tributos DIAN (tabla 3.2.2 del anexo tecnico) que muestra Siigo en el perfil. */
+    /** Tributos DIAN (tabla 3.2.2 del anexo tecnico) que se muestran en el perfil. */
     public const TRIBUTES = ['01' => 'IVA', '04' => 'INC', 'ZA' => 'IVA e INC', 'ZZ' => 'No aplica'];
 
     public function edit(Request $request): Response

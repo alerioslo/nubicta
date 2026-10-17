@@ -19,7 +19,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
-/** Productos y servicios > Importación / Subir productos desde excel, con los mismos campos de la plantilla de Siigo. */
+/** Productos y servicios > Importación / Subir productos desde excel, compatible con la plantilla de productos de Siigo para migrar datos. */
 class ProductImportController extends Controller
 {
     private const MAX = 500;
@@ -246,7 +246,7 @@ class ProductImportController extends Controller
         return redirect('/productos')->with('success', "Importación terminada: {$created} productos creados y ".($rows->count() - $created).' actualizados.');
     }
 
-    /** Campos de la plantilla, con un precio de venta por cada lista activa (Siigo maneja hasta 12). */
+    /** Campos de la plantilla, con un precio de venta por cada lista activa (hasta 12). */
     private static function fields(): array
     {
         static $fields = null;

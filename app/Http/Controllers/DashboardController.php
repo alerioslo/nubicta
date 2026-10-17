@@ -15,7 +15,7 @@ class DashboardController extends Controller
         ]);
     }
 
-    /** Pantalla de modulo aun no construido: misma cabecera y pestanas que Siigo. */
+    /** Pantalla de modulo aun no construido: cabecera y pestanas del modulo. */
     public function module(string $module): Response
     {
         $item = collect(config('erp.sidebar'))->firstWhere('key', $module);

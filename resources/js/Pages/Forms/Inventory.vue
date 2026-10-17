@@ -84,7 +84,7 @@ const submit = (action) => {
                 </div>
             </div>
 
-            <div v-if="importOpen && f.kind !== 'traslado'" class="mt-[18px] border border-[#b9dcf3] bg-[#eaf5fc] px-[14px] py-[10px] text-[11px]">
+            <div v-if="importOpen && f.kind !== 'traslado'" class="mt-[18px] border border-[#bae6fd] bg-[#f0f9ff] px-[14px] py-[10px] text-[11px]">
                 <p>Descarga la <a :href="`/productos/lineas-excel/${f.kind}/plantilla`" class="text-[#2a2ad6] underline">plantilla de Excel</a>, diligencia
                     {{ f.kind === 'conteo' ? 'el código del producto y las existencias contadas' : 'el código del producto, si aumenta o disminuye, la cantidad, el costo unitario y la cuenta contable' }}
                     y súbela para cargar las líneas (máximo 500).</p>

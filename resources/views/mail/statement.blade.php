@@ -14,7 +14,7 @@
     @if ($docs->isNotEmpty())
         <table style="border-collapse: collapse; width: 100%; font-size: 13px;">
             <thead>
-                <tr style="background: #0b7ed0; color: #fff;">
+                <tr style="background: #0275b3; color: #fff;">
                     <th style="padding: 6px; text-align: left;">Documento</th>
                     <th style="padding: 6px; text-align: left;">Vencimiento</th>
                     <th style="padding: 6px; text-align: right;">Saldo</th>

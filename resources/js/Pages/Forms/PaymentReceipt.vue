@@ -5,7 +5,7 @@ import DocSearch from '../../Components/Forms/DocSearch.vue';
 import NumInput from '../../Components/Forms/NumInput.vue';
 import AdvanceCrossButton from '../../Components/Forms/AdvanceCrossButton.vue';
 
-/* Recibo de pago / egreso igual al de Siigo: abono a deuda, anticipo o avanzado (líneas contables con impuestos, descuentos y ajustes). */
+/* Recibo de pago / egreso: abono a deuda, anticipo o avanzado (líneas contables con impuestos, descuentos y ajustes). */
 const props = defineProps({ form: Object, initial: Object, docTypes: Array, paymentMethods: Array, today: String });
 const f = props.form;
 const init = props.initial;
@@ -77,7 +77,7 @@ function distribute() {
     });
 }
 
-/* Como en Siigo: al elegir una cuenta de proveedores se agrega una línea por cada documento pendiente del tercero. */
+/* al elegir una cuenta de proveedores se agrega una línea por cada documento pendiente del tercero. */
 function pickLineAccount(l, k, a) {
     l.due_type = a?.due_type ?? null;
     l.document_id = null;

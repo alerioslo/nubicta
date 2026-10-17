@@ -90,7 +90,7 @@ class DocumentType extends Model
         });
     }
 
-    /** Nombre como lo muestra Siigo: FV-2 */
+    /** Nombre: FV-2 */
     public function label(): string
     {
         return "{$this->type}-{$this->code}";

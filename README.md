@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="docs/brand/friigo-logo.svg" alt="Friigo" width="440">
+  <img src="docs/brand/nubicta-logo.svg" alt="Nubicta" width="440">
 </p>
 
 <p align="center">
   <b>El ERP contable libre para empresas colombianas.</b><br>
-  Contabilidad, facturación electrónica DIAN, inventario, nómina electrónica y bancos, con la experiencia de uso que ya conoces.
+  Contabilidad, facturación electrónica DIAN como software propio, inventario, nómina electrónica y bancos. Gratis, de código abierto y con tus datos siempre bajo tu control.
 </p>
 
 <p align="center">
@@ -17,11 +17,13 @@
 
 ---
 
-## ¿Qué es Friigo?
+## ¿Qué es Nubicta?
 
-Friigo es un sistema administrativo y contable **gratuito y de código abierto**, pensado para la pequeña y mediana empresa en Colombia. Nació para reemplazar un software contable en la nube por uno propio: replica pantalla por pantalla los flujos a los que el equipo contable ya está acostumbrado, pero corre en tu servidor, con tus datos y sin mensualidades.
+Nubicta es un sistema administrativo y contable **gratuito y de código abierto**, pensado para la pequeña y mediana empresa en Colombia. Corre en tu propio servidor, con tus datos y sin mensualidades por el programa.
 
-Funciona como **software propio ante la DIAN**: firma y envía directamente la factura electrónica, el documento soporte y la nómina electrónica, sin intermediarios ni costo por documento.
+Se usa en el modo de operación **software propio** de la DIAN: cada empresa se habilita a su nombre y el sistema firma y envía directamente la factura electrónica, el documento soporte y la nómina electrónica, sin intermediarios ni costo por documento. Nubicta **no es un proveedor tecnológico** y no factura por cuenta de nadie.
+
+Sitio web, guía de habilitación y versión en la nube: [nubicta.online](https://nubicta.online).
 
 ## Módulos
 
@@ -58,8 +60,8 @@ Funciona como **software propio ante la DIAN**: firma y envía directamente la f
 ## Instalación
 
 ```bash
-git clone https://github.com/bvr218/friigo.git
-cd friigo
+git clone https://github.com/bvr218/nubicta.git
+cd nubicta
 composer install
 npm ci && npm run build
 cp .env.example .env
@@ -86,7 +88,7 @@ En producción, sirve `public/` con Nginx y PHP-FPM, y deja `horizon` corriendo 
 
 ## Migración desde Siigo Nube
 
-Friigo puede traer tu información desde Siigo Nube **en modo solo lectura** (no modifica nada en Siigo). Configura `SIIGO_USERNAME` y `SIIGO_ACCESS_KEY` (la access key de la API de Siigo) y ejecuta:
+Nubicta puede traer tu información desde Siigo Nube **en modo solo lectura** (no modifica nada en Siigo). Configura `SIIGO_USERNAME` y `SIIGO_ACCESS_KEY` (la access key de la API de Siigo) y ejecuta:
 
 ```bash
 php artisan siigo:import terceros
@@ -97,7 +99,7 @@ php artisan siigo:import-ledger --xlsx=movimiento_auxiliar.xlsx   # libro auxili
 php artisan siigo:import-exports                                   # bancos, empleados y nómina exportados
 ```
 
-El libro auxiliar importado se convierte en la contabilidad del ERP: saldos de bancos, cartera, proveedores y estados financieros cuadran con Siigo al centavo. Después del cambio, la numeración continúa donde quedó.
+El libro auxiliar importado se convierte en la contabilidad del ERP: saldos de bancos, cartera, proveedores y estados financieros cuadran con el sistema de origen al centavo. Después del cambio, la numeración continúa donde quedó.
 
 ## Pruebas
 
@@ -117,7 +119,9 @@ Las contribuciones son bienvenidas. Abre un *issue* para reportar errores o prop
 
 ## Aviso
 
-Friigo es un proyecto independiente. No está afiliado, patrocinado ni respaldado por Siigo S.A.S. ni por la DIAN. "Siigo" es una marca registrada de su titular y se menciona solo para describir la compatibilidad y la migración de datos.
+Nubicta es un producto de COLOMBIAWISP S.A.S. y un proyecto independiente. No está afiliado, patrocinado ni respaldado por la DIAN ni por ningún proveedor tecnológico. "Siigo" y las demás marcas mencionadas pertenecen a sus titulares y se citan solo para describir la importación de datos.
+
+Nubicta no es un proveedor tecnológico autorizado por la DIAN. En el modo software propio, cada empresa se habilita a su nombre y responde por el cumplimiento de la Resolución 000165 de 2023 y demás normas vigentes. Todos los datos son de la empresa que usa el sistema.
 
 El software se entrega "tal cual", sin garantía. Verifica la normativa tributaria vigente con tu contador antes de usarlo en producción.
 

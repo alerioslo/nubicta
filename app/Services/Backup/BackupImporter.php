@@ -12,7 +12,7 @@ use RuntimeException;
 use ZipArchive;
 
 /**
- * Restaura un respaldo de Friigo (de nube o de privado): reemplaza todos los datos de la empresa y sus archivos.
+ * Restaura un respaldo de Nubicta (de nube o de privado): reemplaza todos los datos de la empresa y sus archivos.
  * Se hace en una sola transaccion; si algo falla no se cambia nada. Quien restaura conserva su usuario y contraseña.
  */
 class BackupImporter
@@ -22,17 +22,17 @@ class BackupImporter
         return config('backup.epoch_key', 'backup:restore_epoch');
     }
 
-    /** Abre el ZIP y devuelve su manifiesto, o falla si la contraseña no es correcta o no es un respaldo de Friigo. */
+    /** Abre el ZIP y devuelve su manifiesto, o falla si la contraseña no es correcta o no es un respaldo de Nubicta. */
     public function inspect(string $zipPath, string $password): array
     {
         $zip = $this->open($zipPath, $password);
         $manifest = json_decode((string) $zip->getFromName('manifest.json'), true);
         $zip->close();
-        if (! is_array($manifest) || ($manifest['app'] ?? null) !== 'friigo') {
-            throw new RuntimeException('La contraseña no es correcta o el archivo no es un respaldo de Friigo.');
+        if (! is_array($manifest) || ! in_array($manifest['app'] ?? null, ['nubicta', 'friigo'], true)) {
+            throw new RuntimeException('La contraseña no es correcta o el archivo no es un respaldo de Nubicta.');
         }
         if ((int) ($manifest['format'] ?? 0) > (int) config('backup.format')) {
-            throw new RuntimeException('El respaldo es de una versión más nueva de Friigo. Actualiza este sistema antes de restaurarlo.');
+            throw new RuntimeException('El respaldo es de una versión más nueva de Nubicta. Actualiza este sistema antes de restaurarlo.');
         }
 
         return $manifest;

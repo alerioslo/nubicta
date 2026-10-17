@@ -7,7 +7,7 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Informes del catalogo de Siigo resueltos con una consulta: filtros, columnas, totales y exportacion.
+ * Informes del catalogo resueltos con una consulta: filtros, columnas, totales y exportacion.
  * Columnas: [clave => [titulo, formato]] con formato text|money|qty|int|pct|date.
  */
 final class ReportRegistry
@@ -610,14 +610,14 @@ final class ReportRegistry
             ],
             'flujo-efectivo' => [
                 'title' => 'Estado de flujos de efectivo - Método indirecto', 'filters' => ['year'], 'paginate' => false,
-                'note' => 'Entradas y salidas de efectivo del año comparadas con el año anterior, con los rubros y cuentas de la configuración original de Siigo.',
+                'note' => 'Entradas y salidas de efectivo del año comparadas con el año anterior, con los rubros y cuentas de la configuración contable estándar.',
                 'columns' => ['concepto' => ['Concepto', 'text'], 'actual' => ['Año seleccionado', 'money'], 'anterior' => ['Año anterior', 'money']],
                 'totals' => [],
                 'rows' => fn ($f) => self::cashFlow($f),
             ],
             'cambios-patrimonio' => [
                 'title' => 'Estado de cambios en el patrimonio', 'filters' => ['year'], 'paginate' => false,
-                'note' => 'Movimientos del patrimonio del año comparados con el saldo al cierre del año anterior, con los rubros y cuentas de la configuración original de Siigo.',
+                'note' => 'Movimientos del patrimonio del año comparados con el saldo al cierre del año anterior, con los rubros y cuentas de la configuración contable estándar.',
                 'columns' => ['rubro' => ['Rubro', 'text'], 'cuentas' => ['Cuentas', 'text'], 'inicial' => ['Saldo año anterior', 'money'], 'aumentos' => ['Aumentos', 'money'],
                     'disminuciones' => ['Disminuciones', 'money'], 'final' => ['Saldo año seleccionado', 'money']],
                 'totals' => ['inicial', 'aumentos', 'disminuciones', 'final'],
@@ -868,7 +868,7 @@ final class ReportRegistry
 
     /**
      * Saldo en cantidad y valor de cada producto inventariable al cierre del mes: el último saldo de la historia importada hasta esa
-     * fecha más los movimientos propios de Friigo, con la misma continuidad que kardexLines.
+     * fecha más los movimientos propios de Nubicta, con la misma continuidad que kardexLines.
      */
     private static function valuation(array $f): Builder
     {
@@ -895,7 +895,7 @@ final class ReportRegistry
 
     /**
      * Renglones del kárdex: la historia importada de Siigo (inventory_history, ver inventory:history) y luego los movimientos propios
-     * de Friigo, cuyo saldo continúa el de la historia en lugar del saldo inicial de la apertura.
+     * de Nubicta, cuyo saldo continúa el de la historia en lugar del saldo inicial de la apertura.
      */
     private static function kardexLines(array $f): Builder
     {
@@ -962,7 +962,7 @@ final class ReportRegistry
 
     /**
      * Movimientos de cada documento de cartera: el documento que crea el saldo y los recibos y notas que lo abonan,
-     * con la cuenta por cobrar o por pagar de cada uno, como el reporte por vencimiento de Siigo.
+     * con la cuenta por cobrar o por pagar de cada uno, agrupados por vencimiento.
      */
     private static function dueMovements(array $f): Builder
     {
@@ -1045,7 +1045,7 @@ final class ReportRegistry
     }
 
     /** Flujo de efectivo por metodo indirecto a partir del libro auxiliar. */
-    /** Rubros del flujo de efectivo con las cuentas de la configuración original de Siigo. */
+    /** Rubros del flujo de efectivo con las cuentas de la configuración contable estándar. */
     private const CASH_FLOW = [
         'Ajustes para conciliar la utilidad con los flujos netos de efectivo' => [
             'Depreciaciones y amortizaciones' => ['5160', '5165'],
@@ -1071,7 +1071,7 @@ final class ReportRegistry
         ],
     ];
 
-    /** Rubros del estado de cambios en el patrimonio con las cuentas de la configuración original de Siigo. */
+    /** Rubros del estado de cambios en el patrimonio con las cuentas de la configuración contable estándar. */
     private const EQUITY = [
         'Capital suscrito y pagado' => ['3105'],
         'Superávit de capital' => ['3205'],
@@ -1146,7 +1146,7 @@ final class ReportRegistry
         return $rows;
     }
 
-    // ---------------- Ventas como en Siigo ----------------
+    // ---------------- Ventas ----------------
 
     private const WITHHOLDING_TYPES = "('Retefuente', 'ReteIVA', 'ReteICA', 'Autorretencion')";
 
@@ -1191,7 +1191,7 @@ final class ReportRegistry
             sum(i.tax_total * $s) cargo, sum($ret * $s) retencion, sum(i.total * $s) total";
     }
 
-    // ---------------- Movimiento de documentos (reportes 5397 y 5467 de Siigo) ----------------
+    // ---------------- Movimiento de documentos ----------------
 
     public const MOVEMENT_KINDS = ['DS' => 'Documento soporte', 'FC' => 'Factura de compra', 'FV' => 'Factura de venta'];
 
@@ -1216,7 +1216,7 @@ final class ReportRegistry
         ];
     }
 
-    /** Lineas de producto (tipo de registro 0) y formas de pago (3) de ventas y compras, ordenadas como Siigo. */
+    /** Lineas de producto (tipo de registro 0) y formas de pago (3) de ventas y compras, ordenadas. */
     private static function movement(array $f, array $types): Builder
     {
         $parts = [];
@@ -1268,7 +1268,7 @@ final class ReportRegistry
             ->orderByRaw("field(m.sort_type, 'DS', 'FC', 'FV', 'NA', 'NC', 'ND')")->orderBy('m.comprobante')->orderByDesc('m.fecha')->orderBy('m.creacion')->orderByRaw('cast(m.consecutivo as unsigned)')->orderBy('m.doc_id')->orderBy('m.orden');
     }
 
-    /** Identificacion con digito de verificacion, como la muestra Siigo (12345678-9). */
+    /** Identificacion con digito de verificacion (12345678-9). */
     private static function ident(string $alias): string
     {
         return "concat($alias.identification, if($alias.dv is null or $alias.dv = '', '', concat('-', $alias.dv)))";
@@ -1322,7 +1322,7 @@ final class ReportRegistry
             ->when($f['group'] ?? null, fn ($q, $v) => $q->where('p.account_group_id', $v));
     }
 
-    /** Comprobantes de nómina del rango por mes (Siigo filtra por periodo, no por día). */
+    /** Comprobantes de nómina del rango por mes (se filtra por periodo, no por día). */
     private static function payrollDocs(array $f)
     {
         return DB::table('payroll_documents as pd')->join('employees as e', 'e.id', '=', 'pd.employee_id')->join('contacts as c', 'c.id', '=', 'e.contact_id')
@@ -1353,7 +1353,7 @@ final class ReportRegistry
         return [...$cols, 'total' => ['Total', 'money']];
     }
 
-    /** Los comparativos de Siigo suman facturas y notas débito, y opcionalmente restan las notas crédito. */
+    /** Los comparativos suman facturas y notas débito, y opcionalmente restan las notas crédito. */
     private static function comparativeTypes(array $f): array
     {
         return $f['nc'] ? ['FV', 'ND', 'NC'] : ['FV', 'ND'];

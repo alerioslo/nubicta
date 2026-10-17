@@ -101,7 +101,7 @@ const submit = () => form.put(`/nomina/empleados/${e.id}`);
                     <label class="relative flex flex-col gap-1">Tercero contable
                         <input :value="labels[key]" class="s-input h-[32px]" placeholder="Buscar NIT o nombre" @input="search(key, $event.target.value)" />
                         <div v-if="options[key]?.length" class="absolute top-[52px] z-10 max-h-[180px] w-[320px] overflow-y-auto border bg-white shadow">
-                            <button v-for="c in options[key]" :key="c.id" type="button" class="block w-full px-2 py-1 text-left text-[11.5px] hover:bg-[#e3f1fb]" @click="pick(key, c)">{{ c.identification }} - {{ c.name }}</button>
+                            <button v-for="c in options[key]" :key="c.id" type="button" class="block w-full px-2 py-1 text-left text-[11.5px] hover:bg-[#e0f2fe]" @click="pick(key, c)">{{ c.identification }} - {{ c.name }}</button>
                         </div>
                     </label>
                 </div>

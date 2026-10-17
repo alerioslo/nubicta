@@ -29,7 +29,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Formularios de creacion del menu "Crear", replicados de Siigo Nube.
+ * Formularios de creacion del menu "Crear".
  * Guardar registra el documento, mueve inventario y saldos, contabiliza y, si es electronico, lo envia a la DIAN.
  */
 class DocumentFormController extends Controller
@@ -411,7 +411,7 @@ class DocumentFormController extends Controller
         ], self::FALLBACK_TYPES[$type] ?? []);
     }
 
-    /** Siigo propone como vendedor al vendedor que corresponde al usuario que elabora el documento. */
+    /** Se propone como vendedor al vendedor que corresponde al usuario que elabora el documento. */
     private function sellerOfUser(): ?int
     {
         $user = auth()->user();

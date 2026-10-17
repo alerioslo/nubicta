@@ -4,7 +4,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { confirmDialog } from '../../composables/dialog';
 import DocSearch from '../../Components/Forms/DocSearch.vue';
 
-/* Impuestos como en Siigo: grilla con edicion en linea (clic en la fila), guardar / deshacer, eliminar y "Adicionar impuesto". */
+/* Impuestos: grilla con edicion en linea (clic en la fila), guardar / deshacer, eliminar y "Adicionar impuesto". */
 const props = defineProps({ taxes: Array, selfWithholdings: Array, types: Array, tab: String });
 const tab = ref(props.tab);
 const editing = ref(null);

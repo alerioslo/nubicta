@@ -1,8 +1,7 @@
 <?php
 
 /*
-| Estructura de navegacion copiada de Siigo Nube (docs/siigo). Los nombres deben
-| coincidir exactamente con Siigo para que los empleados no noten diferencia.
+| Estructura de navegacion del ERP: modulos, pestanas y procesos de cada menu.
 */
 
 return [

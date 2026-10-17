@@ -106,7 +106,7 @@ async function remove() {
     <PageHeader title="Compras y gastos" :tabs="tabs" active="Registro de eventos" />
 
     <h2 class="mt-[16px] text-[18px] font-bold text-ink">Registro de eventos en factura electrónica de proveedores</h2>
-    <div class="mt-[12px] flex items-stretch overflow-hidden rounded-[4px] border border-primary bg-[#e8f4fd] text-[13px] leading-[22px] text-ink">
+    <div class="mt-[12px] flex items-stretch overflow-hidden rounded-[4px] border border-primary bg-[#f0f9ff] text-[13px] leading-[22px] text-ink">
         <div class="grid w-[36px] shrink-0 place-items-center bg-primary text-white"><Icon icon="circle-info" /></div>
         <p class="px-[22px] py-[8px]">
             Para que las facturas electrónicas de venta emitidas por tus proveedores en operaciones a crédito, puedan servir como soporte de costos, deducciones y/o impuestos descontables,

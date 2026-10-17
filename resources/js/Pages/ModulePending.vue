@@ -15,6 +15,6 @@ const tab = ref(props.tabs[0]?.label);
     <Head :title="title" />
     <PageHeader :title="title" :tabs="tabs" :active="tab" @tab="tab = $event" />
     <section class="s-card mt-[18px]">
-        <EmptyState title="Módulo en construcción" text="Esta pantalla se está construyendo con la misma estructura de Siigo." />
+        <EmptyState title="Módulo en construcción" text="Esta pantalla se está construyendo." />
     </section>
 </template>

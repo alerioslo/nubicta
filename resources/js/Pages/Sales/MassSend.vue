@@ -79,7 +79,7 @@ async function enviar() {
     <PageHeader title="Ventas" :tabs="tabs" active="Envío masivo" />
 
     <div class="mt-[12px]" @click="open = null">
-        <div v-if="banner" class="flex items-stretch overflow-hidden rounded-[4px] border border-primary bg-[#e8f4fd] text-[13px] text-ink">
+        <div v-if="banner" class="flex items-stretch overflow-hidden rounded-[4px] border border-primary bg-[#f0f9ff] text-[13px] text-ink">
             <div class="grid w-[50px] place-items-center bg-primary text-[16px] text-white"><Icon icon="circle-info" /></div>
             <p class="flex-1 px-[22px] py-[8px] leading-[22px]">
                 Para dar cumplimiento al anexo técnico de facturación electrónica de la DIAN vigente, <b>la fecha de elaboración se ajustará por la fecha actual</b> en tus documentos al momento de enviarlos
@@ -192,7 +192,7 @@ async function enviar() {
                 <template v-if="rows.length">
                     <template v-for="(p, i) in pageLinks" :key="i">
                         <span v-if="p === '…'" class="px-[4px] text-muted">…</span>
-                        <button v-else type="button" class="grid h-[28px] min-w-[28px] place-items-center rounded-full" :class="p === page ? 'bg-[#cfe9fb] text-primary' : 'text-primary'" @click="page = p">{{ p }}</button>
+                        <button v-else type="button" class="grid h-[28px] min-w-[28px] place-items-center rounded-full" :class="p === page ? 'bg-[#e0f2fe] text-primary' : 'text-primary'" @click="page = p">{{ p }}</button>
                     </template>
                 </template>
                 <button type="button" class="grid h-[28px] w-[28px] place-items-center text-primary disabled:opacity-40" :disabled="page >= pages" aria-label="Siguiente" @click="page++"><Icon icon="chevron-right" /></button>

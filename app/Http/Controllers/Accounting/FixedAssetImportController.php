@@ -16,7 +16,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
-/** Contabilidad > Mas procesos > Importar activo fijo: plantilla de Excel en dos pasos como Siigo. */
+/** Contabilidad > Mas procesos > Importar activo fijo: plantilla de Excel en dos pasos. */
 class FixedAssetImportController extends Controller
 {
     private const HEAD = ['Código grupo de activo', 'Código activo fijo', 'Nombre', 'Estado (Activo / Inactivo)'];

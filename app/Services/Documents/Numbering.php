@@ -14,7 +14,7 @@ class Numbering
 {
     private const ELECTRONIC = ['DS' => 'SupportDocument', 'NA' => 'SupportDocumentAdjustment'];
 
-    /** Prefijo con el que el documento queda en el libro (CE se muestra como RP, como en Siigo). */
+    /** Prefijo con el que el documento queda en el libro (CE se muestra como RP). */
     public const LEDGER_PREFIX = ['CE' => 'RP', 'CT' => 'C'];
 
     /** @var array{0:int, 1:string}|null numero que conserva un documento al editarlo */

@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/** Costo promedio y salidas del mes por producto (Informe costeo mensual), importado de Siigo para los meses anteriores a Friigo. */
+/** Costo promedio y salidas del mes por producto (Informe costeo mensual), importado de Siigo para los meses anteriores a Nubicta. */
 return new class extends Migration
 {
     public function up(): void

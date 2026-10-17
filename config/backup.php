@@ -3,7 +3,7 @@
 /* Copias de seguridad que cada empresa descarga y restaura desde Configuración. */
 return [
     'format' => 1,
-    'edition' => env('FRIIGO_EDITION', 'privado'),
+    'edition' => env('NUBICTA_EDITION', env('FRIIGO_EDITION', 'privado')),
     'disk' => 'local',
     'queue_connection' => env('BACKUP_QUEUE_CONNECTION', env('QUEUE_CONNECTION') === 'redis' ? 'redis_long' : env('QUEUE_CONNECTION', 'sync')),
     'public_prefix' => '',
