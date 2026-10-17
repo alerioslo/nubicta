@@ -17,3 +17,4 @@ if (config('services.siigo.auto_sync')) {
 }
 \Illuminate\Support\Facades\Schedule::command('inventory:history')->dailyAt('03:45')->withoutOverlapping()->runInBackground();
 \Illuminate\Support\Facades\Schedule::command('siigo:orden-lineas --limite=1500')->hourlyAt(35)->withoutOverlapping()->runInBackground();
+\Illuminate\Support\Facades\Schedule::command('backups:prune')->dailyAt('04:10');

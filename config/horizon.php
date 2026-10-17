@@ -210,6 +210,18 @@ return [
             'timeout' => 60,
             'nice' => 0,
         ],
+        'supervisor-backups' => [
+            'connection' => 'redis_long',
+            'queue' => ['backups'],
+            'balance' => 'simple',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 512,
+            'tries' => 1,
+            'timeout' => 3600,
+            'nice' => 5,
+        ],
     ],
 
     'environments' => [

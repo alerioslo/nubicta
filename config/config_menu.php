@@ -35,6 +35,7 @@ return [
             $item('Administración de usuarios y permisos', '/configuracion/usuarios'),
         ]],
         ['title' => 'Seguridad', 'column' => 1, 'items' => [
+            $item('Copias de seguridad (descargar y restaurar)', '/configuracion/respaldos'),
             $item('Bloqueo fecha de transacciones', '/configuracion/bloqueo-periodos'),
             $item('Bloqueo de transacciones por periodo', '/configuracion/bloqueo-periodos'),
         ]],

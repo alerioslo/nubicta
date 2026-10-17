@@ -64,6 +64,15 @@ return [
             'after_commit' => false,
         ],
 
+        'redis_long' => [
+            'driver' => 'redis',
+            'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
+            'queue' => 'backups',
+            'retry_after' => 3700,
+            'block_for' => null,
+            'after_commit' => false,
+        ],
+
         'redis' => [
             'driver' => 'redis',
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),

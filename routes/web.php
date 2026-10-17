@@ -68,6 +68,11 @@ Route::middleware('auth')->group(function () {
             Route::get('/envios/{transmission}', [ElectronicInvoicingController::class, 'transmission'])->whereNumber('transmission');
         });
 
+        Route::get('/respaldos', [\App\Http\Controllers\Settings\BackupController::class, 'index']);
+        Route::post('/respaldos', [\App\Http\Controllers\Settings\BackupController::class, 'store']);
+        Route::post('/respaldos/restaurar', [\App\Http\Controllers\Settings\BackupController::class, 'restore']);
+        Route::get('/respaldos/{backup}/descargar', [\App\Http\Controllers\Settings\BackupController::class, 'download']);
+        Route::delete('/respaldos/{backup}', [\App\Http\Controllers\Settings\BackupController::class, 'destroy']);
         Route::middleware('can:configuracion.usuarios')->group(function () {
             Route::get('/usuarios', [UserController::class, 'index']);
             Route::get('/usuarios/crear', [UserController::class, 'create']);
