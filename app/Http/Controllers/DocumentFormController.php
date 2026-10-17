@@ -281,6 +281,9 @@ class DocumentFormController extends Controller
         $messages['attachment.max'] = 'El archivo adjunto no puede superar 10 MB';
         $request->validate($rules, $messages);
         $this->validateLines($request, $form);
+        if (isset($form['dian_reason'])) {
+            $this->validateCorrection($request, $form);
+        }
 
         $data = $request->all();
         try {
@@ -331,6 +334,22 @@ class DocumentFormController extends Controller
             $doc->forceFill(['dian_status' => 'Draft', 'dian_message' => mb_substr($e->getMessage(), 0, 500)])->save();
 
             return 'No se envió a la DIAN: '.$e->getMessage();
+        }
+    }
+
+    /** La nota electronica debe referenciar la factura, y una factura electronica solo se corrige con nota electronica. */
+    private function validateCorrection(Request $request, array $form): void
+    {
+        $type = is_numeric($request->input('document_type')) ? DocumentType::query()->find((int) $request->input('document_type')) : null;
+        $invoice = $request->integer('related_id') ? \App\Models\SalesDocument::query()->where('type', 'FV')->find($request->integer('related_id')) : null;
+        $label = $form['doc'] === 'NC' ? 'nota crédito' : 'nota débito';
+        if ($type?->isElectronic() && ! $invoice) {
+            throw ValidationException::withMessages(['related_id' => "La {$label} electrónica debe indicar la factura que corrige"]);
+        }
+        if ($type && ! $type->isElectronic() && $invoice && (filled($invoice->cufe) || DocumentType::query()->find($invoice->document_type_id)?->isElectronic())) {
+            $electronic = DocumentType::query()->where('type', $form['doc'])->where('active', true)->get()->first(fn ($t) => $t->isElectronic());
+            throw ValidationException::withMessages(['document_type' => "La factura {$invoice->name} es electrónica: la {$label} debe ser electrónica para enviarse a la DIAN"
+                .($electronic ? " (elige el tipo {$form['doc']} - {$electronic->code})." : '. Configura un tipo de documento electrónico.')]);
         }
     }
 

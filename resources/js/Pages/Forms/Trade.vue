@@ -25,7 +25,7 @@ const RANGES = [['0', 'Hoy'], ['15', 'a 15 días'], ['30', 'a 30 días'], ['45',
 
 const blankItem = () => ({ type: 'Producto', item_id: null, label: '', description: '', quantity: 1, price: 0, discount: 0, tax_id: null, withholding_id: null, prices: null, unit: '', stock: null, stock_control: false });
 const blankPayment = () => ({ method_id: null, label: '', value: 0, range: '0', due_date: null });
-const defaultType = props.docTypes.length === 1 || !f.purchase ? (props.docTypes[0]?.id ?? null) : null;
+const defaultType = props.docTypes.length === 1 || !f.purchase ? ((f.dian_reason && props.docTypes.find((t) => t.electronic)) || props.docTypes[0])?.id ?? null : null;
 
 const doc = useForm({
     action: '',
@@ -296,6 +296,7 @@ async function submit(action) {
                     <div v-if="f.related" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
                         <span class="doc-label">{{ f.related_label }}</span>
                         <DocSearch v-model="doc.related_id" v-model:label="doc.related_label" :url="`/api/buscar/documentos?modulo=${f.related}`" @pick="pickRelated" />
+                        <p v-if="doc.errors.related_id" class="col-start-2 text-[10px] text-danger">{{ doc.errors.related_id }}</p>
                     </div>
                     <div class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
                         <span class="doc-label">Tipo <Icon v-if="!f.related" icon="circle-info" class="text-[9px] text-primary" /></span>
