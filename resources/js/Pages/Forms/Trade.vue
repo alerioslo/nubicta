@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import DocSearch from '../../Components/Forms/DocSearch.vue';
 import NumInput from '../../Components/Forms/NumInput.vue';
-import { alertDialog } from '../../composables/dialog';
+import { confirmDialog } from '../../composables/dialog';
 
 /* Formulario comercial de Siigo: factura de venta, notas, cotizacion, remision, compras, documento soporte y orden de compra. */
 const props = defineProps({
@@ -238,7 +238,7 @@ function pickPayment(p, m) {
     p.value = round(Math.max(totals.value.net - others, 0));
 }
 
-/* Factura y remision no pueden sacar mas de lo que hay: se suma la cantidad del mismo producto en todas las lineas. */
+/* Factura y remision avisan si sacan mas de lo que hay (se suma el mismo producto en todas las lineas); se puede guardar igual. */
 const checksStock = sale && ['FV', 'RM'].includes(f.doc);
 const requested = computed(() => doc.items.reduce((acc, r) => {
     if (r.type === 'Producto' && r.item_id && r.stock_control && r.stock !== null) acc[r.item_id] = (acc[r.item_id] ?? 0) + Number(r.quantity || 0);
@@ -248,9 +248,9 @@ const shortOf = (row) => checksStock && row.type === 'Producto' && row.item_id &
 const shortages = computed(() => doc.items.filter(shortOf).filter((r, i, all) => all.findIndex((x) => x.item_id === r.item_id) === i)
     .map((r) => `${r.label}${r.description ? ' - ' + r.description : ''}: disponible ${money(r.stock)}, solicitado ${money(requested.value[r.item_id])}`));
 
-function submit(action) {
-    if (shortages.value.length) {
-        return alertDialog('Producto sin saldo:\n' + shortages.value.join('\n'));
+async function submit(action) {
+    if (shortages.value.length && !(await confirmDialog('Productos sin saldo suficiente:\n' + shortages.value.join('\n') + '\n\nEl inventario quedará en negativo. ¿Deseas continuar?'))) {
+        return;
     }
     doc.action = action;
     doc.total = totals.value.net;
@@ -283,7 +283,7 @@ function submit(action) {
                 <a v-if="f.logo || f.doc === 'NC'" href="/ayuda#ventas" target="_blank" class="rounded-[2px] border border-[#ccc] px-[8px] py-[1px] text-[10px] text-primary hover:underline">Ver tutoriales</a>
             </div>
             <div v-if="f.classic" class="mt-[14px] flex justify-end gap-[8px]">
-                <button v-for="b in f.buttons" :key="b" type="button" class="doc-btn doc-btn-green" :disabled="doc.processing || shortages.length > 0" :title="shortages.length ? 'Hay productos sin saldo' : null" @click="submit(b)">{{ b }}</button>
+                <button v-for="b in f.buttons" :key="b" type="button" class="doc-btn doc-btn-green" :disabled="doc.processing" @click="submit(b)">{{ b }}</button>
                 <Link :href="f.back" class="doc-btn doc-btn-blue inline-flex items-center">Cancelar</Link>
             </div>
             <p v-if="f.logo" class="mt-[18px] text-[11px] font-semibold text-primary">Cambiar logo <Icon icon="cloud-arrow-up" /></p>
@@ -426,7 +426,7 @@ function submit(action) {
                                 <td v-if="f.item_type">{{ row.type }}</td>
                                 <td>{{ row.label }}</td>
                                 <td>{{ row.description }}</td>
-                                <td class="text-right" :class="shortOf(row) && 'font-bold text-danger'" :title="shortOf(row) ? `Producto sin saldo. Disponible: ${money(row.stock)}` : null">
+                                <td class="text-right" :class="shortOf(row) && 'font-bold text-[#b26a00]'" :title="shortOf(row) ? `Producto sin saldo. Disponible: ${money(row.stock)}` : null">
                                     {{ money(row.quantity) }}
                                     <div v-if="shortOf(row)" class="whitespace-nowrap text-[10px] font-normal">Sin saldo (disp. {{ money(row.stock) }})</div>
                                 </td>
@@ -451,7 +451,7 @@ function submit(action) {
                                 <td><textarea v-model="row.description" rows="1" class="doc-input h-[25px] resize-y py-[3px]" :readonly="!f.purchase && !row.item_id" /></td>
                                 <td>
                                     <NumInput v-model="row.quantity" :class="{ 'is-invalid': shortOf(row) }" :title="shortOf(row) ? `Producto sin saldo. Disponible: ${money(row.stock)}` : null" />
-                                    <p v-if="shortOf(row)" class="whitespace-nowrap text-[10px] text-danger">Sin saldo (disp. {{ money(row.stock) }})</p>
+                                    <p v-if="shortOf(row)" class="whitespace-nowrap text-[10px] text-[#b26a00]">Sin saldo (disp. {{ money(row.stock) }})</p>
                                 </td>
                                 <td>
                                     <div class="relative flex">
@@ -482,9 +482,9 @@ function submit(action) {
                         </template>
                     </tbody>
                 </table>
-                <div v-if="shortages.length" class="mt-[6px] flex gap-[8px] rounded-[2px] border border-danger bg-[#fdecec] px-[10px] py-[6px] text-[11px] text-[#c62828]" role="alert">
+                <div v-if="shortages.length" class="mt-[6px] flex gap-[8px] rounded-[2px] border border-[#f0c36d] bg-[#fff4de] px-[10px] py-[6px] text-[11px] text-[#7a4f00]" role="alert">
                     <Icon icon="triangle-exclamation" class="mt-[2px]" />
-                    <div><b>Producto sin saldo.</b> No se puede guardar hasta corregir la cantidad:
+                    <div><b>Producto sin saldo suficiente.</b> Puedes guardar igual; el inventario quedará en negativo:
                         <div v-for="m in shortages" :key="m">{{ m }}</div>
                     </div>
                 </div>
@@ -567,12 +567,12 @@ function submit(action) {
         </div>
 
         <div v-if="f.classic" class="mt-[40px] flex justify-end gap-[8px] px-[14px] pb-[20px]">
-            <button v-for="b in f.buttons" :key="b" type="button" class="doc-btn doc-btn-green" :disabled="doc.processing || shortages.length > 0" :title="shortages.length ? 'Hay productos sin saldo' : null" @click="submit(b)">{{ b }}</button>
+            <button v-for="b in f.buttons" :key="b" type="button" class="doc-btn doc-btn-green" :disabled="doc.processing" @click="submit(b)">{{ b }}</button>
             <Link :href="f.back" class="doc-btn doc-btn-blue inline-flex items-center">Cancelar</Link>
         </div>
         <div v-else class="doc-footer">
             <Link :href="f.back" class="doc-btn doc-btn-blue inline-flex items-center">Cancelar</Link>
-            <button v-for="b in f.buttons" :key="b" type="button" class="doc-btn doc-btn-green" :disabled="doc.processing || shortages.length > 0" :title="shortages.length ? 'Hay productos sin saldo' : null" @click="submit(b)">{{ b }}</button>
+            <button v-for="b in f.buttons" :key="b" type="button" class="doc-btn doc-btn-green" :disabled="doc.processing" @click="submit(b)">{{ b }}</button>
         </div>
     </form>
 
