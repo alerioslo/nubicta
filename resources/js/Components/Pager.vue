@@ -17,7 +17,7 @@ function go(page, perPage = p.value.per_page) {
 </script>
 
 <template>
-    <div class="flex items-center justify-end gap-6 border-t border-[#edf0f2] px-5 py-3 text-[13px]">
+    <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-[#edf0f2] px-3 py-3 text-[13px] sm:justify-end sm:px-5">
         <span class="flex items-center gap-2">
             Items por página:
             <select class="s-input h-[30px] w-[64px] px-2" :value="p.per_page" @change="go(1, $event.target.value)">

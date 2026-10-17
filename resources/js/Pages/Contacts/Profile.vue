@@ -31,17 +31,17 @@ const v = (x) => x ?? '';
 
 <template>
     <Head :title="contact.name" />
-    <nav class="s-tabs -mx-[18px] -mt-[18px] bg-white px-[14px] pt-[16px]">
+    <nav class="s-tabs -mx-3 -mt-[18px] bg-white md:-mx-[18px] px-[14px] pt-[16px]">
         <Link v-for="t in tabs" :key="t.key" :href="href(t.key)" class="s-tab" :class="{ active: tab === t.key }">{{ t.label }}</Link>
     </nav>
 
     <template v-if="tab === 'perfil'">
-        <div class="mt-[26px] flex items-center justify-between">
+        <div class="mt-[26px] flex flex-wrap items-center justify-between gap-3">
             <h1 class="text-[22px] font-medium text-primary">Perfil del tercero</h1>
-            <Link :href="`${base}/editar`" class="s-btn s-btn-green h-[40px] px-[48px] text-[13px] font-semibold">Editar tercero</Link>
+            <Link :href="`${base}/editar`" class="s-btn s-btn-green h-[40px] px-[24px] text-[13px] font-semibold md:px-[48px]">Editar tercero</Link>
         </div>
-        <div class="mt-[20px] grid grid-cols-[1fr_auto_1fr] items-center gap-[16px]">
-            <div class="text-right">
+        <div class="mt-[20px] grid grid-cols-1 items-center justify-items-center gap-[16px] text-center md:grid-cols-[1fr_auto_1fr] md:justify-items-stretch md:text-left">
+            <div class="md:text-right">
                 <div class="text-[18px] font-bold text-ink">{{ contact.name }}</div>
                 <div class="mt-[6px] font-semibold text-ink">{{ contact.number }}</div>
                 <div class="mt-[4px] font-semibold text-ink">Estado: <span :class="contact.active ? 'text-ok' : 'text-danger'">{{ contact.active ? 'Activo' : 'Inactivo' }}</span></div>
@@ -60,7 +60,7 @@ const v = (x) => x ?? '';
 
         <section class="s-card mt-[22px] p-[24px]">
             <h2 class="text-[16px] font-medium text-ink">Tipo de tercero</h2>
-            <div class="mt-[6px] grid grid-cols-3 gap-[24px]">
+            <div class="mt-[6px] grid grid-cols-1 gap-[12px] sm:grid-cols-3 sm:gap-[24px]">
                 <div v-for="r in roles" :key="r.title" :class="r.on ? '' : 'opacity-40'">
                     <div class="text-[12.5px]" :class="r.on ? 'font-semibold text-primary' : 'text-muted'">{{ r.title }}</div>
                     <p class="mt-[12px] text-[12px] text-muted">{{ r.text }}</p>
@@ -68,7 +68,7 @@ const v = (x) => x ?? '';
             </div>
         </section>
 
-        <div class="mt-[22px] grid grid-cols-2 items-start gap-[16px]">
+        <div class="mt-[22px] grid grid-cols-1 items-start gap-[16px] lg:grid-cols-2">
             <section class="s-card p-[24px]">
                 <h2 class="text-[16px] font-medium text-ink">Datos básicos</h2>
                 <div class="mt-[8px] grid grid-cols-2 text-[12px]">
@@ -124,7 +124,7 @@ const v = (x) => x ?? '';
             </section>
         </div>
 
-        <div class="mt-[22px] grid grid-cols-2 items-start gap-[16px]">
+        <div class="mt-[22px] grid grid-cols-1 items-start gap-[16px] lg:grid-cols-2">
             <section class="s-card p-[24px]">
                 <h2 class="text-[16px] font-medium text-ink"><Icon icon="angle-up" class="mr-[8px] text-primary" />Vendedor y cobrador</h2>
                 <div class="mt-[8px] grid grid-cols-2 text-[12px]">
@@ -149,15 +149,17 @@ const v = (x) => x ?? '';
         <h1 class="mt-[18px] text-[22px] font-medium text-primary">Listado contactos</h1>
         <section class="s-card mt-[18px]">
             <div class="p-[12px] text-[12px] text-muted">Encontrados ({{ people.length }})</div>
-            <table class="s-table">
-                <thead><tr><th class="w-[30px]"></th><th>Contacto</th><th>Cargo</th><th>Teléfono oficina</th><th>Teléfono móvil</th><th>Correo electrónico contacto</th></tr></thead>
-                <tbody>
-                    <tr v-for="p in people" :key="p.id">
-                        <td class="text-[#b8742a]"><Icon icon="user" /></td>
-                        <td>{{ p.name }}</td><td>{{ v(p.position) }}</td><td>{{ v(p.office) }}</td><td>{{ v(p.mobile) }}</td><td>{{ v(p.email) }}</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="s-table-wrap">
+                <table class="s-table">
+                    <thead><tr><th class="w-[30px]"></th><th>Contacto</th><th>Cargo</th><th>Teléfono oficina</th><th>Teléfono móvil</th><th>Correo electrónico contacto</th></tr></thead>
+                    <tbody>
+                        <tr v-for="p in people" :key="p.id">
+                            <td class="text-[#b8742a]"><Icon icon="user" /></td>
+                            <td>{{ p.name }}</td><td>{{ v(p.position) }}</td><td>{{ v(p.office) }}</td><td>{{ v(p.mobile) }}</td><td>{{ v(p.email) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
             <EmptyState v-if="!people.length" />
         </section>
     </template>
@@ -166,14 +168,16 @@ const v = (x) => x ?? '';
         <h1 class="mt-[18px] text-[22px] font-medium text-primary">Tareas relacionadas</h1>
         <section class="s-card mt-[18px]">
             <div class="p-[12px] text-[12px] text-muted">Encontrados ({{ tasks.length }})</div>
-            <table class="s-table">
-                <thead><tr><th>Código tarea</th><th>Tipo de tarea</th><th>Actividad de la tarea</th><th>Descripción de la tarea</th><th>Fecha final</th><th>Fecha creación</th><th>Fecha modificado</th><th>Estado</th></tr></thead>
-                <tbody>
-                    <tr v-for="t in tasks" :key="t.id">
-                        <td>{{ t.id }}</td><td>{{ v(t.category) }}</td><td>{{ v(t.stage) }}</td><td>{{ v(t.description) }}</td><td>{{ v(t.due) }}</td><td>{{ t.created }}</td><td>{{ t.updated }}</td><td>{{ v(t.status) }}</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="s-table-wrap">
+                <table class="s-table">
+                    <thead><tr><th>Código tarea</th><th>Tipo de tarea</th><th>Actividad de la tarea</th><th>Descripción de la tarea</th><th>Fecha final</th><th>Fecha creación</th><th>Fecha modificado</th><th>Estado</th></tr></thead>
+                    <tbody>
+                        <tr v-for="t in tasks" :key="t.id">
+                            <td>{{ t.id }}</td><td>{{ v(t.category) }}</td><td>{{ v(t.stage) }}</td><td>{{ v(t.description) }}</td><td>{{ v(t.due) }}</td><td>{{ t.created }}</td><td>{{ t.updated }}</td><td>{{ v(t.status) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
             <EmptyState v-if="!tasks.length" />
         </section>
     </template>

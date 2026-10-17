@@ -9,7 +9,7 @@ defineProps({ title: String, active: String, tabs: Array, cards: Array });
     <Head :title="title" />
     <PageHeader :title="title" :tabs="tabs" :active="active" />
 
-    <div class="mt-[18px] grid max-w-[1460px] grid-cols-3 items-start gap-[12px]">
+    <div class="mt-[18px] grid max-w-[1460px] grid-cols-1 items-start gap-[12px] md:grid-cols-2 lg:grid-cols-3">
         <section v-for="c in cards" :key="c.title" class="s-card">
             <h3 class="border-b border-[#edf0f2] px-[28px] py-[16px] text-[18px] font-bold text-ink">{{ c.title }}</h3>
             <ul class="px-[28px] pb-[20px] pt-[14px]">

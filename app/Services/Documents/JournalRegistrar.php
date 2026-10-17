@@ -5,7 +5,10 @@ namespace App\Services\Documents;
 use App\Models\Contact;
 use App\Models\DocumentType;
 use App\Models\JournalEntry;
+use App\Models\Product;
 use App\Models\PurchaseDocument;
+use App\Models\Warehouse;
+use App\Services\Inventory\InventoryService;
 use App\Models\SalesDocument;
 use App\Services\Accounting\AccountResolver;
 use App\Services\Accounting\LedgerEntry;
@@ -17,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 /** Comprobantes contables (CC), traslados de dinero (CC-9901) y ajustes de cartera / proveedor (CC-777). */
 class JournalRegistrar
 {
-    public function __construct(private readonly Numbering $numbering, private readonly AccountResolver $accounts) {}
+    public function __construct(private readonly Numbering $numbering, private readonly AccountResolver $accounts, private readonly InventoryService $inventory) {}
 
     public function journal(array $data): JournalEntry
     {
@@ -30,7 +33,9 @@ class JournalRegistrar
         $items = collect($data['items'] ?? [])->filter(fn ($l) => ! empty($l['account_id']) && ((float) ($l['debit'] ?? 0) + (float) ($l['credit'] ?? 0)) > 0)->values();
         $contacts = Contact::query()->whereIn('id', $items->pluck('contact_id')->filter())->get()->keyBy('id');
         $accounts = DB::table('accounts')->whereIn('id', $items->pluck('account_id'))->get(['id', 'code', 'due_type', 'requires_third_party'])->keyBy('id');
-        $lines = $items->map(function ($l, $k) use ($contacts, $accounts) {
+        $inventoryAccounts = DB::table('account_groups')->where('company_id', CurrentCompany::id())->whereIn('inventory_account_id', $accounts->keys())->pluck('inventory_account_id')->flip();
+        $products = Product::query()->with('accountGroup')->whereIn('id', $items->pluck('inventory.product_id')->filter())->get()->keyBy('id');
+        $lines = $items->map(function ($l, $k) use ($contacts, $accounts, $inventoryAccounts, $products) {
             $account = $accounts[(int) $l['account_id']] ?? throw ValidationException::withMessages(['items' => 'La línea '.($k + 1).' tiene una cuenta que no existe']);
             $contact = $contacts->get($l['contact_id'] ?? 0);
             if (($account->requires_third_party || $account->due_type) && ! $contact) {
@@ -40,6 +45,9 @@ class JournalRegistrar
                 'debit' => round((float) ($l['debit'] ?? 0), 2), 'credit' => round((float) ($l['credit'] ?? 0), 2)];
             if ($account->due_type) {
                 $line += $this->dueDetail($l['due'] ?? null, $account->due_type, $contact, $line, $k + 1);
+            }
+            if ($inventoryAccounts->has($account->id)) {
+                $line += $this->inventoryDetail($l['inventory'] ?? null, $products, $account, $line, $k + 1);
             }
 
             return $line;
@@ -75,6 +83,28 @@ class JournalRegistrar
         }
 
         return ['due_raw' => ['prefix' => $prefix, 'number' => (int) $due['number'], 'quote' => max(1, (int) ($due['quote'] ?? 1)), 'due_date' => $due['due_date'] ?? null]];
+    }
+
+    /** "Detalle de inventarios" de Siigo: la cuenta de un grupo de inventario mueve un producto; la entrada va al débito y la salida al crédito. */
+    private function inventoryDetail(?array $detail, $products, object $account, array $line, int $n): array
+    {
+        $product = $products->get((int) ($detail['product_id'] ?? 0));
+        $qty = round((float) ($detail['quantity'] ?? 0), 4);
+        $type = $detail['type'] ?? '';
+        if (! $product || $qty <= 0 || ! in_array($type, ['Entrada', 'Salida'], true)) {
+            throw ValidationException::withMessages(['items' => "Línea $n: completa el detalle de inventarios (producto, cantidad y tipo de movimiento)"]);
+        }
+        if ((int) $product->accountGroup?->inventory_account_id !== (int) $account->id) {
+            throw ValidationException::withMessages(['items' => "Línea $n: el producto {$product->code} no pertenece a un grupo de inventario con la cuenta {$account->code}"]);
+        }
+        if (! $product->stock_control) {
+            throw ValidationException::withMessages(['items' => "Línea $n: el producto {$product->code} no maneja inventario"]);
+        }
+        if ($type === 'Entrada' ? $line['debit'] <= 0 : $line['credit'] <= 0) {
+            throw ValidationException::withMessages(['items' => "Línea $n: ".($type === 'Entrada' ? 'la entrada de inventario va al débito' : 'la salida de inventario va al crédito')]);
+        }
+
+        return ['product' => $product, 'quantity' => $type === 'Entrada' ? $qty : -$qty];
     }
 
     public function moneyTransfer(array $data): JournalEntry
@@ -159,8 +189,14 @@ class JournalRegistrar
                     'description' => $l['description'], 'debit' => $l['debit'], 'credit' => $l['credit'], 'cost_center_id' => $l['cost_center_id'] ?? null,
                     'due_prefix' => $due ? preg_replace('/-\d+$/', '', $due->name) : $raw['prefix'] ?? null,
                     'due_number' => $due?->number ?? $raw['number'] ?? null, 'due_date' => $due ? ($due->due_date ?? $due->date) : $raw['due_date'] ?? null,
+                    'product_id' => isset($l['product']) ? $l['product']->id : null, 'quantity' => $l['quantity'] ?? null,
                 ]);
                 $entry->add($l['account_id'], $l['debit'], $l['credit'], $l['contact']);
+                if (isset($l['product'])) {
+                    $warehouse ??= (int) Warehouse::query()->where('active', true)->orderBy('id')->value('id');
+                    $this->inventory->move($l['product']->refresh(), $warehouse, $l['quantity'], 'Comprobante contable', $data['date'],
+                        $l['quantity'] > 0 ? $l['debit'] / $l['quantity'] : null, $je, $name);
+                }
             }
             $entry->post($data['date'], $name, 'CC');
 

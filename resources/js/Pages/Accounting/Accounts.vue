@@ -97,8 +97,8 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
     <PageHeader title="Contabilidad" :tabs="tabs" active="Cuentas contables" />
 
     <section class="mt-[18px]">
-        <div class="mb-3 flex items-center gap-3">
-            <h2 class="text-[22px] text-primary">Cuenta contable</h2>
+        <div class="mb-3 flex flex-wrap items-center gap-3">
+            <h2 class="whitespace-nowrap text-[22px] text-primary">Cuenta contable</h2>
             <div class="relative">
                 <button type="button" class="s-btn s-btn-outline h-[26px] px-[10px] text-[11px]" @click="tutorials = !tutorials">Ver tutoriales <Icon icon="caret-down" /></button>
                 <div v-if="tutorials" class="absolute left-0 top-[30px] z-20 w-[260px] rounded border border-line bg-white py-1 text-[12px] shadow-lg" @mouseleave="tutorials = false">
@@ -109,8 +109,8 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
             <button type="button" class="s-btn s-btn-outline ml-auto font-semibold" @click="download('/contabilidad/cuentas/excel', 'xlsx')"><Icon icon="file-excel" /> Descargar Excel</button>
         </div>
 
-        <div class="s-card grid min-h-[480px] grid-cols-[minmax(420px,45%)_1fr]">
-            <div class="border-r border-line">
+        <div class="s-card grid min-h-[480px] grid-cols-1 lg:grid-cols-[minmax(420px,45%)_1fr]">
+            <div class="border-b border-line lg:border-b-0 lg:border-r">
                 <button type="button" class="px-2 pt-2 text-[12px] text-primary" @click="toggleAll"><Icon :icon="expanded ? 'chevron-up' : 'chevron-down'" class="text-[10px]" /> {{ expanded ? 'Contraer todos los detalles' : 'Expandir todos los detalles' }}</button>
                 <div class="grid grid-cols-[136px_1fr] border-b border-line text-[12px] text-muted">
                     <div class="px-2 py-2">Código</div>

@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { confirmDialog } from '../composables/dialog';
 import PageHeader from '../Components/PageHeader.vue';
 import Lookup from '../Components/Lookup.vue';
 import AccountPicker from '../Components/AccountPicker.vue';
@@ -35,8 +36,8 @@ function submit(extra = {}) {
     else if (props.page.method === 'put') form.put(props.page.action, opts);
     else form.post(props.page.action, opts);
 }
-function confirmSubmit(b) {
-    if (b.confirm && !window.confirm(b.confirm)) return;
+async function confirmSubmit(b) {
+    if (b.confirm && !(await confirmDialog(b.confirm))) return;
     submit(b.data ?? {});
 }
 </script>
@@ -53,7 +54,7 @@ function confirmSubmit(b) {
                 :class="i + 1 === page.step ? 'bg-[#3d8bc9]' : 'bg-[#9a9a9a]'"><b class="text-[20px]">{{ i + 1 }}</b> {{ st }}</li>
         </ol>
     </div>
-    <div v-if="page.info" class="mx-[22px] mt-[14px] flex gap-3 rounded border border-[#b9dcf3] bg-[#eaf5fc] px-4 py-3 text-[13px] text-ink">
+    <div v-if="page.info" class="md:mx-[22px] mt-[14px] flex gap-3 rounded border border-[#b9dcf3] bg-[#eaf5fc] px-4 py-3 text-[13px] text-ink">
         <Icon icon="circle-info" class="mt-[2px] text-primary" />
         <p class="whitespace-pre-line">{{ page.info }}</p>
     </div>

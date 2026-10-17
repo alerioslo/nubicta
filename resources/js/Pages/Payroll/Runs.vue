@@ -27,37 +27,39 @@ const money = (v) => Number(v).toLocaleString('es-CO', { minimumFractionDigits: 
         </div>
     </div>
 
-    <section class="s-card mx-[10px] mt-[18px] p-[20px]">
+    <section class="s-card md:mx-[10px] mt-[18px] p-[20px]">
         <div class="mb-4 flex items-center">
             <h3 class="text-[16px] font-bold text-ink">Resultados</h3>
-            <form class="ml-auto flex w-[300px] items-center rounded-full bg-[#eef1f4]" @submit.prevent="search">
+            <form class="ml-auto flex w-full items-center sm:w-[300px] rounded-full bg-[#eef1f4]" @submit.prevent="search">
                 <Icon icon="magnifying-glass" class="ml-3 text-muted" />
                 <input v-model="q" class="flex-1 bg-transparent px-2 py-[7px] text-[12px] outline-none" placeholder="Buscar por Estado / Nombre / Periodo de pago" />
                 <button type="submit" class="s-btn-green rounded-full px-4 py-[7px] text-[13px]">Buscar</button>
             </form>
         </div>
-        <table class="w-full border-collapse">
-            <thead>
-                <tr class="bg-primary text-left text-[14px] font-semibold text-white">
-                    <th class="px-3 py-[9px]">Estado</th>
-                    <th class="px-3">Nombre</th>
-                    <th class="px-3">Tipo liquidación</th>
-                    <th class="px-3">Periodo de pago</th>
-                    <th class="px-3 text-right">Total nómina</th>
-                    <th class="px-3 text-center">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="r in runs.data" :key="r.id" class="border-b border-line">
-                    <td class="border-l-[3px] px-3 py-[9px] font-semibold" :class="r.done ? 'border-l-[#7ac142] text-[#5a9e2b]' : 'border-l-[#ffb300] text-[#a86b00]'">{{ r.status }}</td>
-                    <td class="px-3 font-semibold text-[#5e6870] underline"><Link :href="`/nomina/${r.id}`">{{ r.name }}</Link></td>
-                    <td class="px-3">{{ r.type }}</td>
-                    <td class="px-3">{{ r.period }}</td>
-                    <td class="px-3 text-right">{{ money(r.total) }}</td>
-                    <td class="px-3 text-center text-muted"><Link :href="`/nomina/${r.id}`" title="Ver nómina"><Icon icon="file-lines" /></Link></td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="s-table-wrap">
+            <table class="sticky-actions w-full border-collapse">
+                <thead>
+                    <tr class="bg-primary text-left text-[14px] font-semibold text-white">
+                        <th class="px-3 py-[9px]">Estado</th>
+                        <th class="px-3">Nombre</th>
+                        <th class="px-3">Tipo liquidación</th>
+                        <th class="px-3">Periodo de pago</th>
+                        <th class="px-3 text-right">Total nómina</th>
+                        <th class="px-3 text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="r in runs.data" :key="r.id" class="border-b border-line">
+                        <td class="border-l-[3px] px-3 py-[9px] font-semibold" :class="r.done ? 'border-l-[#7ac142] text-[#5a9e2b]' : 'border-l-[#ffb300] text-[#a86b00]'">{{ r.status }}</td>
+                        <td class="px-3 font-semibold text-[#5e6870] underline"><Link :href="`/nomina/${r.id}`">{{ r.name }}</Link></td>
+                        <td class="px-3">{{ r.type }}</td>
+                        <td class="px-3">{{ r.period }}</td>
+                        <td class="px-3 text-right">{{ money(r.total) }}</td>
+                        <td class="px-3 text-center text-muted"><Link :href="`/nomina/${r.id}`" title="Ver nómina"><Icon icon="file-lines" /></Link></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <EmptyState v-if="!runs.data.length" />
         <Pager :paginator="runs" />
     </section>

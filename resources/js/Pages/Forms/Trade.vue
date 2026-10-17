@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import DocSearch from '../../Components/Forms/DocSearch.vue';
 import NumInput from '../../Components/Forms/NumInput.vue';
+import { alertDialog } from '../../composables/dialog';
 
 /* Formulario comercial de Siigo: factura de venta, notas, cotizacion, remision, compras, documento soporte y orden de compra. */
 const props = defineProps({
@@ -177,9 +178,9 @@ function pickItem(row, idx, item) {
     row.tax_included = !!item.tax_included;
     row.stock = item.stock ?? null;
     row.stock_control = !!item.stock_control;
-    if (item.tax_id) row.tax_id = item.tax_id;
+    if (item.tax_id && !(f.purchase && row.tax_id)) row.tax_id = item.tax_id;
     if (item.withholding_id && props.withholdings.some((w) => w.id === item.withholding_id && w.type === 'Retefuente')) row.withholding_id = item.withholding_id;
-    if (item.price !== undefined && Number(item.price) > 0) {
+    if (!f.purchase && item.price !== undefined && Number(item.price) > 0) {
         row.list_price = Number(item.price);
         row.price = netPrice(item.price, row.tax_id, item.tax_included);
     }
@@ -193,6 +194,13 @@ function pickPrice(row, value) {
     row.list_price = Number(value);
     row.price = netPrice(value, row.tax_id, row.tax_included);
     priceMenu.value = null;
+}
+
+/* Valor digitado a mano en un producto con impuesto incluido: al salir del campo se deja la base, igual que el precio de lista. */
+function typedPrice(row) {
+    if (!row.tax_included || row.list_price) return;
+    row.list_price = Number(row.price);
+    row.price = netPrice(row.price, row.tax_id, true);
 }
 
 /* Al hacer clic fuera de la linea en edicion (y fuera de sus listas), Siigo la vuelve a mostrar como texto. */
@@ -230,7 +238,20 @@ function pickPayment(p, m) {
     p.value = round(Math.max(totals.value.net - others, 0));
 }
 
+/* Factura y remision no pueden sacar mas de lo que hay: se suma la cantidad del mismo producto en todas las lineas. */
+const checksStock = sale && ['FV', 'RM'].includes(f.doc);
+const requested = computed(() => doc.items.reduce((acc, r) => {
+    if (r.type === 'Producto' && r.item_id && r.stock_control && r.stock !== null) acc[r.item_id] = (acc[r.item_id] ?? 0) + Number(r.quantity || 0);
+    return acc;
+}, {}));
+const shortOf = (row) => checksStock && row.type === 'Producto' && row.item_id && row.stock_control && row.stock !== null && requested.value[row.item_id] > Number(row.stock);
+const shortages = computed(() => doc.items.filter(shortOf).filter((r, i, all) => all.findIndex((x) => x.item_id === r.item_id) === i)
+    .map((r) => `${r.label}${r.description ? ' - ' + r.description : ''}: disponible ${money(r.stock)}, solicitado ${money(requested.value[r.item_id])}`));
+
 function submit(action) {
+    if (shortages.value.length) {
+        return alertDialog('Producto sin saldo:\n' + shortages.value.join('\n'));
+    }
     doc.action = action;
     doc.total = totals.value.net;
     doc.transform((d) => ({
@@ -262,7 +283,7 @@ function submit(action) {
                 <a v-if="f.logo || f.doc === 'NC'" href="/ayuda#ventas" target="_blank" class="rounded-[2px] border border-[#ccc] px-[8px] py-[1px] text-[10px] text-primary hover:underline">Ver tutoriales</a>
             </div>
             <div v-if="f.classic" class="mt-[14px] flex justify-end gap-[8px]">
-                <button v-for="b in f.buttons" :key="b" type="button" class="doc-btn doc-btn-green" :disabled="doc.processing" @click="submit(b)">{{ b }}</button>
+                <button v-for="b in f.buttons" :key="b" type="button" class="doc-btn doc-btn-green" :disabled="doc.processing || shortages.length > 0" :title="shortages.length ? 'Hay productos sin saldo' : null" @click="submit(b)">{{ b }}</button>
                 <Link :href="f.back" class="doc-btn doc-btn-blue inline-flex items-center">Cancelar</Link>
             </div>
             <p v-if="f.logo" class="mt-[18px] text-[11px] font-semibold text-primary">Cambiar logo <Icon icon="cloud-arrow-up" /></p>
@@ -400,12 +421,15 @@ function submit(action) {
                     <tbody>
                         <template v-for="(row, idx) in doc.items" :key="idx">
                             <!-- Linea terminada: Siigo la muestra como texto hasta que se vuelve a hacer clic. -->
-                            <tr v-if="sale && row.item_id && editing !== idx" class="cursor-pointer text-[11.5px] hover:bg-[#fafafa]" @click="editing = idx">
+                            <tr v-if="sale && row.item_id && editing !== idx" class="cursor-pointer text-[11.5px]" :class="shortOf(row) ? 'bg-[#fdecec] hover:bg-[#fbdcdc]' : 'hover:bg-[#fafafa]'" @click="editing = idx">
                                 <td class="py-[6px] text-[11px]">{{ idx + 1 }}</td>
                                 <td v-if="f.item_type">{{ row.type }}</td>
                                 <td>{{ row.label }}</td>
                                 <td>{{ row.description }}</td>
-                                <td class="text-right">{{ money(row.quantity) }} <Icon v-if="row.stock_control && Number(row.stock) <= 0" icon="circle-info" class="text-[#f0ad00]" title="Producto sin saldo" /></td>
+                                <td class="text-right" :class="shortOf(row) && 'font-bold text-danger'" :title="shortOf(row) ? `Producto sin saldo. Disponible: ${money(row.stock)}` : null">
+                                    {{ money(row.quantity) }}
+                                    <div v-if="shortOf(row)" class="whitespace-nowrap text-[10px] font-normal">Sin saldo (disp. {{ money(row.stock) }})</div>
+                                </td>
                                 <td class="text-right">{{ money(taxIncluded ? Number(row.price) / (1 + rateOf(lineCalc(row).charge)) : row.price) }}</td>
                                 <td class="text-right">{{ money(row.discount) }}</td>
                                 <td>{{ [taxLabel(row), taxById(row.withholding_id, withholdings)?.name].filter((x) => x && x !== '0').join(', ') }}</td>
@@ -426,12 +450,12 @@ function submit(action) {
                                 </td>
                                 <td><textarea v-model="row.description" rows="1" class="doc-input h-[25px] resize-y py-[3px]" :readonly="!f.purchase && !row.item_id" /></td>
                                 <td>
-                                    <NumInput v-model="row.quantity" :class="{ 'border-l-[3px] border-l-[#f0ad00]': sale && row.stock_control && Number(row.stock) <= 0 }" />
-                                    <p v-if="sale && row.stock_control && Number(row.stock) <= 0" class="mt-[1px] whitespace-nowrap text-[9.5px] text-[#555]">Producto sin saldo</p>
+                                    <NumInput v-model="row.quantity" :class="{ 'is-invalid': shortOf(row) }" :title="shortOf(row) ? `Producto sin saldo. Disponible: ${money(row.stock)}` : null" />
+                                    <p v-if="shortOf(row)" class="whitespace-nowrap text-[10px] text-danger">Sin saldo (disp. {{ money(row.stock) }})</p>
                                 </td>
                                 <td>
                                     <div class="relative flex">
-                                        <NumInput v-model="row.price" :class="{ req: f.purchase }" @update:model-value="row.list_price = null" />
+                                        <NumInput v-model="row.price" :class="{ req: f.purchase }" @update:model-value="row.list_price = null" @change="typedPrice(row)" />
                                         <button v-if="sale && priceOptions(row).length > 1" type="button" class="w-[14px] border border-l-0 border-[#ccc] text-[8px]" title="Listas de precios" @click="priceMenu = priceMenu === idx ? null : idx"><Icon icon="chevron-down" /></button>
                                         <ul v-if="priceMenu === idx" class="absolute right-0 top-[26px] z-30 min-w-[180px] border border-[#ccc] bg-white text-[11px] shadow-lg">
                                             <li v-for="o in priceOptions(row)" :key="o.name"><button type="button" class="flex w-full justify-between gap-[10px] px-[8px] py-[3px] hover:bg-[#f2f2f2]" @click="pickPrice(row, o.value)"><span>{{ o.name }}</span><span>{{ money(o.value) }}</span></button></li>
@@ -458,6 +482,12 @@ function submit(action) {
                         </template>
                     </tbody>
                 </table>
+                <div v-if="shortages.length" class="mt-[6px] flex gap-[8px] rounded-[2px] border border-danger bg-[#fdecec] px-[10px] py-[6px] text-[11px] text-[#c62828]" role="alert">
+                    <Icon icon="triangle-exclamation" class="mt-[2px]" />
+                    <div><b>Producto sin saldo.</b> No se puede guardar hasta corregir la cantidad:
+                        <div v-for="m in shortages" :key="m">{{ m }}</div>
+                    </div>
+                </div>
                 <p v-if="doc.errors.items" class="mt-[4px] text-[11px] text-danger">{{ doc.errors.items }}</p>
             </div>
 
@@ -537,18 +567,18 @@ function submit(action) {
         </div>
 
         <div v-if="f.classic" class="mt-[40px] flex justify-end gap-[8px] px-[14px] pb-[20px]">
-            <button v-for="b in f.buttons" :key="b" type="button" class="doc-btn doc-btn-green" :disabled="doc.processing" @click="submit(b)">{{ b }}</button>
+            <button v-for="b in f.buttons" :key="b" type="button" class="doc-btn doc-btn-green" :disabled="doc.processing || shortages.length > 0" :title="shortages.length ? 'Hay productos sin saldo' : null" @click="submit(b)">{{ b }}</button>
             <Link :href="f.back" class="doc-btn doc-btn-blue inline-flex items-center">Cancelar</Link>
         </div>
         <div v-else class="doc-footer">
             <Link :href="f.back" class="doc-btn doc-btn-blue inline-flex items-center">Cancelar</Link>
-            <button v-for="b in f.buttons" :key="b" type="button" class="doc-btn doc-btn-green" :disabled="doc.processing" @click="submit(b)">{{ b }}</button>
+            <button v-for="b in f.buttons" :key="b" type="button" class="doc-btn doc-btn-green" :disabled="doc.processing || shortages.length > 0" :title="shortages.length ? 'Hay productos sin saldo' : null" @click="submit(b)">{{ b }}</button>
         </div>
     </form>
 
     <!-- Impuestos de la linea -->
-    <div v-if="taxModal" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-[210px]" @click.self="taxModal = null">
-        <div class="w-[350px] bg-white px-[14px] pb-[14px] pt-[10px] text-[11.5px] text-[#333] shadow-xl">
+    <div v-if="taxModal" class="fixed inset-0 z-50 flex items-start justify-center p-3 bg-black/40 pt-[60px] md:pt-[210px]" @click.self="taxModal = null">
+        <div class="w-[350px] max-w-full max-h-[calc(100vh-24px)] overflow-y-auto bg-white px-[14px] pb-[14px] pt-[10px] text-[11.5px] text-[#333] shadow-xl">
             <div class="flex justify-end"><button type="button" class="text-[12px] text-danger" @click="taxModal = null"><Icon icon="xmark" /></button></div>
             <p class="mt-[16px] font-semibold">Valor subtotal</p>
             <p class="mt-[2px] bg-[#e6e6e6] px-[4px] py-[1px] text-right font-semibold">{{ money(taxModal.base) }}</p>

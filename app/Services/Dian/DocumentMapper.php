@@ -9,6 +9,7 @@ use App\Models\DocumentType;
 use App\Models\PurchaseDocument;
 use App\Models\SalesDocument;
 use App\Models\Tax;
+use App\Support\ColombianNit;
 use Illuminate\Support\Facades\DB;
 
 /** Convierte facturas, notas y documentos soporte del ERP al arreglo que consume UblBuilder. */
@@ -63,7 +64,13 @@ class DocumentMapper
         $related = $doc->related_document_id ? PurchaseDocument::query()->find($doc->related_document_id) : null;
         $withholdings = DB::table('purchase_document_retentions')->where('purchase_document_id', $doc->id)->get();
 
-        $d = $this->document($doc->type, $doc, $type, 'ds', $this->contactParty($doc->contact), $this->companyParty(), $items, $taxes, $related, 'purchase_document_item_id');
+        $supplier = $this->contactParty($doc->contact);
+        if ($supplier['id_type'] === '13') {
+            // DSAJ25a: el documento soporte solo admite al proveedor con NIT; el de una persona natural es su cedula + DV.
+            $supplier['id_type'] = '31';
+            $supplier['dv'] = ColombianNit::resolveVerificationDigit($supplier['id'], $supplier['dv']);
+        }
+        $d = $this->document($doc->type, $doc, $type, 'ds', $supplier, $this->companyParty(), $items, $taxes, $related, 'purchase_document_item_id');
 
         return $this->withholdings($d, $withholdings);
     }

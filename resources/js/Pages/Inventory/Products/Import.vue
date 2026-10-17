@@ -79,8 +79,8 @@ const send = () => upload.post('/productos/importar', { forceFormData: true });
         </div>
     </section>
 
-    <div v-if="picking" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="picking = false">
-        <div class="max-h-[85vh] w-[520px] overflow-y-auto rounded-[8px] bg-white p-[22px] text-[13px]">
+    <div v-if="picking" class="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/40" @click.self="picking = false">
+        <div class="max-h-[85vh] w-[520px] max-w-full overflow-y-auto rounded-[8px] bg-white p-[22px] text-[13px]">
             <p class="mb-[12px] font-semibold">Selecciona los campos que necesites exportar en tu plantilla:</p>
             <label class="mb-[8px] flex items-center gap-2 font-semibold"><input v-model="allChosen" type="checkbox" /> Datos del producto</label>
             <label v-for="f in fields" :key="f.key" class="flex items-center gap-2 py-[3px] pl-[20px]">

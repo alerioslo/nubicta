@@ -82,7 +82,23 @@ textarea.s-input { height: auto; padding: 8px 10px; }
 .s-table td { padding: 10px 14px; border-bottom: 1px solid #edf0f2; }
 .s-table tbody tr:hover { background: #f8fbff; }
 
-.s-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--color-primary); }
+/* Tablas con scroll lateral; .sticky-actions fija la ultima columna (Acciones) y .sticky-first la primera. */
+.s-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 1023px) { .s-table-wrap > table > tbody > tr > td { white-space: nowrap; } }
+.sticky-actions > * > tr > :last-child,
+.sticky-first > * > tr > :first-child { position: sticky; z-index: 1; background: #fff; }
+.sticky-actions > thead > tr > :last-child,
+.sticky-first > thead > tr > :first-child { background-color: inherit; }
+.sticky-actions > * > tr > :last-child { right: 0; box-shadow: inset 1px 0 0 #e3e7ea, -6px 0 8px -6px rgb(0 0 0 / 18%); }
+.sticky-first > * > tr > :first-child { left: 0; box-shadow: inset -1px 0 0 #e3e7ea, 6px 0 8px -6px rgb(0 0 0 / 18%); }
+.s-table.sticky-actions > thead > tr > :last-child,
+.s-table.sticky-first > thead > tr > :first-child { background: var(--color-th); }
+.s-table.sticky-actions > tbody > tr:hover > :last-child,
+.s-table.sticky-first > tbody > tr:hover > :first-child { background: #f8fbff; }
+.sticky-actions > * > tr > .no-sticky { position: static; box-shadow: none; }
+
+.s-tabs { display: flex; gap: 2px; box-shadow: inset 0 -1px 0 var(--color-primary); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.s-tabs::-webkit-scrollbar { display: none; }
 .s-tab {
     padding: 10px 14px;
     font-weight: 700;
@@ -90,7 +106,6 @@ textarea.s-input { height: auto; padding: 8px 10px; }
     border: 1px solid transparent;
     border-bottom: none;
     border-radius: 6px 6px 0 0;
-    margin-bottom: -1px;
     white-space: nowrap;
 }
 .s-tab.active { color: var(--color-primary); border-color: var(--color-primary); background: #fff; }
@@ -161,7 +176,8 @@ textarea.s-input { height: auto; padding: 8px 10px; }
 .doc-btn { height: 24px; padding: 0 7px; font-size: 11.5px; color: #fff; border-radius: 1px; }
 .doc-btn-blue { background: #00a3e8; }
 .doc-btn-green { background: #79c143; }
-.doc-btn:hover { filter: brightness(.95); }
+.doc-btn:hover:not(:disabled) { filter: brightness(.95); }
+.doc-btn:disabled { opacity: .5; cursor: not-allowed; }
 .doc-link { color: #62b82d; text-decoration: underline; font-size: 11px; }
 .doc-section { font-size: 15px; font-weight: 600; color: #22a3ec; }
 }

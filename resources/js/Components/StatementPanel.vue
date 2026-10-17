@@ -67,44 +67,46 @@ const send = () => mail.post(`${props.url}/${props.contact.id}/enviar`, { preser
             <Link :href="`${baseUrl}${sep}todos=1`" class="s-subtab" :class="{ active: todos }" preserve-scroll>Todos los documentos</Link>
             <span class="ml-auto text-[12px] text-muted">Encontrados ({{ docs.length }})</span>
         </div>
-        <table class="s-table">
-            <thead>
-                <tr>
-                    <th>Detalle vencimiento</th>
-                    <th v-if="side === 'proveedores'">Factura proveedor</th>
-                    <th>Fecha vencimiento</th>
-                    <th class="text-right">Cuota</th>
-                    <th class="text-right">{{ customers ? 'Deuda por cobrar' : 'Deuda por pagar' }}</th>
-                    <th class="text-right">Valor a favor</th>
-                    <th class="text-right">Valor vencido</th>
-                    <th class="text-right">Valor por vencer</th>
-                    <th class="text-right">Días mora/Por vencer</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="d in docs" :key="d.id">
-                    <td class="text-primary">{{ d.name }}</td>
-                    <td v-if="side === 'proveedores'">{{ d.supplier_doc ?? '-' }}</td>
-                    <td>{{ d.due ?? d.date }}</td>
-                    <td class="text-right">{{ d.quote }}</td>
-                    <td class="text-right">{{ money(d.debt) }}</td>
-                    <td class="text-right">{{ money(d.favor) }}</td>
-                    <td class="text-right" :class="{ 'text-danger': d.overdue > 0 }">{{ money(d.overdue) }}</td>
-                    <td class="text-right">{{ money(d.upcoming) }}</td>
-                    <td class="text-right" :class="{ 'text-danger': d.days > 0 }">{{ d.days ?? '-' }}</td>
-                </tr>
-            </tbody>
-            <tfoot v-if="docs.length">
-                <tr class="font-bold">
-                    <td :colspan="side === 'proveedores' ? 4 : 3" class="px-[14px] py-[10px] text-right">Totales</td>
-                    <td class="px-[14px] text-right">{{ money(totals.debt) }}</td>
-                    <td class="px-[14px] text-right">{{ money(totals.favor) }}</td>
-                    <td class="px-[14px] text-right">{{ money(totals.overdue) }}</td>
-                    <td class="px-[14px] text-right">{{ money(totals.upcoming) }}</td>
-                    <td></td>
-                </tr>
-            </tfoot>
-        </table>
+        <div class="s-table-wrap">
+            <table class="s-table">
+                <thead>
+                    <tr>
+                        <th>Detalle vencimiento</th>
+                        <th v-if="side === 'proveedores'">Factura proveedor</th>
+                        <th>Fecha vencimiento</th>
+                        <th class="text-right">Cuota</th>
+                        <th class="text-right">{{ customers ? 'Deuda por cobrar' : 'Deuda por pagar' }}</th>
+                        <th class="text-right">Valor a favor</th>
+                        <th class="text-right">Valor vencido</th>
+                        <th class="text-right">Valor por vencer</th>
+                        <th class="text-right">Días mora/Por vencer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="d in docs" :key="d.id">
+                        <td class="text-primary">{{ d.name }}</td>
+                        <td v-if="side === 'proveedores'">{{ d.supplier_doc ?? '-' }}</td>
+                        <td>{{ d.due ?? d.date }}</td>
+                        <td class="text-right">{{ d.quote }}</td>
+                        <td class="text-right">{{ money(d.debt) }}</td>
+                        <td class="text-right">{{ money(d.favor) }}</td>
+                        <td class="text-right" :class="{ 'text-danger': d.overdue > 0 }">{{ money(d.overdue) }}</td>
+                        <td class="text-right">{{ money(d.upcoming) }}</td>
+                        <td class="text-right" :class="{ 'text-danger': d.days > 0 }">{{ d.days ?? '-' }}</td>
+                    </tr>
+                </tbody>
+                <tfoot v-if="docs.length">
+                    <tr class="font-bold">
+                        <td :colspan="side === 'proveedores' ? 4 : 3" class="px-[14px] py-[10px] text-right">Totales</td>
+                        <td class="px-[14px] text-right">{{ money(totals.debt) }}</td>
+                        <td class="px-[14px] text-right">{{ money(totals.favor) }}</td>
+                        <td class="px-[14px] text-right">{{ money(totals.overdue) }}</td>
+                        <td class="px-[14px] text-right">{{ money(totals.upcoming) }}</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
         <EmptyState v-if="!docs.length" />
     </section>
 </template>

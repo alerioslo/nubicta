@@ -29,17 +29,19 @@ const find = () => router.get(`/configuracion/saldos-iniciales/${props.kind}`, s
 
     <section class="s-card mt-[14px] overflow-hidden">
         <p class="border-b border-[#edf0f2] px-[20px] py-[10px] text-[12px] text-muted">Saldos registrados con los comprobantes <b>CC-999 Saldos iniciales</b> traídos de Siigo: {{ totals.n }} movimientos.</p>
-        <table class="s-table text-[12.5px]">
-            <thead><tr><th>Fecha</th><th>Comprobante</th><th>Cuenta</th><th>Identificación</th><th>Tercero</th><th class="text-right">Débito</th><th class="text-right">Crédito</th></tr></thead>
-            <tbody>
-                <tr v-for="(r, i) in rows.data" :key="i">
-                    <td>{{ r.date.split('-').reverse().join('/') }}</td><td>{{ r.document }}</td><td>{{ r.account_code }} - {{ r.account_name }}</td>
-                    <td>{{ r.identification }}</td><td>{{ r.contact_name }}</td><td class="text-right">{{ money(r.debit) }}</td><td class="text-right">{{ money(r.credit) }}</td>
-                </tr>
-                <tr v-if="!rows.data.length"><td colspan="7" class="py-[30px] text-center text-muted">No hay saldos iniciales registrados</td></tr>
-            </tbody>
-            <tfoot v-if="rows.data.length"><tr class="bg-th font-bold"><td colspan="5" class="px-[14px] py-[10px]">Total</td><td class="px-[14px] text-right">{{ money(totals.debit) }}</td><td class="px-[14px] text-right">{{ money(totals.credit) }}</td></tr></tfoot>
-        </table>
+        <div class="s-table-wrap">
+            <table class="s-table text-[12.5px]">
+                <thead><tr><th>Fecha</th><th>Comprobante</th><th>Cuenta</th><th>Identificación</th><th>Tercero</th><th class="text-right">Débito</th><th class="text-right">Crédito</th></tr></thead>
+                <tbody>
+                    <tr v-for="(r, i) in rows.data" :key="i">
+                        <td>{{ r.date.split('-').reverse().join('/') }}</td><td>{{ r.document }}</td><td>{{ r.account_code }} - {{ r.account_name }}</td>
+                        <td>{{ r.identification }}</td><td>{{ r.contact_name }}</td><td class="text-right">{{ money(r.debit) }}</td><td class="text-right">{{ money(r.credit) }}</td>
+                    </tr>
+                    <tr v-if="!rows.data.length"><td colspan="7" class="py-[30px] text-center text-muted">No hay saldos iniciales registrados</td></tr>
+                </tbody>
+                <tfoot v-if="rows.data.length"><tr class="bg-th font-bold"><td colspan="5" class="px-[14px] py-[10px]">Total</td><td class="px-[14px] text-right">{{ money(totals.debit) }}</td><td class="px-[14px] text-right">{{ money(totals.credit) }}</td></tr></tfoot>
+            </table>
+        </div>
         <Pager :paginator="rows" />
     </section>
 </template>

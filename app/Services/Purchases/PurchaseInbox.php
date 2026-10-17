@@ -4,9 +4,10 @@ namespace App\Services\Purchases;
 
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\ContactPerson;
+use App\Models\DocumentType;
 use App\Models\DianInboxDocument;
 use App\Models\DianInboxSync;
-use App\Models\Product;
 use App\Models\PurchaseDocument;
 use App\Models\Tax;
 use App\Services\Mail\CompanyMailer;
@@ -29,7 +30,7 @@ class PurchaseInbox
 
     private const FIRST_SYNC_DAYS = 90;
 
-    public function __construct(private readonly SupplierInvoiceParser $parser) {}
+    public function __construct(private readonly SupplierInvoiceParser $parser, private readonly InvoiceProductMatcher $matcher) {}
 
     public function sync(): DianInboxSync
     {
@@ -148,12 +149,13 @@ class PurchaseInbox
         }
 
         $vat = Tax::query()->where('active', true)->where('type', 'IVA')->get(['id', 'percentage']);
-        $items = collect($data['lines'])->map(function ($l) use ($vat) {
-            $product = $l['code'] !== '' ? Product::query()->where('code', $l['code'])->first(['id', 'code', 'name']) : null;
+        $matches = $this->matcher->suggestions($doc, $data);
+        $items = collect($data['lines'])->map(function ($l, $i) use ($vat, $matches) {
+            [$price, $discount] = $this->linePrice($l);
 
             return [
-                'type' => 'Producto', 'item_id' => $product?->id, 'label' => $product ? "{$product->code} - {$product->name}" : '',
-                'description' => $l['description'], 'quantity' => $l['quantity'], 'price' => $l['price'], 'discount' => 0,
+                'type' => 'Producto', 'item_id' => $matches[$i]['product_id'] ?? null, 'label' => $matches[$i]['label'] ?? '',
+                'description' => $l['description'], 'quantity' => $l['quantity'], 'price' => $price, 'discount' => $discount,
                 'tax_id' => $l['tax_percent'] > 0 ? $vat->first(fn ($t) => abs((float) $t->percentage - $l['tax_percent']) < 0.01)?->id : null,
                 'withholding_id' => null,
             ];
@@ -162,12 +164,38 @@ class PurchaseInbox
         $credit = $data['payment_means'] === '2';
 
         return [
-            'inbox_id' => $doc->id, 'date' => $data['date'] ?: now()->toDateString(),
+            'inbox_id' => $doc->id, 'date' => $data['date'] ?: now()->toDateString(), 'document_type' => $this->documentType($contact->id),
             'contact_id' => $contact->id, 'contact_label' => "{$contact->identification} - {$contact->name}",
+            'person_id' => ContactPerson::query()->where('contact_id', $contact->id)->orderBy('id')->value('id'),
             'supplier_prefix' => $m[1] ?? '', 'supplier_number' => $m[2] ?? $data['number'],
             'items' => $items, 'credit' => $credit, 'due_date' => $credit ? ($data['due_date'] ?: $data['date']) : null, 'payments' => [],
             'observations' => "Factura electrónica {$data['number']} - CUFE {$data['cufe']}",
         ];
+    }
+
+    /** Tipo de factura de compra (Compra / Gasto) usado la ultima vez con el proveedor; si es nuevo, el primero. */
+    private function documentType(int $contactId): ?int
+    {
+        $active = DocumentType::query()->where('type', 'FC')->where('active', true)->orderBy('code')->pluck('id');
+        $last = PurchaseDocument::query()->where('contact_id', $contactId)->where('type', 'FC')->whereIn('document_type_id', $active)
+            ->latest('id')->value('document_type_id');
+
+        return $last ?? $active->first();
+    }
+
+    /** Valor unitario y descuento (en valor) tal como vienen en la factura, para que el subtotal cuadre con el XML. */
+    private function linePrice(array $l): array
+    {
+        $qty = (float) $l['quantity'];
+        if ($qty <= 0) {
+            return [$l['price'], 0];
+        }
+        $gross = round($qty * $l['price'], 2);
+        if ($l['price'] <= 0 || $l['subtotal'] > $gross + 0.01) {
+            return [round($l['subtotal'] / $qty, 6), 0];
+        }
+
+        return [$l['price'], $gross - $l['subtotal'] > 0.01 ? round($gross - $l['subtotal'], 2) : 0];
     }
 
     private function log(string $status, int $received, ?string $observations): DianInboxSync

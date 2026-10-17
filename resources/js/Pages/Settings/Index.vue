@@ -8,7 +8,7 @@ defineProps({ sections: { type: Object, required: true } });
 <template>
     <Head title="Configuración" />
     <PageHeader title="Configuración" />
-    <div class="mt-[18px] grid grid-cols-3 gap-[18px]">
+    <div class="mt-[18px] grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
         <section v-for="(items, name) in sections" :key="name" class="s-card p-[20px]">
             <h2 class="mb-[14px] text-[15px] font-bold text-ink">{{ name }}</h2>
             <ul class="flex flex-col gap-[4px]">

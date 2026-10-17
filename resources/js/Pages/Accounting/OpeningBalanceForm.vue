@@ -98,58 +98,60 @@ const submit = () => doc.transform((d) => ({ ...d, items: d.items.map((i) => (cu
                 <ul v-if="excelErrors.length" class="w-full list-disc pl-[18px] text-danger"><li v-for="e in excelErrors.slice(0, 15)" :key="e">{{ e }}</li></ul>
             </div>
 
-            <table class="doc-grid blue mt-[24px] w-full">
-                <thead>
-                    <tr v-if="portfolio">
-                        <th class="w-[24px]">N°</th><th>{{ party }}</th><th class="w-[150px]">Tipo de operación</th><th class="w-[70px]">Prefijo</th><th class="w-[96px]">N° comprobante</th>
-                        <th class="w-[56px]">N° de cuota</th><th class="w-[118px]">Fecha de vencimiento</th><th class="w-[110px]">Valor</th><th v-if="custom" class="w-[190px]">Cuenta contable</th><th class="w-[28px]"></th>
-                    </tr>
-                    <tr v-else-if="kind === 'inventario'">
-                        <th class="w-[24px]">N°</th><th class="w-[220px]">Producto</th><th>Descripción producto</th><th class="w-[150px]">Centro de costo</th><th class="w-[90px]">Cantidad</th>
-                        <th class="w-[110px]">Costo unitario</th><th class="w-[120px]">Costo total</th><th class="w-[28px]"></th>
-                    </tr>
-                    <tr v-else>
-                        <th class="w-[24px]">N°</th><th class="w-[230px]">Cuenta contable</th><th>Tercero</th><th class="w-[140px]">Centro de costo</th><th class="w-[140px]">Impuesto</th>
-                        <th class="w-[110px]">Débito</th><th class="w-[110px]">Crédito</th><th class="w-[28px]"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="(row, idx) in doc.items" :key="idx">
-                        <td class="pt-[5px] text-[11px]">{{ idx + 1 }}</td>
-                        <template v-if="portfolio">
-                            <td><DocSearch v-model="row.contact_id" v-model:label="row.contact_label" url="/api/buscar/terceros" /></td>
-                            <td><select v-model="row.operation" class="doc-input"><option value=""></option><option v-for="(l, k) in operations" :key="k" :value="k">{{ l }}</option></select></td>
-                            <td><input v-model="row.prefix" class="doc-input" maxlength="10" :disabled="row.operation === 'anticipo'" /></td>
-                            <td><input v-model="row.number" class="doc-input" inputmode="numeric" /></td>
-                            <td><input v-model.number="row.quote" type="number" min="1" class="doc-input" :disabled="row.operation === 'anticipo'" /></td>
-                            <td><input v-model="row.due_date" type="date" class="doc-input" :disabled="row.operation === 'anticipo'" /></td>
-                            <td><NumInput v-model="row.value" /></td>
-                            <td v-if="custom"><DocSearch v-model="row.account_id" v-model:label="row.account_label" url="/api/cuentas" /></td>
-                        </template>
-                        <template v-else-if="kind === 'inventario'">
-                            <td><DocSearch v-model="row.product_id" v-model:label="row.product_label" url="/api/buscar/productos" @pick="(p) => pickProduct(row, p)" /></td>
-                            <td><input :value="row.description" class="doc-input" disabled /></td>
-                            <td><select v-model="row.cost_center_id" class="doc-input"><option :value="null"></option><option v-for="c in costCenters" :key="c.id" :value="c.id">{{ c.code }} - {{ c.name }}</option></select></td>
-                            <td><NumInput v-model="row.quantity" /></td>
-                            <td><NumInput v-model="row.cost" /></td>
-                            <td><input :value="money(row.quantity * row.cost)" class="doc-input doc-num" readonly /></td>
-                        </template>
-                        <template v-else>
-                            <td><DocSearch v-model="row.account_id" v-model:label="row.account_label" url="/api/cuentas" /></td>
-                            <td><DocSearch v-model="row.contact_id" v-model:label="row.contact_label" url="/api/buscar/terceros" /></td>
-                            <td><select v-model="row.cost_center_id" class="doc-input"><option :value="null"></option><option v-for="c in costCenters" :key="c.id" :value="c.id">{{ c.code }} - {{ c.name }}</option></select></td>
-                            <td><select v-model="row.tax_id" class="doc-input"><option :value="null"></option><option v-for="t in taxes" :key="t.id" :value="t.id">{{ t.name }}</option></select></td>
-                            <td><NumInput v-model="row.debit" /></td>
-                            <td><NumInput v-model="row.credit" /></td>
-                        </template>
-                        <td class="pt-[5px] text-center"><button type="button" class="text-[#e57373]" title="Eliminar" @click="remove(idx)"><Icon icon="trash-can" /></button></td>
-                    </tr>
-                    <tr>
-                        <td class="pt-[5px] text-[11px] text-muted">{{ doc.items.length + 1 }}</td>
-                        <td colspan="9"><button type="button" class="py-[4px] text-[12px] text-muted hover:text-primary" @click="add">Agregar otro ítem</button></td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="s-table-wrap">
+                <table class="doc-grid blue mt-[24px] w-full">
+                    <thead>
+                        <tr v-if="portfolio">
+                            <th class="w-[24px]">N°</th><th>{{ party }}</th><th class="w-[150px]">Tipo de operación</th><th class="w-[70px]">Prefijo</th><th class="w-[96px]">N° comprobante</th>
+                            <th class="w-[56px]">N° de cuota</th><th class="w-[118px]">Fecha de vencimiento</th><th class="w-[110px]">Valor</th><th v-if="custom" class="w-[190px]">Cuenta contable</th><th class="w-[28px]"></th>
+                        </tr>
+                        <tr v-else-if="kind === 'inventario'">
+                            <th class="w-[24px]">N°</th><th class="w-[220px]">Producto</th><th>Descripción producto</th><th class="w-[150px]">Centro de costo</th><th class="w-[90px]">Cantidad</th>
+                            <th class="w-[110px]">Costo unitario</th><th class="w-[120px]">Costo total</th><th class="w-[28px]"></th>
+                        </tr>
+                        <tr v-else>
+                            <th class="w-[24px]">N°</th><th class="w-[230px]">Cuenta contable</th><th>Tercero</th><th class="w-[140px]">Centro de costo</th><th class="w-[140px]">Impuesto</th>
+                            <th class="w-[110px]">Débito</th><th class="w-[110px]">Crédito</th><th class="w-[28px]"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(row, idx) in doc.items" :key="idx">
+                            <td class="pt-[5px] text-[11px]">{{ idx + 1 }}</td>
+                            <template v-if="portfolio">
+                                <td><DocSearch v-model="row.contact_id" v-model:label="row.contact_label" url="/api/buscar/terceros" /></td>
+                                <td><select v-model="row.operation" class="doc-input"><option value=""></option><option v-for="(l, k) in operations" :key="k" :value="k">{{ l }}</option></select></td>
+                                <td><input v-model="row.prefix" class="doc-input" maxlength="10" :disabled="row.operation === 'anticipo'" /></td>
+                                <td><input v-model="row.number" class="doc-input" inputmode="numeric" /></td>
+                                <td><input v-model.number="row.quote" type="number" min="1" class="doc-input" :disabled="row.operation === 'anticipo'" /></td>
+                                <td><input v-model="row.due_date" type="date" class="doc-input" :disabled="row.operation === 'anticipo'" /></td>
+                                <td><NumInput v-model="row.value" /></td>
+                                <td v-if="custom"><DocSearch v-model="row.account_id" v-model:label="row.account_label" url="/api/cuentas" /></td>
+                            </template>
+                            <template v-else-if="kind === 'inventario'">
+                                <td><DocSearch v-model="row.product_id" v-model:label="row.product_label" url="/api/buscar/productos" @pick="(p) => pickProduct(row, p)" /></td>
+                                <td><input :value="row.description" class="doc-input" disabled /></td>
+                                <td><select v-model="row.cost_center_id" class="doc-input"><option :value="null"></option><option v-for="c in costCenters" :key="c.id" :value="c.id">{{ c.code }} - {{ c.name }}</option></select></td>
+                                <td><NumInput v-model="row.quantity" /></td>
+                                <td><NumInput v-model="row.cost" /></td>
+                                <td><input :value="money(row.quantity * row.cost)" class="doc-input doc-num" readonly /></td>
+                            </template>
+                            <template v-else>
+                                <td><DocSearch v-model="row.account_id" v-model:label="row.account_label" url="/api/cuentas" /></td>
+                                <td><DocSearch v-model="row.contact_id" v-model:label="row.contact_label" url="/api/buscar/terceros" /></td>
+                                <td><select v-model="row.cost_center_id" class="doc-input"><option :value="null"></option><option v-for="c in costCenters" :key="c.id" :value="c.id">{{ c.code }} - {{ c.name }}</option></select></td>
+                                <td><select v-model="row.tax_id" class="doc-input"><option :value="null"></option><option v-for="t in taxes" :key="t.id" :value="t.id">{{ t.name }}</option></select></td>
+                                <td><NumInput v-model="row.debit" /></td>
+                                <td><NumInput v-model="row.credit" /></td>
+                            </template>
+                            <td class="pt-[5px] text-center"><button type="button" class="text-[#e57373]" title="Eliminar" @click="remove(idx)"><Icon icon="trash-can" /></button></td>
+                        </tr>
+                        <tr>
+                            <td class="pt-[5px] text-[11px] text-muted">{{ doc.items.length + 1 }}</td>
+                            <td colspan="9"><button type="button" class="py-[4px] text-[12px] text-muted hover:text-primary" @click="add">Agregar otro ítem</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
             <p v-if="doc.errors.items" class="mt-[4px] text-[11px] text-danger">{{ doc.errors.items }}</p>
 
             <div class="mt-[18px] grid grid-cols-2 gap-[30px]">

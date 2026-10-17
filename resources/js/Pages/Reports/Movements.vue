@@ -139,32 +139,34 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                 </tr>
             </tbody>
         </table>
-        <table v-else class="s-table">
-            <thead>
-                <tr>
-                    <th v-if="view === 'producto'">Código</th>
-                    <th>{{ { categoria: 'Categoría', producto: 'Producto', vendedor: 'Vendedor' }[view] }}</th>
-                    <th v-if="view === 'producto'">Categoría</th>
-                    <th v-if="view === 'categoria'" class="text-right">Productos distintos</th>
-                    <th v-if="view === 'vendedor'" class="text-right">Documentos</th>
-                    <th class="text-right">Cantidad</th>
-                    <th class="text-right">Cobrado</th>
-                    <th class="text-right">% del total</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="(r, i) in list" :key="i">
-                    <td v-if="view === 'producto'">{{ r.code }}</td>
-                    <td class="font-semibold text-ink">{{ r.label }}</td>
-                    <td v-if="view === 'producto'">{{ r.line }}</td>
-                    <td v-if="view === 'categoria'" class="text-right">{{ r.products }}</td>
-                    <td v-if="view === 'vendedor'" class="text-right">{{ r.documents }}</td>
-                    <td class="text-right">{{ qty(r.quantity) }}</td>
-                    <td class="text-right">$ {{ money(r.total) }}</td>
-                    <td class="text-right">{{ totals.total ? ((r.total / totals.total) * 100).toFixed(1) : 0 }}%</td>
-                </tr>
-            </tbody>
-        </table>
+        <div v-else class="s-table-wrap">
+            <table class="s-table">
+                <thead>
+                    <tr>
+                        <th v-if="view === 'producto'">Código</th>
+                        <th>{{ { categoria: 'Categoría', producto: 'Producto', vendedor: 'Vendedor' }[view] }}</th>
+                        <th v-if="view === 'producto'">Categoría</th>
+                        <th v-if="view === 'categoria'" class="text-right">Productos distintos</th>
+                        <th v-if="view === 'vendedor'" class="text-right">Documentos</th>
+                        <th class="text-right">Cantidad</th>
+                        <th class="text-right">Cobrado</th>
+                        <th class="text-right">% del total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(r, i) in list" :key="i">
+                        <td v-if="view === 'producto'">{{ r.code }}</td>
+                        <td class="font-semibold text-ink">{{ r.label }}</td>
+                        <td v-if="view === 'producto'">{{ r.line }}</td>
+                        <td v-if="view === 'categoria'" class="text-right">{{ r.products }}</td>
+                        <td v-if="view === 'vendedor'" class="text-right">{{ r.documents }}</td>
+                        <td class="text-right">{{ qty(r.quantity) }}</td>
+                        <td class="text-right">$ {{ money(r.total) }}</td>
+                        <td class="text-right">{{ totals.total ? ((r.total / totals.total) * 100).toFixed(1) : 0 }}%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <EmptyState v-if="!list.length" title="Sin movimientos" text="No hay ventas con los filtros seleccionados." />
         <Pager v-if="!Array.isArray(rows)" :paginator="rows" />
     </section>

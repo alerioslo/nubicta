@@ -82,6 +82,21 @@ return [
             ]],
         ],
     ],
+    'ia' => [
+        'title' => 'Asistente de inteligencia artificial',
+        'notice' => 'La IA solo se usa en la Bandeja DIAN para vincular los productos de las facturas recibidas con los productos creados en el ERP. Funciona con cualquier servicio compatible con la API de OpenAI (OpenCode Zen, OpenRouter, Ollama, LM Studio...). Los precios siempre se toman de la factura, nunca de la IA.',
+        'test' => 'Probar conexión',
+        'sections' => [
+            ['title' => 'Conexión', 'fields' => [
+                ['key' => 'enabled', 'label' => 'Usar IA para vincular productos de las facturas recibidas', 'type' => 'toggle', 'default' => false],
+                ['key' => 'url', 'label' => 'URL de la API', 'type' => 'text', 'default' => 'https://opencode.ai/zen/v1', 'help' => 'URL base (termina en /v1) o completa hasta /chat/completions.'],
+                ['key' => 'token', 'label' => 'Token', 'type' => 'password', 'help' => 'Se guarda cifrado. Se envía como "Authorization: Bearer <token>".'],
+                ['key' => 'model', 'label' => 'Modelo', 'type' => 'text', 'default' => 'glm-4.7-flash'],
+                ['key' => 'timeout', 'label' => 'Tiempo máximo de respuesta (segundos)', 'type' => 'number', 'default' => 90],
+                ['key' => 'min_confidence', 'label' => 'Confianza mínima para vincular (0 a 100)', 'type' => 'number', 'default' => 70, 'help' => 'Por debajo de este valor la línea queda sin producto para que la elijas a mano.'],
+            ]],
+        ],
+    ],
     'api' => [
         'title' => 'Credenciales de integración a plataformas digitales (API)',
         'notice' => 'Credenciales para que otras plataformas (tienda en línea, módulo de depósito) consulten o creen información en el ERP. Envía la llave en la cabecera "Authorization: Bearer <llave>" a /api/v1: terceros, productos, facturas (GET) y terceros (POST, con permiso de escritura). Deja las IPs vacías para permitir cualquier origen.',

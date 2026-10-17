@@ -41,10 +41,10 @@ function sync() {
         </span>
     </div>
 
-    <section class="s-card mx-[22px] mt-[18px]">
+    <section class="s-card mt-[18px] md:mx-[22px]">
         <form class="flex flex-wrap items-end gap-4 px-[16px] py-[16px]" @submit.prevent="reload">
-            <label class="flex flex-col text-[13px] text-ink">Búsqueda
-                <span class="relative w-[300px]">
+            <label class="flex w-full flex-col text-[13px] text-ink sm:w-auto">Búsqueda
+                <span class="relative w-full sm:w-[300px]">
                     <Icon icon="magnifying-glass" class="absolute left-3 top-[10px] text-muted" />
                     <input v-model="f.q" class="s-input pl-9" placeholder="Buscar por proveedor o CUFE" />
                 </span>
@@ -63,23 +63,25 @@ function sync() {
             <button type="button" class="s-btn s-btn-primary ml-auto" :disabled="busy" @click="sync">{{ busy ? 'Sincronizando…' : 'Sincronizar' }}</button>
         </form>
 
-        <table class="s-table w-full">
-            <thead><tr><th>Fecha de emisión</th><th>Factura proveedor</th><th>Proveedor u otro</th><th class="text-right">Total</th><th>Estado</th><th>Acciones</th></tr></thead>
-            <tbody>
-                <tr v-for="d in list" :key="d.id">
-                    <td class="whitespace-nowrap">{{ d.date }}</td>
-                    <td><span class="font-semibold">{{ d.number }}</span><br /><span class="text-[11px] text-muted">{{ d.kind }}</span></td>
-                    <td>{{ d.supplier }}<br /><span class="text-[11px] text-muted">{{ d.nit }}</span></td>
-                    <td class="text-right">{{ money(d.total) }}</td>
-                    <td><span class="s-badge" :class="d.causada ? 's-badge-ok' : 's-badge-warn'">{{ d.status }}</span></td>
-                    <td class="whitespace-nowrap">
-                        <Link v-if="d.purchase" :href="d.purchase.url" class="mr-3 font-semibold text-primary hover:underline">{{ d.purchase.name }}</Link>
-                        <Link v-else :href="`/compras/importar-xml?bandeja=${d.id}`" class="mr-3 font-semibold text-primary hover:underline">Causar</Link>
-                        <a :href="`/bandeja-dian/${d.id}/xml`" class="font-semibold text-primary hover:underline">XML</a>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="s-table-wrap">
+            <table class="sticky-actions s-table w-full">
+                <thead><tr><th>Fecha de emisión</th><th>Factura proveedor</th><th>Proveedor u otro</th><th class="text-right">Total</th><th>Estado</th><th>Acciones</th></tr></thead>
+                <tbody>
+                    <tr v-for="d in list" :key="d.id">
+                        <td class="whitespace-nowrap">{{ d.date }}</td>
+                        <td><span class="font-semibold">{{ d.number }}</span><br /><span class="text-[11px] text-muted">{{ d.kind }}</span></td>
+                        <td>{{ d.supplier }}<br /><span class="text-[11px] text-muted">{{ d.nit }}</span></td>
+                        <td class="text-right">{{ money(d.total) }}</td>
+                        <td><span class="s-badge" :class="d.causada ? 's-badge-ok' : 's-badge-warn'">{{ d.status }}</span></td>
+                        <td class="whitespace-nowrap">
+                            <Link v-if="d.purchase" :href="d.purchase.url" class="mr-3 font-semibold text-primary hover:underline">{{ d.purchase.name }}</Link>
+                            <Link v-else :href="`/compras/importar-xml?bandeja=${d.id}`" class="mr-3 font-semibold text-primary hover:underline">Causar</Link>
+                            <a :href="`/bandeja-dian/${d.id}/xml`" class="font-semibold text-primary hover:underline">XML</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <EmptyState v-if="!list.length" title="No se encontraron resultados para tu búsqueda." text="Modifica tus criterios de búsqueda o filtrado e inténtalo de nuevo." />
         <Pager v-if="list.length" :paginator="docs" />
     </section>
@@ -92,14 +94,16 @@ function sync() {
             </div>
             <div class="s-card mx-5 mt-5">
                 <p class="px-4 py-4 text-[14px]">Última sincronización: {{ lastSync?.date ?? '-' }}</p>
-                <table class="s-table w-full">
-                    <thead><tr><th>Fecha de Solicitud</th><th>Estado</th><th>Compras Recibidas</th><th>Observaciones</th></tr></thead>
-                    <tbody>
-                        <tr v-for="(s, i) in syncs" :key="i">
-                            <td class="whitespace-nowrap">{{ s.date }}</td><td>{{ s.status }}</td><td>{{ s.received }}</td><td class="text-[12px]">{{ s.observations }}</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="s-table-wrap">
+                    <table class="s-table w-full">
+                        <thead><tr><th>Fecha de Solicitud</th><th>Estado</th><th>Compras Recibidas</th><th>Observaciones</th></tr></thead>
+                        <tbody>
+                            <tr v-for="(s, i) in syncs" :key="i">
+                                <td class="whitespace-nowrap">{{ s.date }}</td><td>{{ s.status }}</td><td>{{ s.received }}</td><td class="text-[12px]">{{ s.observations }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
                 <EmptyState v-if="!syncs.length" title="No se encontraron resultados para tu búsqueda." text="Modifica tus criterios de búsqueda o filtrado e inténtalo de nuevo." />
             </div>
         </div>

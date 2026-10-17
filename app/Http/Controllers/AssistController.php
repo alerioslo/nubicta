@@ -15,6 +15,10 @@ class AssistController extends Controller
     public function search(Request $request): JsonResponse
     {
         $q = trim((string) $request->input('q'));
+        $kind = (string) $request->input('tipo', 'Todos');
+        if ($kind !== 'Todos') {
+            return response()->json($this->searchKind($request, $kind, $q));
+        }
         if (mb_strlen($q) < 2) {
             return response()->json([]);
         }
@@ -61,6 +65,105 @@ class AssistController extends Controller
         }
 
         return response()->json($out);
+    }
+
+    /** Documentos comerciales del buscador por categoria: tabla, kind de /documentos/{kind}/{id}, permiso y tipos. */
+    private const DOCUMENT_KINDS = [
+        'Facturas' => ['sales_documents', 'ventas', 'ventas.ver', ['FV']],
+        'Factura de Compra / Gasto' => ['purchase_documents', 'compras', 'compras.ver', ['FC']],
+        'Documento soporte' => ['purchase_documents', 'compras', 'compras.ver', ['DS']],
+        'Orden de Compra' => ['purchase_documents', 'compras', 'compras.ver', ['OC']],
+        'Cotizaciones' => ['sales_documents', 'ventas', 'ventas.ver', ['CT']],
+        'Recibos de caja' => ['receipts', 'recibos', 'ventas.ver', ['RC']],
+        'Remisiones' => ['sales_documents', 'ventas', 'ventas.ver', ['RM']],
+        'Recibo de Pago / Egreso' => ['receipts', 'recibos', 'compras.ver', ['RP']],
+        'Notas crédito' => ['sales_documents', 'ventas', 'ventas.ver', ['NC']],
+        'Nota débito' => ['purchase_documents', 'compras', 'compras.ver', ['ND', 'NA']],
+        'Nota débito (Ventas)' => ['sales_documents', 'ventas', 'ventas.ver', ['ND']],
+    ];
+
+    /** Comprobantes del libro: permiso, source_type del ERP y codigo del tipo CC con que llegan de Siigo. */
+    private const JOURNAL_KINDS = [
+        'Comprobantes contables' => ['contabilidad.ver', [], null],
+        'Ajuste de cartera / proveedores' => ['contabilidad.ver', ['portfolio_adjustment'], '777'],
+        'Ajuste / Saldo inicial de inventario' => ['inventario.ver', ['inventory_ajuste', 'inventory_conteo', 'inventory_saldo'], null],
+        'Nota de traslado entre bodegas' => ['inventario.ver', ['inventory_traslado'], '10'],
+        'Notas de ensamble' => ['inventario.ver', ['inventory_ensamble'], null],
+        'Traslado de dinero' => ['bancos.ver', ['money_transfer'], '9901'],
+    ];
+
+    /** @return array{columns: list<string>, rows: list<array{cells: list<string>, href: ?string}>, more: bool} */
+    private function searchKind(Request $request, string $kind, string $q): array
+    {
+        $c = CurrentCompany::id();
+        $user = $request->user();
+        $limit = min(max($request->integer('limite', 9), 1), 200);
+        $like = "%$q%";
+        $docLike = '%'.strtoupper(str_replace(' ', '', $q)).'%';
+        $contactIds = fn () => DB::table('contacts')->where('company_id', $c)->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('identification', 'like', "$q%"))->select('id');
+
+        [$columns, $perm, $query, $row] = match (true) {
+            isset(self::DOCUMENT_KINDS[$kind]) => (function () use ($kind, $c, $docLike, $contactIds) {
+                [$table, $docKind, $perm, $types] = self::DOCUMENT_KINDS[$kind];
+                $query = DB::table("$table as d")->leftJoin('contacts as c', 'c.id', '=', 'd.contact_id')->where('d.company_id', $c)->whereIn('d.type', $types)
+                    ->where(fn ($w) => $w->where('d.name', 'like', $docLike)->orWhereIn('d.contact_id', $contactIds()))
+                    ->orderByRaw('d.name like ? desc', [$docLike])->orderBy('d.number')->orderBy('d.name')->select('d.id', 'd.name', 'c.identification');
+
+                return [['Comprobante', 'Identificación'], $perm, $query, fn ($r) => [[$r->name, (string) $r->identification], "/documentos/$docKind/{$r->id}"]];
+            })(),
+            isset(self::JOURNAL_KINDS[$kind]) => (function () use ($kind, $c, $docLike, $contactIds) {
+                [$perm, $sources, $code] = self::JOURNAL_KINDS[$kind];
+                $identification = DB::table('journal_lines as l')->join('contacts as lc', 'lc.id', '=', 'l.contact_id')->whereColumn('l.journal_entry_id', 'j.id')->limit(1)->select('lc.identification');
+                $query = DB::table('journal_entries as j')->leftJoin('document_types as t', 't.id', '=', 'j.document_type_id')->where('j.company_id', $c)
+                    ->when($sources, fn ($w) => $w->where(fn ($s) => $s->whereIn('j.source_type', $sources)
+                        ->when($code, fn ($o) => $o->orWhere(fn ($i) => $i->whereNull('j.source_type')->where('t.type', 'CC')->where('t.code', $code)))
+                        ->when($kind === 'Notas de ensamble', fn ($o) => $o->orWhere('t.type', 'NE'))))
+                    ->where(fn ($w) => $w->where('j.name', 'like', $docLike)->orWhereIn('j.id', DB::table('journal_lines')->whereIn('contact_id', $contactIds())->select('journal_entry_id')))
+                    ->orderByRaw('j.name like ? desc', [$docLike])->orderBy('j.number')->orderBy('j.name')->select('j.id', 'j.name')->selectSub($identification, 'identification');
+
+                return [['Comprobante', 'Identificación'], $perm, $query, fn ($r) => [[$r->name, (string) $r->identification], "/documentos/comprobantes/{$r->id}"]];
+            })(),
+            $kind === 'Terceros' => [['Nombre', 'Identificación'], 'terceros.ver',
+                DB::table('contacts')->where('company_id', $c)->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('identification', 'like', "$q%"))->orderBy('name')->select('id', 'name', 'identification'),
+                fn ($r) => [[$r->name, (string) $r->identification], "/terceros/{$r->id}"]],
+            $kind === 'Productos / Servicios' => [['Código', 'Nombre'], 'inventario.ver',
+                DB::table('products')->where('company_id', $c)->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('code', 'like', "$q%")->orWhere('barcode', $q))->orderBy('name')->select('id', 'code', 'name'),
+                fn ($r) => [[$r->code, $r->name], "/productos/{$r->id}"]],
+            $kind === 'Activos fijos' => [['Código', 'Nombre'], 'contabilidad.ver',
+                DB::table('fixed_assets')->where('company_id', $c)->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('code', 'like', "$q%"))->orderBy('code')->select('id', 'code', 'name'),
+                fn ($r) => [[$r->code, $r->name], null]],
+            $kind === 'Empleados' => [['Nombre', 'Identificación'], 'nomina.ver',
+                DB::table('employees as e')->join('contacts as c', 'c.id', '=', 'e.contact_id')->where('e.company_id', $c)
+                    ->where(fn ($w) => $w->where('c.name', 'like', $like)->orWhere('c.identification', 'like', "$q%"))->orderBy('c.name')->select('e.id', 'c.name', 'c.identification'),
+                fn ($r) => [[$r->name, (string) $r->identification], "/nomina/empleados/{$r->id}/editar"]],
+            $kind === 'Usuarios' => [['Nombre', 'Correo'], 'configuracion.usuarios',
+                DB::table('users')->where('company_id', $c)->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('email', 'like', $like)->orWhere('identification', 'like', "$q%"))->orderBy('name')->select('id', 'name', 'email'),
+                fn ($r) => [[$r->name, (string) $r->email], "/configuracion/usuarios/{$r->id}/editar"]],
+            $kind === 'Tareas' => [['Tarea', 'Tercero', 'Fecha'], 'ventas.ver',
+                DB::table('crm_tasks as k')->leftJoin('contacts as c', 'c.id', '=', 'k.contact_id')->where('k.company_id', $c)
+                    ->where(fn ($w) => $w->where('k.description', 'like', $like)->orWhere('k.category', 'like', $like)->orWhere('c.name', 'like', $like)->orWhere('c.identification', 'like', "$q%"))
+                    ->orderByDesc('k.due_date')->select('k.id', 'k.description', 'k.category', 'k.due_date', 'c.name'),
+                fn ($r) => [[(string) ($r->description ?: $r->category), (string) $r->name, substr((string) $r->due_date, 0, 10)], "/ventas/seguimiento-comercial/{$r->id}/editar"]],
+            $kind === 'Documentos' => [['Nombre', 'Fecha'], null,
+                DB::table('attachments')->where('company_id', $c)->where('name', 'like', $like)->orderByDesc('created_at')->select('id', 'name', 'created_at'),
+                fn ($r) => [[$r->name, substr((string) $r->created_at, 0, 10)], "/adjuntos/{$r->id}"]],
+            default => [[], false, null, null],
+        };
+
+        if (! $query || mb_strlen($q) < 1 || ($perm && ! $user->can($perm))) {
+            return ['columns' => $columns, 'rows' => [], 'more' => false];
+        }
+        $found = $query->limit($limit + 1)->get();
+
+        return [
+            'columns' => $columns,
+            'rows' => $found->take($limit)->map(function ($r) use ($row) {
+                [$cells, $href] = $row($r);
+
+                return ['cells' => $cells, 'href' => $href];
+            })->values()->all(),
+            'more' => $found->count() > $limit,
+        ];
     }
 
     /** Alertas calculadas al momento con los datos de la empresa. */

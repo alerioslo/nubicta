@@ -148,8 +148,12 @@ class DocumentLocator
                 'discount' => (float) $i->discount, 'subtotal' => (float) $i->subtotal, 'tax_total' => (float) $i->tax_total, 'total' => (float) $i->total,
                 'taxes' => ($taxes[$i->id] ?? collect())->map(fn ($t) => "{$t->name} ".number_format((float) $t->value, 2))->implode(', '),
                 'unit' => $units[$i->product_id] ?? null, 'warehouse' => $warehouses[$i->warehouse_id] ?? null,
+                'charge_rate' => (float) (($taxes[$i->id] ?? collect())->first(fn ($t) => ! in_array($t->type, Tax::WITHHOLDINGS, true))?->percentage ?? $i->tax_percentage ?? 0),
+                'withholding_rate' => (float) (($taxes[$i->id] ?? collect())->first(fn ($t) => in_array($t->type, Tax::WITHHOLDINGS, true))?->percentage ?? 0),
             ]),
             'tax_lines' => $lineTaxes->groupBy('name')->map(fn ($g, $name) => ['name' => $name, 'rate' => (float) $g->first()->percentage, 'value' => (float) $g->sum('value')])->sortByDesc('rate')->values(),
+            'withholding_lines' => $taxes->flatten(1)->filter(fn ($t) => in_array($t->type ?? null, Tax::WITHHOLDINGS, true))->groupBy('name')
+                ->map(fn ($g, $name) => ['name' => $name, 'value' => (float) $g->sum('value')])->values(),
             'tax_summary' => $lineTaxes->groupBy(fn ($t) => (string) (float) $t->percentage)->map(fn ($g, $rate) => [
                 'rate' => (float) $rate, 'base' => (float) $g->sum(fn ($t) => $bases[$t->$fk]->subtotal ?? 0), 'value' => (float) $g->sum('value'),
             ])->sortByDesc('rate')->values(),
@@ -165,8 +169,30 @@ class DocumentLocator
             'dian' => $doc->dian_status ? ['status' => $doc->dian_status, 'cufe' => $sales ? $doc->cufe : ($doc->cuds ?? null), 'message' => $doc->dian_message,
                 'xml' => $doc->xml_path ? true : false, 'response' => (bool) $doc->dian_response_path, 'attached' => (bool) $doc->attached_path,
                 'qr' => $sales ? ($doc->qr_data ?: ($doc->cufe ? 'https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey='.$doc->cufe : null)) : null] : null,
-            'printable' => $sales,
-        ] + ($sales ? self::salesExtra($doc) : []);
+            'printable' => true,
+        ] + ($sales ? self::salesExtra($doc) : self::purchaseExtra($doc));
+    }
+
+    /** Formato de Siigo para compras: datos del proveedor, valor en letras y estado de cuenta de la factura. */
+    private static function purchaseExtra(PurchaseDocument $doc): array
+    {
+        $contact = DB::table('contacts as c')->leftJoin('municipalities as m', 'm.code', '=', 'c.municipality_code')->where('c.id', $doc->contact_id)
+            ->first(['c.phone_indicative', 'c.phone', 'c.mobile', 'm.name as city']);
+        $phone = $contact ? ($contact->phone ?: $contact->mobile) : null;
+        $balance = (float) $doc->balance;
+        $overdue = $doc->due_date && $doc->due_date->lt(now()->startOfDay());
+
+        return [
+            'contact_id' => $doc->contact_id,
+            'contact_extra' => [
+                'phone' => $phone ? trim(($contact->phone_indicative ? "({$contact->phone_indicative}) " : '').$phone) : null,
+                'city' => $contact?->city ? "{$contact->city} - Colombia" : null,
+            ],
+            'cost_center' => $doc->cost_center_id ? DB::table('cost_centers')->where('id', $doc->cost_center_id)->value('name') : null,
+            'words' => self::words((float) $doc->total),
+            'debt' => $doc->contact_id ? (float) DB::table('purchase_documents')->where('company_id', $doc->company_id)->where('contact_id', $doc->contact_id)->where('status', '!=', 'annulled')->sum('balance') : null,
+            'statement' => ['total' => (float) $doc->total, 'balance' => $balance, 'overdue' => $overdue ? $balance : 0.0, 'pending' => $overdue ? 0.0 : $balance],
+        ];
     }
 
     /** Datos que usan los formatos de impresion de notas (tercero completo, factura afectada, valor en letras). */
@@ -252,13 +278,19 @@ class DocumentLocator
 
     private static function journal(JournalEntry $doc): array
     {
+        $lines = $doc->lines()->with(['account:id,code,name', 'contact:id,identification,name'])->orderBy('id')->get();
+        $products = DB::table('products')->whereIn('id', $lines->pluck('product_id')->filter())->get(['id', 'code', 'name'])->keyBy('id');
+
         return [
             'module_name' => self::module($doc),
-            'journal' => $doc->lines()->with(['account:id,code,name', 'contact:id,identification,name'])->orderBy('id')->get()->map(fn ($l) => [
-                'account' => $l->account ? "{$l->account->code} {$l->account->name}" : '', 'contact' => $l->contact ? "{$l->contact->identification} {$l->contact->name}" : '',
-                'description' => $l->description, 'debit' => (float) $l->debit, 'credit' => (float) $l->credit,
-                'detail' => $l->due_number ? "{$l->due_prefix}-{$l->due_number}-1" : '',
+            'journal' => $lines->map(fn ($l) => [
+                'account' => $l->account ? "{$l->account->code} - {$l->account->name}" : '', 'contact' => $l->contact?->name ?? '',
+                'description' => $l->description ?: ($products[$l->product_id]->name ?? null), 'debit' => (float) $l->debit, 'credit' => (float) $l->credit,
+                'detail' => $l->due_number ? "{$l->due_prefix}-{$l->due_number}-1"
+                    : (($p = $products[$l->product_id] ?? null) ? "Prod: {$p->code} Cant: ".rtrim(rtrim(number_format(abs((float) $l->quantity), 4, '.', ''), '0'), '.') : ''),
             ]),
+            'source_type' => $doc->source_type,
+            'created' => ['by' => $doc->created_by ? DB::table('users')->where('id', $doc->created_by)->value('name') : null, 'at' => $doc->created_at?->format('d/m/Y H:i')],
             'totals' => ['debit' => (float) $doc->debit, 'credit' => (float) $doc->credit, 'total' => (float) $doc->debit],
             'printable' => true,
         ];
@@ -268,9 +300,13 @@ class DocumentLocator
     public static function payload(Model $doc): array
     {
         if ($doc instanceof JournalEntry) {
+            $lines = $doc->lines()->with(['account:id,code,name,due_type', 'contact:id,identification,name'])->orderBy('id')->get();
+            $products = DB::table('products')->whereIn('id', $lines->pluck('product_id')->filter())->get(['id', 'code', 'name'])->keyBy('id');
+            $groups = DB::table('account_groups')->where('company_id', $doc->company_id)->whereIn('inventory_account_id', $lines->pluck('account_id'))->pluck('id', 'inventory_account_id');
+
             return [
                 'document_type' => $doc->document_type_id, 'date' => substr((string) $doc->date, 0, 10), 'observations' => $doc->observations ?? '',
-                'items' => $doc->lines()->with(['account:id,code,name,due_type', 'contact:id,identification,name'])->orderBy('id')->get()->map(function ($l) {
+                'items' => $lines->map(function ($l) use ($products, $groups) {
                     $dueType = $l->account?->due_type;
                     $due = null;
                     if ($dueType && $l->due_number) {
@@ -286,6 +322,9 @@ class DocumentLocator
                         'account_id' => $l->account_id, 'account_label' => $l->account ? "{$l->account->code} - {$l->account->name}" : '', 'due_type' => $dueType,
                         'contact_id' => $l->contact_id, 'contact_label' => $l->contact?->name ?? '',
                         'due' => $due, 'description' => $l->description ?? '', 'debit' => (float) $l->debit, 'credit' => (float) $l->credit,
+                        'inventory_group' => $groups[$l->account_id] ?? null,
+                        'inventory' => ($p = $products->get($l->product_id)) ? ['product_id' => $p->id, 'label' => "{$p->code} - {$p->name}", 'quantity' => abs((float) $l->quantity),
+                            'value' => max((float) $l->debit, (float) $l->credit), 'type' => (float) $l->quantity < 0 ? 'Salida' : 'Entrada'] : null,
                     ];
                 })->all(),
             ];

@@ -79,7 +79,7 @@ const isProduct = computed(() => form.type === 'Product');
 
 <template>
     <Head :title="product ? 'Editar producto' : 'Creación de producto'" />
-    <div class="-mx-[22px] flex h-[56px] items-center gap-4 bg-primary px-[22px] text-white">
+    <div class="-mx-3 md:-mx-[22px] flex h-[56px] items-center gap-4 bg-primary px-[22px] text-white">
         <h1 class="text-[16px] font-bold">{{ isCombo ? (product ? 'Edición de combo' : 'Creación de combo') : product ? 'Edición de producto' : 'Creación de producto' }}</h1>
         <span v-if="product" class="text-[13px] opacity-90">{{ product.code }} · {{ product.name }}</span>
         <Link :href="back" class="ml-auto text-[18px]" title="Cerrar"><Icon icon="xmark" /></Link>
@@ -94,16 +94,18 @@ const isProduct = computed(() => form.type === 'Product');
         <section v-if="isCombo || form.type === 'Product'" class="s-card px-[16px] py-[18px]">
             <h2 class="s-section-title">{{ isCombo ? 'Productos que componen el combo' : 'Ensamble: materia prima o producto en proceso' }}</h2>
             <p class="mt-1 text-[12px] text-muted">{{ isCombo ? 'Al vender el combo se descuenta del inventario la cantidad de cada producto por cada unidad vendida.' : 'Opcional. Cantidad requerida por unidad; se carga al crear una nota de ensamble de este producto.' }}</p>
-            <table class="s-table mt-3 w-full">
-                <thead><tr><th>Producto</th><th class="w-[160px] text-right">Cantidad</th><th class="w-8" /></tr></thead>
-                <tbody>
-                    <tr v-for="(c, i) in form.components" :key="i">
-                        <td><Lookup v-model="c.product_id" v-model:label="c.product_id_label" url="/api/buscar/productos" placeholder="Buscar producto" /></td>
-                        <td><input v-model="c.quantity" type="number" min="0" step="any" class="s-input text-right" /></td>
-                        <td><button type="button" class="text-muted hover:text-[#c62828]" @click="form.components.splice(i, 1)"><Icon icon="trash-can" /></button></td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="s-table-wrap">
+                <table class="s-table mt-3 w-full">
+                    <thead><tr><th>Producto</th><th class="w-[160px] text-right">Cantidad</th><th class="w-8" /></tr></thead>
+                    <tbody>
+                        <tr v-for="(c, i) in form.components" :key="i">
+                            <td><Lookup v-model="c.product_id" v-model:label="c.product_id_label" url="/api/buscar/productos" placeholder="Buscar producto" /></td>
+                            <td><input v-model="c.quantity" type="number" min="0" step="any" class="s-input text-right" /></td>
+                            <td><button type="button" class="text-muted hover:text-[#c62828]" @click="form.components.splice(i, 1)"><Icon icon="trash-can" /></button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
             <button type="button" class="mt-2 text-[13px] font-semibold text-primary hover:underline" @click="form.components.push({ product_id: null, product_id_label: '', quantity: 1 })"><Icon icon="circle-plus" /> Agregar producto</button>
             <p v-if="Object.keys(form.errors).find((k) => k.startsWith('components'))" class="s-error">{{ form.errors[Object.keys(form.errors).find((k) => k.startsWith('components'))] }}</p>
         </section>

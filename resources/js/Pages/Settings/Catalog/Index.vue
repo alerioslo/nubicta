@@ -39,7 +39,7 @@ function fmt(col, value) {
 
     <section class="s-card mt-[18px]">
         <div class="flex items-center gap-3 p-[16px]">
-            <div class="relative w-[300px]">
+            <div class="relative w-full sm:w-[300px]">
                 <Icon icon="magnifying-glass" class="absolute left-3 top-[10px] text-muted" />
                 <input v-model="f.q" class="s-input pl-9" placeholder="Buscar" @input="apply(350)" />
             </div>
@@ -55,27 +55,29 @@ function fmt(col, value) {
             <Link :href="`/configuracion/${catalog}/crear`" class="s-btn s-btn-primary ml-auto">Crear {{ singular }}</Link>
         </div>
 
-        <table class="s-table">
-            <thead>
-                <tr>
-                    <th v-for="c in columns" :key="c.key">{{ c.label }}</th>
-                    <th class="w-[80px]">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="r in rows.data" :key="r.id">
-                    <td v-for="(c, i) in columns" :key="c.key" :class="{ 'font-semibold text-ink': i === 0 }">
-                        <span v-if="c.format === 'status'" class="s-badge" :class="r[c.key] ? 's-badge-ok' : 's-badge-off'">
-                            {{ r[c.key] ? 'Activo' : 'Inactivo' }}
-                        </span>
-                        <template v-else>{{ fmt(c, r[c.key]) }}</template>
-                    </td>
-                    <td>
-                        <Link :href="`/configuracion/${catalog}/${r.id}/editar`" class="text-primary" title="Editar"><Icon icon="pen" /></Link>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="s-table-wrap">
+            <table class="sticky-actions s-table">
+                <thead>
+                    <tr>
+                        <th v-for="c in columns" :key="c.key">{{ c.label }}</th>
+                        <th class="w-[80px]">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="r in rows.data" :key="r.id">
+                        <td v-for="(c, i) in columns" :key="c.key" :class="{ 'font-semibold text-ink': i === 0 }">
+                            <span v-if="c.format === 'status'" class="s-badge" :class="r[c.key] ? 's-badge-ok' : 's-badge-off'">
+                                {{ r[c.key] ? 'Activo' : 'Inactivo' }}
+                            </span>
+                            <template v-else>{{ fmt(c, r[c.key]) }}</template>
+                        </td>
+                        <td>
+                            <Link :href="`/configuracion/${catalog}/${r.id}/editar`" class="text-primary" title="Editar"><Icon icon="pen" /></Link>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <EmptyState v-if="!rows.data.length" />
         <Pager :paginator="rows" />
     </section>

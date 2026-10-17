@@ -27,6 +27,14 @@ class DocumentController extends Controller
             return Inertia::render('Documents/Show', self::sheet($doc) + ['company' => self::company($doc->company_id)]);
         }
 
+        if ($doc instanceof \App\Models\PurchaseDocument) {
+            return Inertia::render('Documents/PurchaseShow', ['doc' => DocumentLocator::detail($doc), 'company' => self::company($doc->company_id)]);
+        }
+
+        if ($doc instanceof \App\Models\JournalEntry) {
+            return Inertia::render('Documents/JournalShow', ['doc' => DocumentLocator::detail($doc), 'company' => self::company($doc->company_id)]);
+        }
+
         return Inertia::render('Documents/Show', ['doc' => DocumentLocator::detail($doc)]);
     }
 
@@ -61,6 +69,13 @@ class DocumentController extends Controller
             });
 
             return redirect('/ventas/cotizaciones')->with('success', "Se borró la cotización {$doc->name}.");
+        }
+        if ($doc instanceof \App\Models\JournalEntry) {
+            $module = DocumentLocator::module($doc);
+            Gate::authorize($module.($module === 'inventario' ? '.editar' : '.anular'));
+            app(DocumentReverser::class)->deleteJournal($doc);
+
+            return redirect('/contabilidad/comprobantes')->with('success', "Se borró el comprobante {$doc->name}.");
         }
         abort_unless($doc instanceof \App\Models\Receipt, 404);
         Gate::authorize(DocumentLocator::module($doc).'.anular');

@@ -120,7 +120,7 @@ class UblBuilder
             }
             $x .= $this->taxTotals($l['taxes'], 'TaxTotal', $d['currency']);
             $x .= '<cac:Item>'.$this->el('cbc:Description', $l['description'])
-                .'<cac:StandardItemIdentification><cbc:ID schemeID="999">'.$this->e($l['code']).'</cbc:ID></cac:StandardItemIdentification></cac:Item>';
+                .'<cac:StandardItemIdentification><cbc:ID schemeID="999" schemeName="Estándar de adopción del contribuyente">'.$this->e($l['code']).'</cbc:ID></cac:StandardItemIdentification></cac:Item>';
             $x .= '<cac:Price>'.$this->amount('cbc:PriceAmount', $l['price'], $d['currency']).'<cbc:BaseQuantity unitCode="'.($l['unit'] ?? '94').'">'.$this->num($l['quantity'], 6).'</cbc:BaseQuantity></cac:Price>';
             $x .= '</cac:'.$lineTag.'>';
         }

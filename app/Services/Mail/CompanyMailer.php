@@ -81,7 +81,7 @@ class CompanyMailer
         return 'enc:'.Crypt::encryptString($password);
     }
 
-    private static function reveal(string $value): string
+    public static function reveal(string $value): string
     {
         return str_starts_with($value, 'enc:') ? Crypt::decryptString(substr($value, 4)) : $value;
     }

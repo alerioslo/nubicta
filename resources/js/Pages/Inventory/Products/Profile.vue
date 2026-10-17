@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import { confirmDialog } from '../../../composables/dialog';
 
 const props = defineProps({
     product: { type: Object, required: true },
@@ -20,14 +21,14 @@ const yes = (b) => (b ? 'Si' : 'No');
 
 const changeYear = () => router.get(base, { anio: year.value }, { preserveState: true, preserveScroll: true, only: ['costs', 'costYear'] });
 const toggle = () => router.post(`${base}/estado`, {}, { preserveScroll: true });
-const remove = () => {
-    if (confirm(`¿Eliminar el producto ${props.product.name}?`)) router.post(`${base}/eliminar`);
+const remove = async () => {
+    if (await confirmDialog(`¿Eliminar el producto ${props.product.name}?`)) router.post(`${base}/eliminar`);
 };
 </script>
 
 <template>
     <Head :title="`Producto - ${product.name}`" />
-    <div class="-mx-[18px] -mt-[18px] flex h-[52px] items-center justify-between bg-primary px-[18px] text-white">
+    <div class="-mx-3 -mt-[18px] flex h-[52px] md:-mx-[18px] items-center justify-between bg-primary px-[18px] text-white">
         <h1 class="text-[17px] font-semibold">Producto - {{ product.name }}</h1>
         <Link href="/productos" class="text-[18px]" aria-label="Cerrar"><Icon icon="xmark" /></Link>
     </div>
@@ -37,7 +38,7 @@ const remove = () => {
             <div>Creado: {{ product.created }}</div>
             <div>Modificado: {{ product.updated }}</div>
         </div>
-        <div class="flex gap-[6px]">
+        <div class="flex flex-wrap gap-[6px]">
             <button type="button" class="s-btn border border-[#e5484d] bg-white text-[12px] text-[#e5484d]" @click="remove"><Icon icon="trash-can" /> Eliminar</button>
             <Link :href="`/productos/crear?copiar=${product.id}`" class="s-btn s-btn-outline text-[12px]"><Icon icon="copy" /> Duplicar</Link>
             <Link :href="`${base}/editar`" class="s-btn s-btn-outline text-[12px]"><Icon icon="pen" /> Editar</Link>
@@ -60,7 +61,7 @@ const remove = () => {
 
             <section class="s-card">
                 <h2 class="border-b border-[#edf0f2] px-[18px] py-[16px] text-[15px] font-semibold text-ink">Datos generales</h2>
-                <div class="grid grid-cols-3 gap-x-[20px] gap-y-[18px] p-[18px] text-[12.5px]">
+                <div class="grid grid-cols-1 gap-x-[20px] gap-y-[18px] p-[18px] text-[12.5px] sm:grid-cols-2 lg:grid-cols-3">
                     <div><div class="font-semibold text-ink">Tipo</div><div class="text-muted">{{ product.type }}</div></div>
                     <div><div class="font-semibold text-ink">Nombre del producto</div><div class="text-muted">{{ product.name }}</div></div>
                     <div><div class="font-semibold text-ink">Producto inventariable</div><div class="text-muted">{{ yes(product.inventoriable) }}</div></div>
@@ -74,7 +75,7 @@ const remove = () => {
 
             <section class="s-card">
                 <h2 class="border-b border-[#edf0f2] px-[18px] py-[16px] text-[15px] font-semibold text-ink">Descripción y stock</h2>
-                <div class="grid grid-cols-3 gap-x-[20px] gap-y-[18px] p-[18px] text-[12.5px]">
+                <div class="grid grid-cols-1 gap-x-[20px] gap-y-[18px] p-[18px] text-[12.5px] sm:grid-cols-2 lg:grid-cols-3">
                     <div><div class="font-semibold text-ink">Referencia</div><div class="text-muted">{{ v(product.reference) }}</div></div>
                     <div><div class="truncate font-semibold text-ink">Unidad de medida de la factura</div><div class="text-muted">{{ v(product.unit) }}</div></div>
                     <div><div class="font-semibold text-ink">Stock mínimo</div><div class="text-muted">{{ product.min_stock }}</div></div>
@@ -113,7 +114,7 @@ const remove = () => {
     </div>
 
     <div v-if="drawer" class="fixed inset-0 z-50 bg-black/40" @click.self="drawer = false">
-        <aside class="absolute inset-y-0 right-0 flex w-[420px] flex-col bg-white shadow-xl">
+        <aside class="absolute inset-y-0 right-0 flex w-[420px] max-w-full flex-col bg-white shadow-xl">
             <div class="flex items-center justify-between border-b border-[#edf0f2] px-[24px] py-[18px]">
                 <h2 class="text-[16px] font-semibold text-ink">Costo promedio mensual</h2>
                 <button type="button" class="text-[16px] text-ink" aria-label="Cerrar" @click="drawer = false"><Icon icon="xmark" /></button>
@@ -121,15 +122,17 @@ const remove = () => {
             <div class="flex-1 overflow-y-auto px-[24px] py-[16px]">
                 <label class="s-label">Año</label>
                 <select v-model="year" class="s-input w-full" @change="changeYear"><option v-for="y in costYears" :key="y" :value="y">{{ y }}</option></select>
-                <table class="s-table mt-[24px] border border-[#edf0f2]">
-                    <thead><tr><th>Mes</th><th class="text-right">Costo unitario promedio</th></tr></thead>
-                    <tbody>
-                        <tr v-for="(c, i) in costs" :key="i">
-                            <td>{{ MONTHS[i] }}</td>
-                            <td class="text-right" :class="c === null ? 'text-ink' : 'text-primary'">{{ c === null ? '-' : `$${money(c)}` }}</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="s-table-wrap">
+                    <table class="s-table mt-[24px] border border-[#edf0f2]">
+                        <thead><tr><th>Mes</th><th class="text-right">Costo unitario promedio</th></tr></thead>
+                        <tbody>
+                            <tr v-for="(c, i) in costs" :key="i">
+                                <td>{{ MONTHS[i] }}</td>
+                                <td class="text-right" :class="c === null ? 'text-ink' : 'text-primary'">{{ c === null ? '-' : `$${money(c)}` }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
             <div class="flex justify-end border-t border-[#edf0f2] px-[18px] py-[12px]">
                 <button type="button" class="s-btn s-btn-primary" @click="drawer = false">Cerrar</button>

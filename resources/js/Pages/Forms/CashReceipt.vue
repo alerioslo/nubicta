@@ -2,6 +2,7 @@
 import NumInput from '../../Components/Forms/NumInput.vue';
 import { computed, onMounted, ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { alertDialog } from '../../composables/dialog';
 import DocSearch from '../../Components/Forms/DocSearch.vue';
 import { onClickOutside } from '../../composables/clickOutside';
 
@@ -115,7 +116,7 @@ function applyDrawer() {
     p.taxes = drawer.value.taxes.filter((t) => t.tax_id && Number(t.value) > 0);
     p.discounts = drawer.value.discounts.filter((d) => d.concept_id && Number(d.value) > 0);
     if (adjOf(p) > p.balance) {
-        alert('Los impuestos y descuentos superan el saldo del documento');
+        alertDialog('Los impuestos y descuentos superan el saldo del documento');
         return;
     }
     p.checked = true;
@@ -135,7 +136,7 @@ function submit() {
 
 <template>
     <Head :title="f.title" />
-    <div class="-mx-[22px] flex items-center justify-between bg-primary px-[16px] py-[14px] text-white">
+    <div class="-mx-3 md:-mx-[22px] flex items-center justify-between bg-primary px-[16px] py-[14px] text-white">
         <h1 class="text-[15px] font-semibold">{{ f.title }}</h1>
         <Link :href="f.back" class="text-[15px]" title="Cerrar"><Icon icon="xmark" /></Link>
     </div>

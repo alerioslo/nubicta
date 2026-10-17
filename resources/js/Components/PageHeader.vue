@@ -15,10 +15,10 @@ const label = (t) => (typeof t === 'string' ? t : t.label);
 
 <template>
     <div class="pt-[6px]">
-        <div class="flex min-h-[44px] items-center gap-3">
+        <div class="flex min-h-[44px] flex-wrap items-center gap-3 gap-y-2">
             <Link v-if="back" :href="back" class="text-[16px] text-primary"><Icon icon="arrow-left" /></Link>
-            <h1 class="text-[22px] font-bold text-ink">{{ title }}</h1>
-            <div class="ml-auto flex items-center gap-2"><slot name="actions" /></div>
+            <h1 class="text-[19px] font-bold text-ink md:text-[22px]">{{ title }}</h1>
+            <div class="ml-auto flex flex-wrap items-center justify-end gap-2"><slot name="actions" /></div>
         </div>
         <div v-if="tabs.length" class="s-tabs mt-[10px]">
             <template v-for="t in tabs" :key="label(t)">

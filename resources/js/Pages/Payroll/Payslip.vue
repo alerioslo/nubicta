@@ -33,30 +33,34 @@ const print = () => window.print();
             </div>
         </div>
 
-        <table class="mt-3 w-full">
-            <tr><td class="w-[120px] font-semibold">Empleado</td><td>{{ employee.name }}</td><td class="w-[120px] font-semibold">Identificación</td><td>{{ employee.identification }}</td></tr>
-            <tr><td class="font-semibold">Cargo</td><td>{{ employee.position || '—' }}</td><td class="font-semibold">Contrato</td><td>{{ employee.contract || '—' }}</td></tr>
-            <tr><td class="font-semibold">Salario básico</td><td>$ {{ money(employee.salary) }}</td><td class="font-semibold">Días liquidados</td><td>{{ employee.days }}</td></tr>
-        </table>
+        <div class="s-table-wrap">
+            <table class="mt-3 w-full">
+                <tr><td class="w-[120px] font-semibold">Empleado</td><td>{{ employee.name }}</td><td class="w-[120px] font-semibold">Identificación</td><td>{{ employee.identification }}</td></tr>
+                <tr><td class="font-semibold">Cargo</td><td>{{ employee.position || '—' }}</td><td class="font-semibold">Contrato</td><td>{{ employee.contract || '—' }}</td></tr>
+                <tr><td class="font-semibold">Salario básico</td><td>$ {{ money(employee.salary) }}</td><td class="font-semibold">Días liquidados</td><td>{{ employee.days }}</td></tr>
+            </table>
+        </div>
 
-        <table class="mt-4 w-full border-collapse">
-            <thead>
-                <tr class="bg-[#1f4e79] text-white">
-                    <th class="px-2 py-1 text-left">Devengos</th><th class="px-2 text-right">Cant.</th><th class="px-2 text-right">Valor</th>
-                    <th class="px-2 text-left">Deducciones</th><th class="px-2 text-right">Valor</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="([e, d], k) in rows" :key="k" class="border-b border-[#ddd]">
-                    <td class="px-2 py-1">{{ e?.label }}</td><td class="px-2 text-right">{{ e?.quantity || '' }}</td><td class="px-2 text-right">{{ e ? money(e.value) : '' }}</td>
-                    <td class="px-2">{{ d?.label }}</td><td class="px-2 text-right">{{ d ? money(d.value) : '' }}</td>
-                </tr>
-                <tr class="font-bold">
-                    <td class="px-2 py-1">Total devengado</td><td></td><td class="px-2 text-right">{{ money(totals.earnings) }}</td>
-                    <td class="px-2">Total deducciones</td><td class="px-2 text-right">{{ money(totals.deductions) }}</td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="s-table-wrap">
+            <table class="mt-4 w-full border-collapse">
+                <thead>
+                    <tr class="bg-[#1f4e79] text-white">
+                        <th class="px-2 py-1 text-left">Devengos</th><th class="px-2 text-right">Cant.</th><th class="px-2 text-right">Valor</th>
+                        <th class="px-2 text-left">Deducciones</th><th class="px-2 text-right">Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="([e, d], k) in rows" :key="k" class="border-b border-[#ddd]">
+                        <td class="px-2 py-1">{{ e?.label }}</td><td class="px-2 text-right">{{ e?.quantity || '' }}</td><td class="px-2 text-right">{{ e ? money(e.value) : '' }}</td>
+                        <td class="px-2">{{ d?.label }}</td><td class="px-2 text-right">{{ d ? money(d.value) : '' }}</td>
+                    </tr>
+                    <tr class="font-bold">
+                        <td class="px-2 py-1">Total devengado</td><td></td><td class="px-2 text-right">{{ money(totals.earnings) }}</td>
+                        <td class="px-2">Total deducciones</td><td class="px-2 text-right">{{ money(totals.deductions) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <div class="mt-3 flex justify-end text-[15px] font-bold">Neto a pagar: $ {{ money(totals.net) }}</div>
 
         <div class="mt-16 grid grid-cols-2 gap-16">

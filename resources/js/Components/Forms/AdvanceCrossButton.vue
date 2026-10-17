@@ -32,8 +32,8 @@ function confirm() {
 <template>
     <button v-if="contactId" type="button" class="doc-btn doc-btn-blue h-[24px] px-[10px]" @click="open">{{ label }}</button>
     <Teleport to="body">
-        <div v-if="modal" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-[190px] text-[12px] text-[#333]">
-            <div class="w-[500px] bg-white px-[22px] py-[16px] shadow-xl">
+        <div v-if="modal" class="fixed inset-0 z-50 flex items-start justify-center p-3 bg-black/40 pt-[60px] md:pt-[190px] text-[12px] text-[#333]">
+            <div class="w-[500px] max-w-full max-h-[calc(100vh-24px)] overflow-y-auto bg-white px-[22px] py-[16px] shadow-xl">
                 <div class="grid grid-cols-[130px_1fr] items-center gap-x-[14px] gap-y-[16px]">
                     <span class="text-right font-semibold">Fecha de elaboración</span>
                     <input v-model="modal.date" type="date" class="doc-input w-[180px]" />

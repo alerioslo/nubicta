@@ -4,6 +4,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
 import Pager from '../../Components/Pager.vue';
 import EmptyState from '../../Components/EmptyState.vue';
+import RowMenu from '../../Components/RowMenu.vue';
 import ListFilters from '../../Components/ListFilters.vue';
 
 const props = defineProps({
@@ -57,39 +58,41 @@ function send() {
                 </div>
             </div>
         </ListFilters>
-        <table class="s-table">
-            <thead>
-                <tr>
-                    <th>Fecha</th><th>Comprobante</th><th>{{ rc ? 'Cliente' : 'Proveedor' }}</th>
-                    <th class="text-right">Total</th><th>Correo</th><th class="w-[150px]">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="r in receipts.data" :key="r.id" :class="{ 'opacity-60': r.annulled }">
-                    <td class="whitespace-nowrap">{{ r.date }}</td>
-                    <td><Link :href="`/documentos/recibos/${r.id}`" class="text-primary">{{ r.name }}</Link><div class="text-[11px] text-muted">{{ rc ? 'Recibo de caja' : 'Recibo de pago' }}<span v-if="r.annulled"> · Anulado</span></div></td>
-                    <td class="max-w-[300px]"><div class="truncate text-primary">{{ r.contact }}</div><div class="text-[11px] text-muted">{{ r.identification }}</div></td>
-                    <td class="whitespace-nowrap text-right">{{ money(r.total) }}</td>
-                    <td><span class="s-badge" :class="mail(r.mail_status)[1]">{{ mail(r.mail_status)[0] }}</span></td>
-                    <td>
-                        <div v-if="!sent(r) && !r.annulled" class="relative flex" @click.stop>
-                            <button type="button" class="s-btn s-btn-outline h-[28px] flex-1 rounded-r-none text-[12px]" @click="openSend(r)">Enviar por correo</button>
-                            <button type="button" class="s-btn s-btn-outline h-[28px] rounded-l-none border-l-0 px-2" @click="menu = menu === r.id ? null : r.id"><Icon icon="caret-down" /></button>
-                            <div v-if="menu === r.id" class="absolute right-0 top-[30px] z-20 w-[170px] rounded border border-line bg-white py-1 shadow-lg">
+        <div class="s-table-wrap">
+            <table class="sticky-actions s-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th><th>Comprobante</th><th>{{ rc ? 'Cliente' : 'Proveedor' }}</th>
+                        <th class="text-right">Total</th><th>Correo</th><th class="w-[150px]">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="r in receipts.data" :key="r.id" :class="{ 'opacity-60': r.annulled }">
+                        <td class="whitespace-nowrap">{{ r.date }}</td>
+                        <td><Link :href="`/documentos/recibos/${r.id}`" class="text-primary">{{ r.name }}</Link><div class="text-[11px] text-muted">{{ rc ? 'Recibo de caja' : 'Recibo de pago' }}<span v-if="r.annulled"> · Anulado</span></div></td>
+                        <td class="max-w-[300px]"><div class="truncate text-primary">{{ r.contact }}</div><div class="text-[11px] text-muted">{{ r.identification }}</div></td>
+                        <td class="whitespace-nowrap text-right">{{ money(r.total) }}</td>
+                        <td><span class="s-badge" :class="mail(r.mail_status)[1]">{{ mail(r.mail_status)[0] }}</span></td>
+                        <td>
+                            <RowMenu v-if="!sent(r) && !r.annulled" :open="menu === r.id" anchor-class="flex" @close="menu = null">
+                                <template #anchor>
+                                    <button type="button" class="s-btn s-btn-outline h-[28px] flex-1 rounded-r-none text-[12px]" @click="openSend(r)">Enviar por correo</button>
+                                    <button type="button" class="s-btn s-btn-outline h-[28px] rounded-l-none border-l-0 px-2" @click="menu = menu === r.id ? null : r.id"><Icon icon="caret-down" /></button>
+                                </template>
                                 <a :href="docUrl(r)" target="_blank" rel="noopener" class="block px-3 py-2 text-[13px] hover:bg-[#f5f6f7]">Ver documento</a>
-                            </div>
-                        </div>
-                        <a v-else :href="docUrl(r)" target="_blank" rel="noopener" class="s-btn s-btn-outline h-[28px] w-full text-[12px]">Ver documento</a>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+                            </RowMenu>
+                            <a v-else :href="docUrl(r)" target="_blank" rel="noopener" class="s-btn s-btn-outline h-[28px] w-full text-[12px]">Ver documento</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <EmptyState v-if="!receipts.data.length" />
         <Pager :paginator="receipts" />
     </section>
 
-    <div v-if="sending" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="sending = null">
-        <form class="s-card w-[420px] p-[20px]" @submit.prevent="send">
+    <div v-if="sending" class="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/40" @click.self="sending = null">
+        <form class="s-card w-[420px] max-w-full p-[20px]" @submit.prevent="send">
             <div class="text-[16px] font-bold text-ink">Enviar {{ sending.name }} por correo</div>
             <label class="mt-[12px] block text-[12px] text-muted">{{ rc ? 'Correo del cliente' : 'Correo del proveedor' }}
                 <input v-model="to" type="email" required class="s-input mt-[4px] w-full" />

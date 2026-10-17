@@ -49,7 +49,7 @@ const submit = () => form.put(`/nomina/empleados/${e.id}`);
         </div>
     </div>
 
-    <form class="mx-[10px] mt-[14px] grid max-w-[1100px] gap-[12px] text-[12.5px]" @submit.prevent="submit">
+    <form class="md:mx-[10px] mt-[14px] grid max-w-[1100px] gap-[12px] text-[12.5px]" @submit.prevent="submit">
         <section class="s-card p-[18px]">
             <h3 class="mb-3 text-[14px] font-bold">Contrato</h3>
             <div class="grid grid-cols-2 gap-3 md:grid-cols-4">

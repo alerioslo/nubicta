@@ -1,6 +1,8 @@
 <script setup>
+import { printInPlace } from '../../composables/print';
 import { computed, ref } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { confirmDialog, promptDialog } from '../../composables/dialog';
 import ReceiptSheet from '../../Components/ReceiptSheet.vue';
 import { onClickOutside } from '../../composables/clickOutside';
 
@@ -19,23 +21,23 @@ const ledgerOpen = ref(false);
 onClickOutside(moreRef, () => (more.value = false));
 const ledgerTotal = (k) => d.ledger.reduce((a, l) => a + l[k], 0);
 
-function annul() {
+async function annul() {
     more.value = false;
-    if (confirm(`¿Anular el documento ${d.name}? Se reversará su contabilización y los saldos abonados.`)) router.post(`${base}/anular`, {}, { preserveScroll: true });
+    if (await confirmDialog(`¿Anular el documento ${d.name}? Se reversará su contabilización y los saldos abonados.`)) router.post(`${base}/anular`, {}, { preserveScroll: true, preserveState: false });
 }
-function remove() {
+async function remove() {
     more.value = false;
-    if (confirm(`¿Eliminar el documento ${d.name}? Esta acción no se puede deshacer.`)) router.post(`${base}/eliminar`);
+    if (await confirmDialog(`¿Eliminar el documento ${d.name}? Esta acción no se puede deshacer.`)) router.post(`${base}/eliminar`);
 }
-function sendMail() {
-    const to = prompt('Correo del destinatario', d.contact?.email ?? '');
-    if (to) router.post(`${base}/correo`, { to }, { preserveScroll: true });
+async function sendMail() {
+    const to = await promptDialog('Correo del destinatario', d.contact?.email ?? '');
+    if (to) router.post(`${base}/correo`, { to }, { preserveScroll: true, preserveState: false });
 }
 </script>
 
 <template>
     <Head :title="d.name" />
-    <div class="-mx-[22px] flex items-center justify-between bg-primary px-[16px] py-[14px] text-white">
+    <div class="-mx-3 md:-mx-[22px] flex items-center justify-between bg-primary px-[16px] py-[14px] text-white">
         <h1 class="text-[15px] font-semibold">{{ d.type === 'RC' ? 'Recibo de caja' : 'Recibo de pago' }} : {{ d.name }}</h1>
         <Link :href="back" class="text-[15px]" title="Cerrar"><Icon icon="xmark" /></Link>
     </div>
@@ -59,7 +61,7 @@ function sendMail() {
                 </div>
             </div>
             <div class="flex items-center gap-[18px] text-[16px] text-primary">
-                <a :href="`${base}/imprimir`" target="_blank" title="Imprimir"><Icon icon="print" /></a>
+                <button type="button" title="Imprimir" @click="printInPlace(`${base}/imprimir`)"><Icon icon="print" /></button>
             </div>
         </div>
 
@@ -75,7 +77,7 @@ function sendMail() {
         </div>
     </section>
 
-    <div v-if="ledgerOpen" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-[60px]" @click.self="ledgerOpen = false">
+    <div v-if="ledgerOpen" class="fixed inset-0 z-50 flex items-start justify-center p-3 bg-black/40 pt-[60px]" @click.self="ledgerOpen = false">
         <div class="w-[900px] max-w-[95vw] rounded-[4px] bg-white">
             <div class="flex items-center justify-between border-b border-line px-[16px] py-[12px]">
                 <h2 class="text-[15px] font-semibold">Contabilización {{ d.name }}</h2>

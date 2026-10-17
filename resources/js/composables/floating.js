@@ -4,7 +4,7 @@ import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
  * Posiciona una lista desplegable teletransportada al <body> junto a su campo ancla.
  * Se abre hacia arriba cuando no cabe debajo y sigue al ancla al hacer scroll en cualquier contenedor.
  */
-export function useFloating(anchorRef, openRef, { maxHeight = 260, minWidth = 0 } = {}) {
+export function useFloating(anchorRef, openRef, { maxHeight = 260, minWidth = 0, alignRight = false } = {}) {
     const style = ref({});
 
     function update() {
@@ -18,8 +18,9 @@ export function useFloating(anchorRef, openRef, { maxHeight = 260, minWidth = 0 
         const left = Math.min(r.left, window.innerWidth - width - 8);
         style.value = {
             position: 'fixed',
-            left: `${Math.max(left, 4)}px`,
-            width: `${width}px`,
+            ...(alignRight
+                ? { ...(r.right < minWidth + 4 ? { left: '4px' } : { right: `${Math.max(window.innerWidth - r.right, 4)}px` }), minWidth: `${minWidth}px`, maxWidth: `${window.innerWidth - 8}px` }
+                : { left: `${Math.max(left, 4)}px`, width: `${width}px` }),
             maxHeight: `${Math.max(Math.min(maxHeight, up ? above : below), 120)}px`,
             zIndex: 1000,
             ...(up ? { bottom: `${window.innerHeight - r.top + 1}px` } : { top: `${r.bottom + 1}px` }),

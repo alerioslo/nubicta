@@ -37,7 +37,7 @@ const TIPOS = { FC: 'Compra/Gasto', DS: 'Documento soporte', RP: 'Pagos' };
     <Head title="Compras y gastos" />
     <PageHeader title="Compras y gastos" :tabs="tabs" active="Documentos de compras y gastos" />
 
-    <div class="-mx-[22px] flex justify-end bg-[#eef1f4] px-[22px] py-[14px]">
+    <div class="-mx-3 md:-mx-[22px] flex justify-end bg-[#eef1f4] px-[22px] py-[14px]">
         <div class="relative">
             <button type="button" class="s-btn s-btn-primary" @click="newMenu = !newMenu">Nueva Compra / Gasto / Doc Soporte <Icon icon="chevron-down" /></button>
             <div v-if="newMenu" class="absolute right-0 z-20 mt-1 w-[230px] rounded-[6px] bg-white py-1 shadow-lg">
@@ -45,13 +45,13 @@ const TIPOS = { FC: 'Compra/Gasto', DS: 'Documento soporte', RP: 'Pagos' };
             </div>
         </div>
     </div>
-    <h2 class="-mx-[22px] border-b border-line bg-white px-[22px] py-[18px] text-[22px] font-semibold text-ink">Compras, Gastos y Documento Soporte</h2>
+    <h2 class="-mx-3 md:-mx-[22px] border-b border-line bg-white px-[22px] py-[18px] text-[22px] font-semibold text-ink">Compras, Gastos y Documento Soporte</h2>
 
     <section class="s-card mt-[18px]">
         <div class="px-[16px] pt-[16px]">
             <span class="s-label font-normal text-muted">Tipo de transacción</span>
             <div class="flex flex-wrap items-center gap-3">
-                <select v-model="f.tipo" class="s-input w-[300px]" @change="reload">
+                <select v-model="f.tipo" class="s-input w-full sm:w-[300px]" @change="reload">
                     <option value="">Seleccione una opción</option>
                     <option v-for="(n, k) in TIPOS" :key="k" :value="k">{{ n }}</option>
                 </select>
@@ -59,8 +59,8 @@ const TIPOS = { FC: 'Compra/Gasto', DS: 'Documento soporte', RP: 'Pagos' };
                 <a href="/movimientos" class="s-btn s-btn-outline ml-auto"><Icon icon="download" /> Descargar</a>
             </div>
             <div v-if="open" class="mt-3 flex flex-wrap items-end gap-3">
-                <label><span class="s-label">Proveedor / comprobante</span>
-                    <input v-model="f.q" class="s-input w-[260px]" placeholder="Nombre, identificación o factura" @input="search" />
+                <label class="w-full sm:w-auto"><span class="s-label">Proveedor / comprobante</span>
+                    <input v-model="f.q" class="s-input w-full sm:w-[260px]" placeholder="Nombre, identificación o factura" @input="search" />
                 </label>
                 <label><span class="s-label">Fecha elaboración desde</span><input v-model="f.desde" type="date" class="s-input w-[160px]" @change="reload" /></label>
                 <label><span class="s-label">Hasta</span><input v-model="f.hasta" type="date" class="s-input w-[160px]" @change="reload" /></label>
@@ -77,38 +77,40 @@ const TIPOS = { FC: 'Compra/Gasto', DS: 'Documento soporte', RP: 'Pagos' };
                 <button type="button" class="s-btn-link" @click="clear">Limpiar filtros</button>
             </div>
         </div>
-        <table class="s-table">
-            <thead>
-                <tr>
-                    <th>Tipo de transacción</th>
-                    <th>Comprobante</th>
-                    <th>Factura proveedor</th>
-                    <th>Fecha elaboración</th>
-                    <th>Identificación</th>
-                    <th>Sucursal</th>
-                    <th>Proveedor</th>
-                    <th>Estado envío de correo</th>
-                    <th class="text-right">Valor</th>
-                    <th>Moneda</th>
-                    <th>Envío a la Dian</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="d in documents.data" :key="d.url">
-                    <td>{{ d.transaction }}</td>
-                    <td><Link :href="d.url" class="text-primary">{{ d.name }}</Link><div v-if="d.annulled" class="text-[11px] text-[#c62828]">Anulado</div></td>
-                    <td>{{ d.supplier_invoice || '-' }}</td>
-                    <td class="whitespace-nowrap">{{ d.date }}</td>
-                    <td>{{ d.identification }}</td>
-                    <td>{{ d.branch }}</td>
-                    <td class="max-w-[200px]"><Link :href="`/terceros/${d.contact_id}`" class="block truncate text-primary">{{ d.supplier }}</Link></td>
-                    <td>-</td>
-                    <td class="whitespace-nowrap text-right">{{ money(d.total) }}</td>
-                    <td>{{ d.currency }}</td>
-                    <td>{{ { Accepted: 'Aceptado', Rejected: 'Rechazado' }[d.dian_status] ?? d.dian_status ?? '-' }}</td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="s-table-wrap">
+            <table class="s-table">
+                <thead>
+                    <tr>
+                        <th>Tipo de transacción</th>
+                        <th>Comprobante</th>
+                        <th>Factura proveedor</th>
+                        <th>Fecha elaboración</th>
+                        <th>Identificación</th>
+                        <th>Sucursal</th>
+                        <th>Proveedor</th>
+                        <th>Estado envío de correo</th>
+                        <th class="text-right">Valor</th>
+                        <th>Moneda</th>
+                        <th>Envío a la Dian</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="d in documents.data" :key="d.url">
+                        <td>{{ d.transaction }}</td>
+                        <td><Link :href="d.url" class="text-primary">{{ d.name }}</Link><div v-if="d.annulled" class="text-[11px] text-[#c62828]">Anulado</div></td>
+                        <td>{{ d.supplier_invoice || '-' }}</td>
+                        <td class="whitespace-nowrap">{{ d.date }}</td>
+                        <td>{{ d.identification }}</td>
+                        <td>{{ d.branch }}</td>
+                        <td class="max-w-[200px]"><Link :href="`/terceros/${d.contact_id}`" class="block truncate text-primary">{{ d.supplier }}</Link></td>
+                        <td>-</td>
+                        <td class="whitespace-nowrap text-right">{{ money(d.total) }}</td>
+                        <td>{{ d.currency }}</td>
+                        <td>{{ { Accepted: 'Aceptado', Rejected: 'Rechazado' }[d.dian_status] ?? d.dian_status ?? '-' }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <EmptyState v-if="!documents.data.length" />
         <Pager :paginator="documents" />
     </section>

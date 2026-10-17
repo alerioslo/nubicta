@@ -26,7 +26,7 @@ const badge = (s) => ({ aprobado: ['Completado', 'bg-[#5a9e2b] text-white'], en_
             </div>
         </div>
 
-        <div class="mt-4 grid w-[790px] grid-cols-2 gap-[18px]">
+        <div class="mt-4 grid w-full max-w-[790px] grid-cols-1 gap-[18px] md:grid-cols-2">
             <section v-for="c in cards" :key="c.title" class="s-card p-[20px]">
                 <div class="flex gap-4">
                     <span class="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[6px] border border-line bg-[#f5f9fd] text-[26px] text-primary"><Icon :icon="c.icon" /></span>

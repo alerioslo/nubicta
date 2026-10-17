@@ -1,6 +1,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { confirmDialog } from '../../../composables/dialog';
 import Field from '../../../Components/Field.vue';
 import AccountPicker from '../../../Components/AccountPicker.vue';
 
@@ -67,8 +68,8 @@ function submit() {
     if (props.recordId) form.put(`${listUrl}/${props.recordId}`, opts);
     else form.post(listUrl, opts);
 }
-function destroy() {
-    if (confirm('¿Deseas borrar este tipo de comprobante?')) router.delete(`${listUrl}/${props.recordId}`);
+async function destroy() {
+    if (await confirmDialog('¿Deseas borrar este tipo de comprobante?')) router.delete(`${listUrl}/${props.recordId}`);
 }
 function duplicate() {
     router.get(`${listUrl}/crear`, { duplicar: props.recordId });
@@ -105,7 +106,7 @@ const fmtDate = (d) => (d ? `${Number(d.slice(8, 10))} ${MONTHS[Number(d.slice(5
 <template>
     <Head :title="title" />
 
-    <div v-if="style === 'panel'" class="-mx-[22px] flex h-[52px] items-center bg-primary px-[24px] text-white">
+    <div v-if="style === 'panel'" class="-mx-3 md:-mx-[22px] flex h-[52px] items-center bg-primary px-[24px] text-white">
         <h1 class="text-[17px] font-semibold">{{ title }}</h1>
         <Link :href="listUrl" class="ml-auto text-[18px]" title="Cerrar"><Icon icon="xmark" /></Link>
     </div>
@@ -175,52 +176,58 @@ const fmtDate = (d) => (d ? `${Number(d.slice(8, 10))} ${MONTHS[Number(d.slice(5
 
                             <div v-else-if="f.type === 'resolution'" class="col-span-full">
                                 <a href="/configuracion/facturacion-electronica?tab=resoluciones" class="mb-3 inline-flex items-center gap-2 text-primary"><Icon icon="gear" /> {{ f.label }}</a>
-                                <table v-if="resolution" class="s-table">
-                                    <thead>
-                                        <tr><th>Nro. de resolución DIAN</th><th>Inicio de vigencia</th><th>Final de vigencia</th><th>Vigencia a meses</th><th>Prefijo</th><th>Numeración inicial</th><th>Numeración final</th><th>Estado</th></tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>{{ resolution.number }}</td><td>{{ fmtDate(resolution.from) }}</td><td>{{ fmtDate(resolution.to) }}</td>
-                                            <td>{{ resolution.months ? `${resolution.months} meses` : '' }}</td><td>{{ resolution.prefix }}</td>
-                                            <td>{{ resolution.range_from }}</td><td>{{ resolution.range_to }}</td>
-                                            <td><span class="s-badge" :class="resolution.status === 'Vigente' ? 's-badge-ok' : 's-badge-warn'">{{ resolution.status }}</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                <div v-if="resolution" class="s-table-wrap">
+                                    <table class="s-table">
+                                        <thead>
+                                            <tr><th>Nro. de resolución DIAN</th><th>Inicio de vigencia</th><th>Final de vigencia</th><th>Vigencia a meses</th><th>Prefijo</th><th>Numeración inicial</th><th>Numeración final</th><th>Estado</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>{{ resolution.number }}</td><td>{{ fmtDate(resolution.from) }}</td><td>{{ fmtDate(resolution.to) }}</td>
+                                                <td>{{ resolution.months ? `${resolution.months} meses` : '' }}</td><td>{{ resolution.prefix }}</td>
+                                                <td>{{ resolution.range_from }}</td><td>{{ resolution.range_to }}</td>
+                                                <td><span class="s-badge" :class="resolution.status === 'Vigente' ? 's-badge-ok' : 's-badge-warn'">{{ resolution.status }}</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                                 <p v-else class="text-muted">Este tipo de comprobante aún no tiene una resolución DIAN asociada.</p>
                             </div>
 
                             <div v-else-if="f.type === 'phones'" class="col-span-full">
-                                <table class="s-table">
-                                    <thead><tr><th class="w-[50px]">N°</th><th>Indicativo</th><th>Teléfono</th><th>Extensión</th><th class="w-[80px]">Acciones</th></tr></thead>
-                                    <tbody>
-                                        <tr v-for="(p, pi) in form.phones" :key="pi">
-                                            <td>{{ pi + 1 }}</td>
-                                            <td><input v-model="p.indicative" class="s-input" /></td>
-                                            <td><input v-model="p.number" class="s-input" /></td>
-                                            <td><input v-model="p.extension" class="s-input" /></td>
-                                            <td><button type="button" class="text-danger" title="Eliminar" @click="form.phones.splice(pi, 1)"><Icon icon="trash" /></button></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                <div class="s-table-wrap">
+                                    <table class="s-table">
+                                        <thead><tr><th class="w-[50px]">N°</th><th>Indicativo</th><th>Teléfono</th><th>Extensión</th><th class="w-[80px]">Acciones</th></tr></thead>
+                                        <tbody>
+                                            <tr v-for="(p, pi) in form.phones" :key="pi">
+                                                <td>{{ pi + 1 }}</td>
+                                                <td><input v-model="p.indicative" class="s-input" /></td>
+                                                <td><input v-model="p.number" class="s-input" /></td>
+                                                <td><input v-model="p.extension" class="s-input" /></td>
+                                                <td><button type="button" class="text-danger" title="Eliminar" @click="form.phones.splice(pi, 1)"><Icon icon="trash" /></button></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                                 <button type="button" class="mt-2 text-primary" @click="addPhone"><Icon icon="plus" /> Agregar teléfono</button>
                             </div>
 
                             <div v-else-if="f.type === 'charges'" class="col-span-full">
-                                <table class="s-table">
-                                    <thead><tr><th>Nombre</th><th>Tipo</th><th class="w-[100px]">% Tarifa</th><th>Cuenta contable</th><th class="w-[70px]">Activo</th><th class="w-[80px]">Acciones</th></tr></thead>
-                                    <tbody>
-                                        <tr v-for="(c, ci) in form.charges" :key="ci">
-                                            <td><input v-model="c.name" class="s-input" /></td>
-                                            <td><select v-model="c.kind" class="s-input"><option>Cargo</option><option>Descuento</option></select></td>
-                                            <td><input v-model="c.rate" type="number" step="0.01" class="s-input" /></td>
-                                            <td><AccountPicker v-model="c.account_id" :label="accountLabel(c.account_id)" @update:label="(v) => c.account_id && (labels[c.account_id] = v)" /></td>
-                                            <td><input v-model="c.active" type="checkbox" class="accent-primary" /></td>
-                                            <td><button type="button" class="text-danger" title="Eliminar" @click="form.charges.splice(ci, 1)"><Icon icon="trash" /></button></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                <div class="s-table-wrap">
+                                    <table class="s-table">
+                                        <thead><tr><th>Nombre</th><th>Tipo</th><th class="w-[100px]">% Tarifa</th><th>Cuenta contable</th><th class="w-[70px]">Activo</th><th class="w-[80px]">Acciones</th></tr></thead>
+                                        <tbody>
+                                            <tr v-for="(c, ci) in form.charges" :key="ci">
+                                                <td><input v-model="c.name" class="s-input" /></td>
+                                                <td><select v-model="c.kind" class="s-input"><option>Cargo</option><option>Descuento</option></select></td>
+                                                <td><input v-model="c.rate" type="number" step="0.01" class="s-input" /></td>
+                                                <td><AccountPicker v-model="c.account_id" :label="accountLabel(c.account_id)" @update:label="(v) => c.account_id && (labels[c.account_id] = v)" /></td>
+                                                <td><input v-model="c.active" type="checkbox" class="accent-primary" /></td>
+                                                <td><button type="button" class="text-danger" title="Eliminar" @click="form.charges.splice(ci, 1)"><Icon icon="trash" /></button></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                                 <button type="button" class="mt-2 text-primary" @click="addCharge"><Icon icon="plus" /> Agregar</button>
                                 <p v-if="err('charges.0.name')" class="s-error">{{ err('charges.0.name') }}</p>
                             </div>
@@ -316,8 +323,8 @@ const fmtDate = (d) => (d ? `${Number(d.slice(8, 10))} ${MONTHS[Number(d.slice(5
         <button type="button" class="s-btn s-btn-primary" :disabled="form.processing" @click="submit">Guardar</button>
     </div>
 
-    <div v-if="showColumns" class="fixed inset-0 z-40 flex items-center justify-center bg-black/30" @click.self="showColumns = false">
-        <div class="s-card w-[760px] p-[22px]">
+    <div v-if="showColumns" class="fixed inset-0 z-40 flex items-center justify-center p-3 bg-black/30" @click.self="showColumns = false">
+        <div class="s-card w-[760px] max-w-full max-h-[calc(100vh-24px)] overflow-y-auto p-[22px]">
             <div class="mb-4 flex items-center">
                 <h2 class="text-[16px] font-bold text-ink">Configurar columnas</h2>
                 <button type="button" class="ml-auto text-muted" @click="showColumns = false"><Icon icon="xmark" /></button>

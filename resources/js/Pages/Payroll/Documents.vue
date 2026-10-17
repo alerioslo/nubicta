@@ -1,9 +1,11 @@
 <script setup>
 import DownloadMenu from '../../Components/DownloadMenu.vue';
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { confirmDialog } from '../../composables/dialog';
 import PageHeader from '../../Components/PageHeader.vue';
 import EmptyState from '../../Components/EmptyState.vue';
+import RowMenu from '../../Components/RowMenu.vue';
 
 const props = defineProps({
     tab: { type: String, default: 'dian' },
@@ -40,13 +42,10 @@ const menu = ref(null);
 const adjusting = ref(null);
 const adjustType = ref('1');
 const adjust = () => router.post(`/nomina/documentos/${adjusting.value.id}/ajuste`, { tipo: adjustType.value }, { preserveScroll: true, onSuccess: () => (adjusting.value = null) });
-function remove(d) {
+async function remove(d) {
     menu.value = null;
-    if (confirm(`¿Eliminar el documento ${d.consecutive}?`)) router.delete(`/nomina/documentos/${d.id}`, { preserveScroll: true });
+    if (await confirmDialog(`¿Eliminar el documento ${d.consecutive}?`)) router.delete(`/nomina/documentos/${d.id}`, { preserveScroll: true });
 }
-const closeMenu = (e) => { if (!e.target.closest('[data-actions]')) menu.value = null; };
-onMounted(() => document.addEventListener('pointerdown', closeMenu));
-onBeforeUnmount(() => document.removeEventListener('pointerdown', closeMenu));
 
 /* Envios por correo */
 const mf = reactive({ q: '', desde: '', hasta: '', tipo: '', estado: '', ...(props.mail?.filters ?? {}) });
@@ -103,57 +102,63 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                     </select>
                 </label>
                 <form class="flex" @submit.prevent="reload">
-                    <input v-model="f.q" class="s-input w-[260px] rounded-r-none" placeholder="Buscar por Nombre/identificación" />
+                    <input v-model="f.q" class="s-input w-[200px] rounded-r-none sm:w-[260px]" placeholder="Buscar por Nombre/identificación" />
                     <button type="submit" class="s-btn s-btn-primary rounded-l-none px-3"><Icon icon="magnifying-glass" /></button>
                 </form>
                 <button type="button" class="s-btn s-btn-outline ml-auto" @click="generating = f.periodo">Generar documentos</button>
             </div>
-            <table class="w-full border-collapse">
-                <thead>
-                    <tr class="bg-primary text-left text-[14px] font-semibold text-white">
-                        <th class="w-[40px] px-3 py-[9px]"><input type="checkbox" :checked="allChecked" :disabled="!sendable.length" @change="toggleAll" /></th>
-                        <th class="px-3">Fecha de generación</th>
-                        <th class="px-3">Tipo</th>
-                        <th class="px-3">Consecutivo</th>
-                        <th class="px-3">Empleado</th>
-                        <th class="px-3"># Identificación</th>
-                        <th class="px-3">#Contrato</th>
-                        <th class="px-3 text-right">Neto</th>
-                        <th class="px-3">Estado</th>
-                        <th class="px-3">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="d in docs" :key="d.id" class="border-b border-line">
-                        <td class="px-3 py-[9px]"><input v-model="selected" type="checkbox" :value="d.id" :disabled="!d.sendable" /></td>
-                        <td class="px-3">{{ d.date }}</td>
-                        <td class="px-3">{{ d.type }}</td>
-                        <td class="px-3">{{ d.consecutive }}</td>
-                        <td class="max-w-[200px] truncate px-3">{{ d.employee }}</td>
-                        <td class="px-3">{{ d.identification }}</td>
-                        <td class="px-3">{{ d.contract }}</td>
-                        <td class="px-3 text-right font-semibold text-primary">{{ money(d.net) }}</td>
-                        <td class="px-3" :title="d.message">
-                            <Icon :icon="d.status === 'Aprobado' ? 'circle-check' : d.status === 'Rechazado' ? 'circle-xmark' : 'clock-rotate-left'"
-                                :class="d.status === 'Aprobado' ? 'text-[#5a9e2b]' : d.status === 'Rechazado' ? 'text-danger' : 'text-muted'" />
-                            {{ d.status }}
-                        </td>
-                        <td class="relative px-3" data-actions>
-                            <button type="button" class="font-semibold text-primary disabled:text-muted" :disabled="!d.adjustable" :title="d.adjustable ? null : (d.status === 'Aprobado' ? 'El documento no tiene CUNE registrado; la DIAN exige el CUNE del documento a ajustar.' : 'Solo se pueden ajustar documentos aprobados por la DIAN.')" @click="adjusting = d">Nota de ajuste</button>
-                            <button type="button" class="ml-[4px] text-primary" @click="menu = menu === d.id ? null : d.id"><Icon icon="caret-down" /></button>
-                            <ul v-if="menu === d.id" class="absolute right-0 top-[30px] z-30 w-[150px] bg-white py-[4px] text-[13px] shadow-lg">
-                                <li><button type="button" class="w-full px-[12px] py-[6px] text-left disabled:text-muted" :disabled="!d.adjustable" @click="menu = null; adjusting = d">Nota de ajuste</button></li>
-                                <li><Link :href="`/nomina/documentos/${d.id}`" class="block px-[12px] py-[6px] hover:bg-[#f2f2f2]">Ver detalle</Link></li>
-                                <li><a :href="`/nomina/documentos/${d.id}?imprimir=1`" target="_blank" class="block px-[12px] py-[6px] hover:bg-[#f2f2f2]">Imprimir</a></li>
-                                <li><button type="button" class="w-full px-[12px] py-[6px] text-left disabled:text-muted" :disabled="!d.sendable" @click="remove(d)">Eliminar</button></li>
-                                <li><a :href="`/nomina/documentos/${d.id}/pdf`" class="block px-[12px] py-[6px] hover:bg-[#f2f2f2]">Descargar PDF</a></li>
-                                <li><a v-if="d.xml" :href="`/nomina/documentos/${d.id}/xml`" class="block px-[12px] py-[6px] hover:bg-[#f2f2f2]">Descargar XML</a>
-                                    <span v-else class="block px-[12px] py-[6px] text-muted" title="El XML solo existe para documentos enviados desde este sistema.">Descargar XML</span></li>
-                            </ul>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="s-table-wrap">
+                <table class="sticky-actions w-full border-collapse">
+                    <thead>
+                        <tr class="bg-primary text-left text-[14px] font-semibold text-white">
+                            <th class="w-[40px] px-3 py-[9px]"><input type="checkbox" :checked="allChecked" :disabled="!sendable.length" @change="toggleAll" /></th>
+                            <th class="px-3">Fecha de generación</th>
+                            <th class="px-3">Tipo</th>
+                            <th class="px-3">Consecutivo</th>
+                            <th class="px-3">Empleado</th>
+                            <th class="px-3"># Identificación</th>
+                            <th class="px-3">#Contrato</th>
+                            <th class="px-3 text-right">Neto</th>
+                            <th class="px-3">Estado</th>
+                            <th class="px-3">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="d in docs" :key="d.id" class="border-b border-line">
+                            <td class="px-3 py-[9px]"><input v-model="selected" type="checkbox" :value="d.id" :disabled="!d.sendable" /></td>
+                            <td class="px-3">{{ d.date }}</td>
+                            <td class="px-3">{{ d.type }}</td>
+                            <td class="px-3">{{ d.consecutive }}</td>
+                            <td class="max-w-[200px] truncate px-3">{{ d.employee }}</td>
+                            <td class="px-3">{{ d.identification }}</td>
+                            <td class="px-3">{{ d.contract }}</td>
+                            <td class="px-3 text-right font-semibold text-primary">{{ money(d.net) }}</td>
+                            <td class="px-3" :title="d.message">
+                                <Icon :icon="d.status === 'Aprobado' ? 'circle-check' : d.status === 'Rechazado' ? 'circle-xmark' : 'clock-rotate-left'"
+                                    :class="d.status === 'Aprobado' ? 'text-[#5a9e2b]' : d.status === 'Rechazado' ? 'text-danger' : 'text-muted'" />
+                                {{ d.status }}
+                            </td>
+                            <td class="px-3">
+                                <RowMenu :open="menu === d.id" :min-width="150" anchor-class="inline-flex" @close="menu = null">
+                                <template #anchor>
+                                <button type="button" class="font-semibold text-primary disabled:text-muted" :disabled="!d.adjustable" :title="d.adjustable ? null : (d.status === 'Aprobado' ? 'El documento no tiene CUNE registrado; la DIAN exige el CUNE del documento a ajustar.' : 'Solo se pueden ajustar documentos aprobados por la DIAN.')" @click="adjusting = d">Nota de ajuste</button>
+                                <button type="button" class="ml-[4px] text-primary" @click="menu = menu === d.id ? null : d.id"><Icon icon="caret-down" /></button>
+                                </template>
+                                <ul class="text-[13px]">
+                                    <li><button type="button" class="w-full px-[12px] py-[6px] text-left disabled:text-muted" :disabled="!d.adjustable" @click="menu = null; adjusting = d">Nota de ajuste</button></li>
+                                    <li><Link :href="`/nomina/documentos/${d.id}`" class="block px-[12px] py-[6px] hover:bg-[#f2f2f2]">Ver detalle</Link></li>
+                                    <li><a :href="`/nomina/documentos/${d.id}?imprimir=1`" target="_blank" class="block px-[12px] py-[6px] hover:bg-[#f2f2f2]">Imprimir</a></li>
+                                    <li><button type="button" class="w-full px-[12px] py-[6px] text-left disabled:text-muted" :disabled="!d.sendable" @click="remove(d)">Eliminar</button></li>
+                                    <li><a :href="`/nomina/documentos/${d.id}/pdf`" class="block px-[12px] py-[6px] hover:bg-[#f2f2f2]">Descargar PDF</a></li>
+                                    <li><a v-if="d.xml" :href="`/nomina/documentos/${d.id}/xml`" class="block px-[12px] py-[6px] hover:bg-[#f2f2f2]">Descargar XML</a>
+                                        <span v-else class="block px-[12px] py-[6px] text-muted" title="El XML solo existe para documentos enviados desde este sistema.">Descargar XML</span></li>
+                                </ul>
+                                </RowMenu>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
             <EmptyState v-if="!docs.length" />
         </template>
 
@@ -162,12 +167,12 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                 <DownloadMenu button-class="text-[18px] text-muted hover:text-primary" label="" title="Descargar" @download="(x) => download(`/nomina/documentos/excel?${query({ tab: 'correo', ...mail.filters })}`, x)" />
                 <button type="button" class="s-btn s-btn-primary" :disabled="!mailCount || mailing || !mail.smtp" :title="mail.smtp ? null : 'Configura el correo de salida (SMTP) para enviar documentos.'" @click="sendMail">Enviar al correo electrónico ({{ mailCount }})</button>
                 <form class="flex" @submit.prevent="mailReload()">
-                    <input v-model="mf.q" class="s-input w-[260px] rounded-r-none" placeholder="Buscar por Nombre/identificación" />
+                    <input v-model="mf.q" class="s-input w-[200px] rounded-r-none sm:w-[260px]" placeholder="Buscar por Nombre/identificación" />
                     <button type="submit" class="s-btn s-btn-primary rounded-l-none px-3"><Icon icon="magnifying-glass" /></button>
                 </form>
                 <div class="relative">
                     <button type="button" class="s-btn s-btn-outline" @click="showFilters = !showFilters"><Icon icon="filter" /> Filtros<span v-if="activeFilters"> ({{ activeFilters }})</span></button>
-                    <div v-if="showFilters" class="absolute left-0 top-[40px] z-30 w-[360px] rounded-[4px] bg-white p-[16px] text-[13px] shadow-xl">
+                    <div v-if="showFilters" class="absolute left-0 top-[40px] z-30 w-[360px] max-w-[calc(100vw-48px)] rounded-[4px] bg-white p-[16px] text-[13px] shadow-xl">
                         <p class="font-semibold">Define los filtros que deseas aplicar al reporte:</p>
                         <p class="mt-[10px] s-label">Fecha documento</p>
                         <div class="flex items-center gap-[6px]"><input v-model="mf.desde" type="date" class="s-input flex-1" /> a <input v-model="mf.hasta" type="date" class="s-input flex-1" /></div>
@@ -182,45 +187,47 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                     </div>
                 </div>
             </div>
-            <table class="w-full border-collapse">
-                <thead>
-                    <tr class="bg-primary text-left text-[14px] font-semibold text-white">
-                        <th class="w-[40px] px-3 py-[9px]"><input type="checkbox" :checked="allMail" :title="allMail ? 'Todos los documentos filtrados' : null" @change="toggleAllMail" /></th>
-                        <th class="px-3">Fecha documento</th>
-                        <th class="px-3">Periodo</th>
-                        <th class="px-3">Tipo</th>
-                        <th class="px-3">Consecutivo</th>
-                        <th class="px-3">Empleado</th>
-                        <th class="px-3"># Identificación</th>
-                        <th class="px-3">#Contrato</th>
-                        <th class="px-3">Correo electrónico</th>
-                        <th class="px-3">Envió al empleado</th>
-                        <th class="px-3">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="r in mail.rows" :key="r.id" class="border-b border-line text-[13px]">
-                        <td class="px-3 py-[9px]"><input v-if="allMail" type="checkbox" checked disabled /><input v-else v-model="mailSelected" type="checkbox" :value="r.id" /></td>
-                        <td class="px-3">{{ r.date }}</td>
-                        <td class="px-3">{{ r.period }}</td>
-                        <td class="whitespace-nowrap px-3">{{ r.type }}</td>
-                        <td class="px-3">{{ r.consecutive }}</td>
-                        <td class="max-w-[180px] truncate px-3">{{ r.employee }}</td>
-                        <td class="px-3">{{ r.identification }}</td>
-                        <td class="px-3">{{ r.contract }}</td>
-                        <td class="max-w-[200px] px-3">
-                            <button type="button" class="flex max-w-full items-center gap-[6px] text-left hover:text-primary" title="Modificar correo electrónico" @click="editEmail(r)">
-                                <span class="truncate">{{ r.email || 'Sin correo' }}</span><Icon icon="pen" class="text-[11px] text-primary" />
-                            </button>
-                        </td>
-                        <td class="px-3" :title="r.sent_at ? `Enviado el ${r.sent_at}` : null"><Icon :icon="statusIcon(r.mail_status)[0]" :class="statusIcon(r.mail_status)[1]" /> {{ r.mail_status }}</td>
-                        <td class="whitespace-nowrap px-3">
-                            <button type="button" class="font-semibold text-primary disabled:text-muted" :disabled="mailing || !mail.smtp" @click="sendOne(r)">Enviar</button>
-                            <a :href="`/nomina/documentos/${r.id}/pdf`" class="ml-[12px] font-semibold text-primary">Descargar</a>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="s-table-wrap">
+                <table class="sticky-actions w-full border-collapse">
+                    <thead>
+                        <tr class="bg-primary text-left text-[14px] font-semibold text-white">
+                            <th class="w-[40px] px-3 py-[9px]"><input type="checkbox" :checked="allMail" :title="allMail ? 'Todos los documentos filtrados' : null" @change="toggleAllMail" /></th>
+                            <th class="px-3">Fecha documento</th>
+                            <th class="px-3">Periodo</th>
+                            <th class="px-3">Tipo</th>
+                            <th class="px-3">Consecutivo</th>
+                            <th class="px-3">Empleado</th>
+                            <th class="px-3"># Identificación</th>
+                            <th class="px-3">#Contrato</th>
+                            <th class="px-3">Correo electrónico</th>
+                            <th class="px-3">Envió al empleado</th>
+                            <th class="px-3">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="r in mail.rows" :key="r.id" class="border-b border-line text-[13px]">
+                            <td class="px-3 py-[9px]"><input v-if="allMail" type="checkbox" checked disabled /><input v-else v-model="mailSelected" type="checkbox" :value="r.id" /></td>
+                            <td class="px-3">{{ r.date }}</td>
+                            <td class="px-3">{{ r.period }}</td>
+                            <td class="whitespace-nowrap px-3">{{ r.type }}</td>
+                            <td class="px-3">{{ r.consecutive }}</td>
+                            <td class="max-w-[180px] truncate px-3">{{ r.employee }}</td>
+                            <td class="px-3">{{ r.identification }}</td>
+                            <td class="px-3">{{ r.contract }}</td>
+                            <td class="max-w-[200px] px-3">
+                                <button type="button" class="flex max-w-full items-center gap-[6px] text-left hover:text-primary" title="Modificar correo electrónico" @click="editEmail(r)">
+                                    <span class="truncate">{{ r.email || 'Sin correo' }}</span><Icon icon="pen" class="text-[11px] text-primary" />
+                                </button>
+                            </td>
+                            <td class="px-3" :title="r.sent_at ? `Enviado el ${r.sent_at}` : null"><Icon :icon="statusIcon(r.mail_status)[0]" :class="statusIcon(r.mail_status)[1]" /> {{ r.mail_status }}</td>
+                            <td class="whitespace-nowrap px-3">
+                                <button type="button" class="font-semibold text-primary disabled:text-muted" :disabled="mailing || !mail.smtp" @click="sendOne(r)">Enviar</button>
+                                <a :href="`/nomina/documentos/${r.id}/pdf`" class="ml-[12px] font-semibold text-primary">Descargar</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
             <EmptyState v-if="!mail.rows.length" />
             <div v-if="mail.total" class="flex items-center justify-end gap-[12px] p-[12px] text-[13px]">
                 <span>{{ mail.from }}-{{ mail.to }} de {{ mail.total }}</span>
@@ -264,8 +271,8 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
         </form>
     </section>
 
-    <div v-if="generating" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-[160px]" @click.self="generating = null">
-        <div class="w-[480px] rounded-[4px] bg-white p-[20px] text-[13px] shadow-xl">
+    <div v-if="generating" class="fixed inset-0 z-50 flex items-start justify-center p-3 bg-black/40 pt-[60px] md:pt-[160px]" @click.self="generating = null">
+        <div class="w-[480px] max-w-full max-h-[calc(100vh-24px)] overflow-y-auto rounded-[4px] bg-white p-[20px] text-[13px] shadow-xl">
             <div class="flex items-start justify-between"><p class="text-[16px] font-semibold">Generar documentos</p><button type="button" class="text-primary" @click="generating = null"><Icon icon="xmark" /></button></div>
             <p class="mt-[12px] rounded-[3px] bg-[#e9f5fe] px-[10px] py-[8px]"><Icon icon="circle-info" class="text-[#2196f3]" /> Solamente se generarán las nóminas que se encuentren en estado terminado</p>
             <p class="mt-[12px]">Selecciona el periodo de nómina que necesites generar y enviar a la DIAN.</p>
@@ -280,8 +287,8 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
         </div>
     </div>
 
-    <div v-if="adjusting" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-[160px]" @click.self="adjusting = null">
-        <div class="w-[480px] rounded-[4px] bg-white p-[20px] text-[13px] shadow-xl">
+    <div v-if="adjusting" class="fixed inset-0 z-50 flex items-start justify-center p-3 bg-black/40 pt-[60px] md:pt-[160px]" @click.self="adjusting = null">
+        <div class="w-[480px] max-w-full max-h-[calc(100vh-24px)] overflow-y-auto rounded-[4px] bg-white p-[20px] text-[13px] shadow-xl">
             <div class="flex items-start justify-between"><p class="text-[16px] font-semibold">Nota de ajuste {{ adjusting.consecutive }}</p><button type="button" class="text-primary" @click="adjusting = null"><Icon icon="xmark" /></button></div>
             <p class="mt-[12px]">{{ adjusting.employee }} · {{ adjusting.identification }}</p>
             <label class="mt-[12px] flex items-start gap-[8px]"><input v-model="adjustType" type="radio" value="1" class="mt-[3px]" /><span><b>Reemplazar</b><br />Se envía de nuevo el documento con los valores actuales de las nóminas del periodo.</span></label>
@@ -293,8 +300,8 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
         </div>
     </div>
 
-    <div v-if="editing" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-[160px]" @click.self="editing = null">
-        <form class="w-[480px] rounded-[4px] bg-white p-[20px] text-[13px] shadow-xl" @submit.prevent="saveEmail">
+    <div v-if="editing" class="fixed inset-0 z-50 flex items-start justify-center p-3 bg-black/40 pt-[60px] md:pt-[160px]" @click.self="editing = null">
+        <form class="w-[480px] max-w-full max-h-[calc(100vh-24px)] overflow-y-auto rounded-[4px] bg-white p-[20px] text-[13px] shadow-xl" @submit.prevent="saveEmail">
             <div class="flex items-start justify-between"><p class="text-[16px] font-semibold">Modificar correo electrónico</p><button type="button" class="text-primary" @click="editing = null"><Icon icon="xmark" /></button></div>
             <p class="mt-[10px]">{{ editing.consecutive }} · {{ editing.employee }}</p>
             <label class="mt-[12px] block"><span class="s-label">Correo electrónico <span class="req">*</span></span>

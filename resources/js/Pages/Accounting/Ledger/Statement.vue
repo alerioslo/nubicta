@@ -17,14 +17,16 @@ const url = props.kind === 'resultados' ? '/contabilidad/estado-resultados' : '/
 
     <div class="mt-[14px] grid grid-cols-[1fr_340px] items-start gap-[14px]">
         <section class="s-card">
-            <table class="s-table text-[12px]">
-                <thead><tr><th>Código</th><th>Cuenta</th><th class="text-right">Valor</th></tr></thead>
-                <tbody>
-                    <tr v-for="r in rows" :key="r.code" :class="{ 'font-bold': r.level === 1, 'font-semibold': r.level === 2 }">
-                        <td :style="{ paddingLeft: `${8 + (r.level - 1) * 14}px` }">{{ r.code }}</td><td>{{ r.name }}</td><td class="text-right">{{ money(shown(r)) }}</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="s-table-wrap">
+                <table class="s-table text-[12px]">
+                    <thead><tr><th>Código</th><th>Cuenta</th><th class="text-right">Valor</th></tr></thead>
+                    <tbody>
+                        <tr v-for="r in rows" :key="r.code" :class="{ 'font-bold': r.level === 1, 'font-semibold': r.level === 2 }">
+                            <td :style="{ paddingLeft: `${8 + (r.level - 1) * 14}px` }">{{ r.code }}</td><td>{{ r.name }}</td><td class="text-right">{{ money(shown(r)) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
             <EmptyState v-if="!rows.length" />
         </section>
         <section class="s-card p-[18px] text-[13px]">

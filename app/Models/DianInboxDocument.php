@@ -14,6 +14,6 @@ class DianInboxDocument extends Model
 
     protected function casts(): array
     {
-        return ['issue_date' => 'date', 'total' => 'decimal:2'];
+        return ['issue_date' => 'date', 'total' => 'decimal:2', 'product_matches' => 'array'];
     }
 }

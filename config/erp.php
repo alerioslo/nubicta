@@ -27,7 +27,7 @@ return [
         'productos' => ['Gestión de productos / servicios', 'Gestión combos', 'Documentos de productos / servicios', 'Costeo mensual'],
         'bancos' => ['Cajas y bancos', 'Conciliación bancaria'],
         'nomina' => ['Nóminas', 'Empleados', 'Documentos electrónicos', 'Más procesos'],
-        'contabilidad' => ['Cuentas contables', 'Presupuesto contable', 'Más procesos'],
+        'contabilidad' => ['Cuentas contables', 'Comprobantes contables', 'Presupuesto contable', 'Más procesos'],
     ],
 
     /* Pestanas que ya tienen pantalla propia: "modulo.Pestana" => url */
@@ -46,6 +46,7 @@ return [
         'bancos.Cajas y bancos' => '/bancos',
         'bancos.Conciliación bancaria' => '/bancos/conciliacion',
         'contabilidad.Cuentas contables' => '/contabilidad/cuentas',
+        'contabilidad.Comprobantes contables' => '/contabilidad/comprobantes',
         'contabilidad.Presupuesto contable' => '/contabilidad/presupuesto',
         'ventas.Cotizaciones' => '/ventas/cotizaciones',
         'ventas.Remisiones' => '/ventas/remisiones',

@@ -41,6 +41,9 @@ return [
         ['title' => 'Regional', 'column' => 1, 'items' => [
             $item('Ciudades', '/configuracion/ciudades'),
         ]],
+        ['title' => 'Inteligencia artificial', 'column' => 1, 'items' => [
+            $item('Asistente IA para causar facturas DIAN', '/configuracion/ajustes/ia'),
+        ]],
     ],
     'Habilitaciones DIAN' => [
         ['title' => 'Ventas', 'column' => 0, 'items' => [

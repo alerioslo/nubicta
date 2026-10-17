@@ -141,6 +141,11 @@ class DocumentFormController extends Controller
                 ]);
             }
         }
+        if ($key === 'compras/egresos/crear' && ($bill = \App\Models\PurchaseDocument::query()->where('status', '!=', 'annulled')->where('balance', '>', 0)->find($request->integer('factura')))) {
+            $supplier = \App\Models\Contact::query()->find($bill->contact_id);
+            $initial = ['contact_id' => $bill->contact_id, 'contact_label' => $supplier ? "{$supplier->identification} - {$supplier->name}" : '', 'mode' => 'deuda',
+                'value' => (float) $bill->balance, 'items' => [['id' => $bill->id, 'pay' => (float) $bill->balance, 'balance' => (float) $bill->balance]]];
+        }
         if ($key === 'compras/facturas/crear' && ($inbox = \App\Models\DianInboxDocument::query()->where('status', 'Pendiente')->find((int) $request->input('bandeja')))) {
             $initial = app(\App\Services\Purchases\PurchaseInbox::class)->initial($inbox);
         }

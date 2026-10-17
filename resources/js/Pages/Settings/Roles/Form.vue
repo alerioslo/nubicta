@@ -39,30 +39,32 @@ function submit() {
             <input v-model="form.name" class="s-input" />
         </Field>
 
-        <table class="s-table mt-6">
-            <thead>
-                <tr>
-                    <th class="w-[260px]">Módulo</th>
-                    <th>Permisos</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="m in matrix" :key="m.key">
-                    <td>
-                        <label class="flex items-center gap-2 font-semibold text-ink">
-                            <input type="checkbox" class="accent-primary" :checked="allOn(m)" @change="toggleModule(m, $event.target.checked)" />
-                            {{ m.label }}
-                        </label>
-                    </td>
-                    <td>
-                        <div class="flex flex-wrap gap-x-6 gap-y-2">
-                            <label v-for="a in m.actions" :key="a.name" class="flex items-center gap-2">
-                                <input v-model="form.permissions" type="checkbox" :value="a.name" class="accent-primary" /> {{ a.label }}
+        <div class="s-table-wrap">
+            <table class="s-table mt-6">
+                <thead>
+                    <tr>
+                        <th class="w-[260px]">Módulo</th>
+                        <th>Permisos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="m in matrix" :key="m.key">
+                        <td>
+                            <label class="flex items-center gap-2 font-semibold text-ink">
+                                <input type="checkbox" class="accent-primary" :checked="allOn(m)" @change="toggleModule(m, $event.target.checked)" />
+                                {{ m.label }}
                             </label>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+                        </td>
+                        <td>
+                            <div class="flex flex-wrap gap-x-6 gap-y-2">
+                                <label v-for="a in m.actions" :key="a.name" class="flex items-center gap-2">
+                                    <input v-model="form.permissions" type="checkbox" :value="a.name" class="accent-primary" /> {{ a.label }}
+                                </label>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </form>
 </template>

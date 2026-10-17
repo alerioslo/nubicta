@@ -5,6 +5,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
 import Pager from '../../Components/Pager.vue';
 import EmptyState from '../../Components/EmptyState.vue';
+import RowMenu from '../../Components/RowMenu.vue';
 
 const props = defineProps({
     side: { type: String, required: true },
@@ -57,14 +58,14 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
         <div class="px-[16px] pt-[16px]">
             <span class="s-label font-normal text-muted">Búsqueda</span>
             <div class="flex flex-wrap items-center gap-3">
-                <div class="relative w-[300px]">
+                <div class="relative w-full sm:w-[300px]">
                     <Icon icon="magnifying-glass" class="absolute left-3 top-[10px] text-muted" />
                     <input v-model="f.q" class="s-input pl-9" placeholder="Buscar por nombre o identificación" @input="search" />
                 </div>
                 <button type="button" class="s-btn s-btn-outline relative" @click="open = !open"><Icon icon="sliders" /> Más filtros
                     <span class="absolute -right-[7px] -top-[7px] grid h-[16px] min-w-[16px] place-items-center rounded-full bg-[#e53935] px-[3px] text-[10px] text-white">2</span>
                 </button>
-                <div class="ml-auto flex gap-2">
+                <div class="ml-auto flex flex-wrap justify-end gap-2">
                     <div class="relative">
                         <button type="button" class="s-btn s-btn-link" @click="columnsOpen = !columnsOpen"><Icon icon="table-columns" /> Columnas</button>
                         <div v-if="columnsOpen" class="absolute right-0 z-20 mt-1 w-[200px] rounded border border-line bg-white p-2 shadow-lg">
@@ -106,44 +107,46 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
             </div>
         </div>
 
-        <table class="s-table">
-            <thead>
-                <tr>
-                    <th>{{ cfg.party }}</th>
-                    <th v-if="visible.branch">Sucursal</th>
-                    <th v-if="visible.overdue" class="text-right">Saldo vencido</th>
-                    <th v-if="visible.current" class="text-right">Saldo por vencer</th>
-                    <th v-if="visible.credit" class="text-right">Saldo a favor</th>
-                    <th v-if="visible.total" class="text-right">{{ cfg.total }}</th>
-                    <th v-if="visible.active">Estado</th>
-                    <th class="w-[200px]">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="r in rows.data" :key="r.id">
-                    <td class="max-w-[128px]">
-                        <Link :href="`${cfg.url}/${r.id}`" class="block truncate text-primary" :title="r.name">{{ r.name }}</Link>
-                        <div class="text-[12px]">{{ r.identification }}</div>
-                    </td>
-                    <td v-if="visible.branch">{{ r.branch }}</td>
-                    <td v-if="visible.overdue" class="text-right">{{ money(r.overdue) }}</td>
-                    <td v-if="visible.current" class="text-right">{{ money(r.current) }}</td>
-                    <td v-if="visible.credit" class="text-right">{{ money(r.credit) }}</td>
-                    <td v-if="visible.total" class="text-right">{{ money(r.total) }}</td>
-                    <td v-if="visible.active">{{ r.active ? 'Activo' : 'Inactivo' }}</td>
-                    <td>
-                        <div class="relative flex">
-                            <Link :href="`${cfg.url}/${r.id}`" class="s-btn s-btn-outline h-[28px] flex-1 rounded-r-none text-[12px]">{{ cfg.action_label ?? 'Ver estado de cuenta' }}</Link>
-                            <button type="button" class="s-btn s-btn-outline h-[28px] rounded-l-none border-l-0 px-2" @click="menu = menu === r.id ? null : r.id"><Icon icon="caret-down" /></button>
-                            <div v-if="menu === r.id" class="absolute right-0 top-[30px] z-20 w-[230px] rounded border border-line bg-white py-1 shadow-lg">
+        <div class="s-table-wrap">
+            <table class="sticky-actions s-table">
+                <thead>
+                    <tr>
+                        <th>{{ cfg.party }}</th>
+                        <th v-if="visible.branch">Sucursal</th>
+                        <th v-if="visible.overdue" class="text-right">Saldo vencido</th>
+                        <th v-if="visible.current" class="text-right">Saldo por vencer</th>
+                        <th v-if="visible.credit" class="text-right">Saldo a favor</th>
+                        <th v-if="visible.total" class="text-right">{{ cfg.total }}</th>
+                        <th v-if="visible.active">Estado</th>
+                        <th class="w-[200px]">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="r in rows.data" :key="r.id">
+                        <td class="max-w-[128px]">
+                            <Link :href="`${cfg.url}/${r.id}`" class="block truncate text-primary" :title="r.name">{{ r.name }}</Link>
+                            <div class="text-[12px]">{{ r.identification }}</div>
+                        </td>
+                        <td v-if="visible.branch">{{ r.branch }}</td>
+                        <td v-if="visible.overdue" class="text-right">{{ money(r.overdue) }}</td>
+                        <td v-if="visible.current" class="text-right">{{ money(r.current) }}</td>
+                        <td v-if="visible.credit" class="text-right">{{ money(r.credit) }}</td>
+                        <td v-if="visible.total" class="text-right">{{ money(r.total) }}</td>
+                        <td v-if="visible.active">{{ r.active ? 'Activo' : 'Inactivo' }}</td>
+                        <td>
+                            <RowMenu :open="menu === r.id" :min-width="230" anchor-class="flex" @close="menu = null">
+                                <template #anchor>
+                                    <Link :href="`${cfg.url}/${r.id}`" class="s-btn s-btn-outline h-[28px] flex-1 rounded-r-none text-[12px]">{{ cfg.action_label ?? 'Ver estado de cuenta' }}</Link>
+                                    <button type="button" class="s-btn s-btn-outline h-[28px] rounded-l-none border-l-0 px-2" @click="menu = menu === r.id ? null : r.id"><Icon icon="caret-down" /></button>
+                                </template>
                                 <Link :href="adjustUrl(r)" class="block px-3 py-2 text-[13px] hover:bg-[#f5f6f7]">Ajuste de cartera y proveedores</Link>
                                 <Link :href="`/terceros/${r.id}/editar`" class="block px-3 py-2 text-[13px] hover:bg-[#f5f6f7]">Editar</Link>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+                            </RowMenu>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <EmptyState v-if="!rows.data.length" />
         <Pager :paginator="rows" />
     </section>

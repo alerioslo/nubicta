@@ -15,18 +15,20 @@ const money = (v) => (v ? Number(v).toLocaleString('en-US', { minimumFractionDig
         <p v-if="entry.observations" class="mt-1"><b>Observaciones:</b> {{ entry.observations }}</p>
     </section>
     <section class="s-card mt-[14px]">
-        <table class="s-table">
-            <thead><tr><th>Cuenta contable</th><th>Tercero</th><th>Descripción</th><th class="text-right">Débito</th><th class="text-right">Crédito</th></tr></thead>
-            <tbody>
-                <tr v-for="(l, i) in entry.lines" :key="i">
-                    <td>{{ l.account }}</td><td>{{ l.contact }}</td><td>{{ l.description }}</td>
-                    <td class="text-right">{{ money(l.debit) }}</td><td class="text-right">{{ money(l.credit) }}</td>
-                </tr>
-                <tr class="font-bold">
-                    <td colspan="3" class="text-right">Totales</td>
-                    <td class="text-right">{{ money(entry.debit) }}</td><td class="text-right">{{ money(entry.credit) }}</td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="s-table-wrap">
+            <table class="s-table">
+                <thead><tr><th>Cuenta contable</th><th>Tercero</th><th>Descripción</th><th class="text-right">Débito</th><th class="text-right">Crédito</th></tr></thead>
+                <tbody>
+                    <tr v-for="(l, i) in entry.lines" :key="i">
+                        <td>{{ l.account }}</td><td>{{ l.contact }}</td><td>{{ l.description }}</td>
+                        <td class="text-right">{{ money(l.debit) }}</td><td class="text-right">{{ money(l.credit) }}</td>
+                    </tr>
+                    <tr class="font-bold">
+                        <td colspan="3" class="text-right">Totales</td>
+                        <td class="text-right">{{ money(entry.debit) }}</td><td class="text-right">{{ money(entry.credit) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 </template>

@@ -32,21 +32,23 @@ const summary = (obj) => (obj ? Object.entries(obj).map(([k, v]) => `${k}: ${typ
             <label><span class="s-label">Hasta</span><input v-model="f.to" type="date" class="s-input" /></label>
             <button type="button" class="s-btn s-btn-outline" @click="apply"><Icon icon="filter" /> Filtrar</button>
         </div>
-        <table class="s-table">
-            <thead>
-                <tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Registro</th><th>Detalle</th><th>IP</th></tr>
-            </thead>
-            <tbody>
-                <tr v-for="l in logs.data" :key="l.id">
-                    <td class="whitespace-nowrap">{{ l.date }}</td>
-                    <td>{{ l.user ?? 'Sistema' }}</td>
-                    <td>{{ events[l.event] ?? l.event }}</td>
-                    <td>{{ l.entity }}</td>
-                    <td class="max-w-[520px] truncate text-[12px] text-muted" :title="summary(l.new) || summary(l.old)">{{ summary(l.new) || summary(l.old) }}</td>
-                    <td>{{ l.ip }}</td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="s-table-wrap">
+            <table class="s-table">
+                <thead>
+                    <tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Registro</th><th>Detalle</th><th>IP</th></tr>
+                </thead>
+                <tbody>
+                    <tr v-for="l in logs.data" :key="l.id">
+                        <td class="whitespace-nowrap">{{ l.date }}</td>
+                        <td>{{ l.user ?? 'Sistema' }}</td>
+                        <td>{{ events[l.event] ?? l.event }}</td>
+                        <td>{{ l.entity }}</td>
+                        <td class="max-w-[520px] truncate text-[12px] text-muted" :title="summary(l.new) || summary(l.old)">{{ summary(l.new) || summary(l.old) }}</td>
+                        <td>{{ l.ip }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <EmptyState v-if="!logs.data.length" />
         <Pager :paginator="logs" />
     </section>

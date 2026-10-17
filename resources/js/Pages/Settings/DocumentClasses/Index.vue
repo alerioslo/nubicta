@@ -28,23 +28,25 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
         <div v-if="export" class="mb-[12px] flex justify-end">
             <DownloadMenu button-class="s-btn s-btn-outline h-[34px] w-[36px] px-0" icon="file-excel" label="" title="Exportar" @download="(f) => download(base, f)" />
         </div>
-        <table class="s-table">
-            <thead>
-                <tr>
-                    <th v-for="c in columns" :key="c.key">{{ c.label }}</th>
-                    <th class="w-[110px]">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="r in rows" :key="r.id" :class="{ 'text-muted': !r.active }">
-                    <td v-for="c in columns" :key="c.key">
-                        <span v-if="c.key === 'numbering_status' && r[c.key]" class="s-badge" :class="r[c.key] === 'Vigente' ? 's-badge-ok' : r[c.key] === 'Vencida' ? 's-badge-danger' : 's-badge-warn'">{{ r[c.key] }}</span>
-                        <template v-else>{{ r[c.key] }}</template>
-                    </td>
-                    <td><Link :href="`${base}/${r.id}/editar`" class="text-primary">Editar</Link></td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="s-table-wrap">
+            <table class="sticky-actions s-table">
+                <thead>
+                    <tr>
+                        <th v-for="c in columns" :key="c.key">{{ c.label }}</th>
+                        <th class="w-[110px]">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="r in rows" :key="r.id" :class="{ 'text-muted': !r.active }">
+                        <td v-for="c in columns" :key="c.key">
+                            <span v-if="c.key === 'numbering_status' && r[c.key]" class="s-badge" :class="r[c.key] === 'Vigente' ? 's-badge-ok' : r[c.key] === 'Vencida' ? 's-badge-danger' : 's-badge-warn'">{{ r[c.key] }}</span>
+                            <template v-else>{{ r[c.key] }}</template>
+                        </td>
+                        <td><Link :href="`${base}/${r.id}/editar`" class="text-primary">Editar</Link></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <EmptyState v-if="!rows.length" />
     </section>
 </template>

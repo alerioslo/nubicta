@@ -291,159 +291,167 @@ const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('es-CO', { day:
                     {{ busy === 'ranges' ? 'Consultando…' : 'Consultar rangos en la DIAN' }}
                 </button>
             </div>
-            <table class="s-table">
-                <thead>
-                    <tr>
-                        <th>Tipo</th>
-                        <th>Documento</th>
-                        <th>Numeración</th>
-                        <th>Prefijo</th>
-                        <th>Rangos de numeración</th>
-                        <th>Inicio vigencia</th>
-                        <th>Fin vigencia</th>
-                        <th>Consecutivo</th>
-                        <th>Clave técnica</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="r in resolutions" :key="r.id">
-                        <td>{{ r.label }}</td>
-                        <td>
-                            {{ r.name }}<br /><span class="text-[12px] text-muted">{{ r.electronic }}</span>
-                        </td>
-                        <td>{{ r.resolution_number ?? '—' }}</td>
-                        <td>{{ r.prefix ?? '—' }}</td>
-                        <td>{{ r.range ?? '—' }}</td>
-                        <td>{{ r.valid_from ?? '—' }}</td>
-                        <td :class="{ 'text-danger': r.expired }">{{ r.valid_to ?? '—' }}</td>
-                        <td>{{ r.consecutive }}</td>
-                        <td>
-                            <span class="s-badge" :class="r.has_key ? 's-badge-ok' : 's-badge-off'">{{ r.has_key ? 'Configurada' : 'Sin clave' }}</span>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="s-table-wrap">
+                <table class="s-table">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Documento</th>
+                            <th>Numeración</th>
+                            <th>Prefijo</th>
+                            <th>Rangos de numeración</th>
+                            <th>Inicio vigencia</th>
+                            <th>Fin vigencia</th>
+                            <th>Consecutivo</th>
+                            <th>Clave técnica</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="r in resolutions" :key="r.id">
+                            <td>{{ r.label }}</td>
+                            <td>
+                                {{ r.name }}<br /><span class="text-[12px] text-muted">{{ r.electronic }}</span>
+                            </td>
+                            <td>{{ r.resolution_number ?? '—' }}</td>
+                            <td>{{ r.prefix ?? '—' }}</td>
+                            <td>{{ r.range ?? '—' }}</td>
+                            <td>{{ r.valid_from ?? '—' }}</td>
+                            <td :class="{ 'text-danger': r.expired }">{{ r.valid_to ?? '—' }}</td>
+                            <td>{{ r.consecutive }}</td>
+                            <td>
+                                <span class="s-badge" :class="r.has_key ? 's-badge-ok' : 's-badge-off'">{{ r.has_key ? 'Configurada' : 'Sin clave' }}</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </section>
 
         <section v-if="history.length" class="s-card overflow-hidden">
             <h2 class="s-section-title p-[18px]">Resoluciones de numeración autorizadas (historial)</h2>
-            <table class="s-table">
-                <thead>
-                    <tr>
-                        <th>Tipo documento</th>
-                        <th>Tipo de comprobante</th>
-                        <th>Número de resolución</th>
-                        <th>Fecha resolución</th>
-                        <th>Prefijo</th>
-                        <th class="text-right">Rango desde</th>
-                        <th class="text-right">Rango hasta</th>
-                        <th>Fecha desde</th>
-                        <th>Fecha hasta</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="h in history" :key="h.id" :class="{ 'text-muted': h.expired }">
-                        <td>{{ h.kind }}</td>
-                        <td>{{ h.linked ?? '' }}</td>
-                        <td>{{ h.resolution }}</td>
-                        <td>{{ h.date }}</td>
-                        <td>{{ h.prefix }}</td>
-                        <td class="text-right">{{ h.from }}</td>
-                        <td class="text-right">{{ h.to }}</td>
-                        <td>{{ h.valid_from }}</td>
-                        <td>
-                            {{ h.valid_to }}
-                            <span v-if="h.expired" class="s-badge s-badge-off ml-1">Vencida</span>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="s-table-wrap">
+                <table class="s-table">
+                    <thead>
+                        <tr>
+                            <th>Tipo documento</th>
+                            <th>Tipo de comprobante</th>
+                            <th>Número de resolución</th>
+                            <th>Fecha resolución</th>
+                            <th>Prefijo</th>
+                            <th class="text-right">Rango desde</th>
+                            <th class="text-right">Rango hasta</th>
+                            <th>Fecha desde</th>
+                            <th>Fecha hasta</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="h in history" :key="h.id" :class="{ 'text-muted': h.expired }">
+                            <td>{{ h.kind }}</td>
+                            <td>{{ h.linked ?? '' }}</td>
+                            <td>{{ h.resolution }}</td>
+                            <td>{{ h.date }}</td>
+                            <td>{{ h.prefix }}</td>
+                            <td class="text-right">{{ h.from }}</td>
+                            <td class="text-right">{{ h.to }}</td>
+                            <td>{{ h.valid_from }}</td>
+                            <td>
+                                {{ h.valid_to }}
+                                <span v-if="h.expired" class="s-badge s-badge-off ml-1">Vencida</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </section>
 
         <section v-if="ranges.length" class="s-card overflow-hidden">
             <h2 class="s-section-title p-[18px]">Rangos autorizados por la DIAN</h2>
-            <table class="s-table">
-                <thead>
-                    <tr>
-                        <th>Resolución</th>
-                        <th>Fecha</th>
-                        <th>Prefijo</th>
-                        <th>Desde</th>
-                        <th>Hasta</th>
-                        <th>Vigencia</th>
-                        <th>Asociar a</th>
-                        <th />
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="(r, i) in ranges" :key="i">
-                        <td>{{ r.resolution }}</td>
-                        <td>{{ r.resolution_date }}</td>
-                        <td>{{ r.prefix }}</td>
-                        <td>{{ r.from }}</td>
-                        <td>{{ r.to }}</td>
-                        <td>{{ r.valid_from }} a {{ r.valid_to }}</td>
-                        <td>
-                            <select v-model="target[i]" class="s-input">
-                                <option :value="undefined">Selecciona</option>
-                                <option v-for="t in typesFor(r)" :key="t.id" :value="t.id">{{ t.label }} {{ t.name }}</option>
-                            </select>
-                        </td>
-                        <td>
-                            <button
-                                type="button"
-                                class="s-btn s-btn-primary"
-                                :disabled="!target[i] || busy"
-                                @click="action('/configuracion/facturacion-electronica/rangos/aplicar', 'apply', 'post', { document_type_id: target[i], range: r })"
-                            >
-                                Asociar
-                            </button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="s-table-wrap">
+                <table class="s-table">
+                    <thead>
+                        <tr>
+                            <th>Resolución</th>
+                            <th>Fecha</th>
+                            <th>Prefijo</th>
+                            <th>Desde</th>
+                            <th>Hasta</th>
+                            <th>Vigencia</th>
+                            <th>Asociar a</th>
+                            <th />
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(r, i) in ranges" :key="i">
+                            <td>{{ r.resolution }}</td>
+                            <td>{{ r.resolution_date }}</td>
+                            <td>{{ r.prefix }}</td>
+                            <td>{{ r.from }}</td>
+                            <td>{{ r.to }}</td>
+                            <td>{{ r.valid_from }} a {{ r.valid_to }}</td>
+                            <td>
+                                <select v-model="target[i]" class="s-input">
+                                    <option :value="undefined">Selecciona</option>
+                                    <option v-for="t in typesFor(r)" :key="t.id" :value="t.id">{{ t.label }} {{ t.name }}</option>
+                                </select>
+                            </td>
+                            <td>
+                                <button
+                                    type="button"
+                                    class="s-btn s-btn-primary"
+                                    :disabled="!target[i] || busy"
+                                    @click="action('/configuracion/facturacion-electronica/rangos/aplicar', 'apply', 'post', { document_type_id: target[i], range: r })"
+                                >
+                                    Asociar
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </section>
     </div>
 
     <!-- Historial -->
     <section v-else class="s-card mt-[18px] overflow-hidden">
-        <table class="s-table">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Operación</th>
-                    <th>Ámbito</th>
-                    <th>Documento</th>
-                    <th>Código</th>
-                    <th>Respuesta DIAN</th>
-                    <th>Estado</th>
-                    <th>Tiempo</th>
-                    <th>Usuario</th>
-                    <th />
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-if="!transmissions.length">
-                    <td colspan="10" class="py-8 text-center text-muted">No hay envíos registrados.</td>
-                </tr>
-                <tr v-for="t in transmissions" :key="t.id">
-                    <td class="whitespace-nowrap">{{ t.date }}</td>
-                    <td>{{ t.operation }}</td>
-                    <td>{{ t.scope }}</td>
-                    <td>{{ t.document || '—' }}</td>
-                    <td>{{ t.status_code ?? '—' }}</td>
-                    <td class="max-w-[360px]">
-                        {{ t.message }}
-                        <span v-if="t.simulated" class="s-badge s-badge-warn ml-1">Simulado</span>
-                    </td>
-                    <td>
-                        <span class="s-badge" :class="t.valid ? 's-badge-ok' : 's-badge-danger'">{{ t.valid ? 'Aceptado' : 'Rechazado' }}</span>
-                    </td>
-                    <td>{{ t.ms }} ms</td>
-                    <td>{{ t.user ?? '—' }}</td>
-                    <td><a :href="`/configuracion/facturacion-electronica/envios/${t.id}`" target="_blank" class="s-btn-link">XML</a></td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="s-table-wrap">
+            <table class="s-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Operación</th>
+                        <th>Ámbito</th>
+                        <th>Documento</th>
+                        <th>Código</th>
+                        <th>Respuesta DIAN</th>
+                        <th>Estado</th>
+                        <th>Tiempo</th>
+                        <th>Usuario</th>
+                        <th />
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-if="!transmissions.length">
+                        <td colspan="10" class="py-8 text-center text-muted">No hay envíos registrados.</td>
+                    </tr>
+                    <tr v-for="t in transmissions" :key="t.id">
+                        <td class="whitespace-nowrap">{{ t.date }}</td>
+                        <td>{{ t.operation }}</td>
+                        <td>{{ t.scope }}</td>
+                        <td>{{ t.document || '—' }}</td>
+                        <td>{{ t.status_code ?? '—' }}</td>
+                        <td class="max-w-[360px]">
+                            {{ t.message }}
+                            <span v-if="t.simulated" class="s-badge s-badge-warn ml-1">Simulado</span>
+                        </td>
+                        <td>
+                            <span class="s-badge" :class="t.valid ? 's-badge-ok' : 's-badge-danger'">{{ t.valid ? 'Aceptado' : 'Rechazado' }}</span>
+                        </td>
+                        <td>{{ t.ms }} ms</td>
+                        <td>{{ t.user ?? '—' }}</td>
+                        <td><a :href="`/configuracion/facturacion-electronica/envios/${t.id}`" target="_blank" class="s-btn-link">XML</a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 </template>

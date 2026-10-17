@@ -13,7 +13,7 @@ defineProps({ shortcuts: { type: Array, required: true }, tabs: { type: Array, r
         <h2 class="border-b border-[#edf0f2] px-[28px] py-[16px] text-[18px] font-bold text-ink">
             Te damos la bienvenida, ¿Qué deseas hacer?
         </h2>
-        <div class="grid grid-cols-5 gap-y-[38px] px-[28px] pb-[48px] pt-[18px]">
+        <div class="grid grid-cols-2 gap-y-[28px] px-[12px] pb-[32px] pt-[18px] sm:grid-cols-3 md:px-[28px] lg:grid-cols-5 lg:gap-y-[38px] lg:pb-[48px]">
             <Link v-for="s in shortcuts" :key="s.url" :href="s.url" class="group flex flex-col items-center text-center">
                 <span
                     class="flex h-[64px] w-[64px] items-center justify-center rounded-full border border-[#dfe6ec] bg-white text-[24px] text-primary transition group-hover:border-primary group-hover:bg-primary-light"

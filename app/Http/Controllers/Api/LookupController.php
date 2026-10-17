@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Account;
+use App\Models\AccountGroup;
 use App\Models\Contact;
 use App\Models\FixedAsset;
 use App\Models\Municipality;
@@ -50,6 +51,7 @@ class LookupController extends Controller
 
         return response()->json(
             Product::query()->search($request->input('q'))->where('active', true)
+                ->when($request->input('cuenta'), fn ($q, $account) => $q->whereIn('account_group_id', AccountGroup::query()->where('inventory_account_id', (int) $account)->select('id'))->where('stock_control', true))
                 ->with(['taxes:id,name,type,percentage', 'prices', 'comboItems.product:id,code,name,reference,unit_label'])->orderBy('name')->limit($this->limit($request))->get()
                 ->map(fn (Product $p) => [
                     'id' => $p->id, 'code' => $p->code, 'name' => $p->name, 'label' => "{$p->code} - {$p->name}", 'kind' => $p->type,
@@ -153,9 +155,10 @@ class LookupController extends Controller
             ->orderBy('code')
             ->limit($this->limit($request))
             ->get(['id', 'code', 'name', 'category', 'due_type', 'requires_third_party']);
+        $groups = AccountGroup::query()->whereIn('inventory_account_id', $accounts->pluck('id'))->pluck('id', 'inventory_account_id');
 
         return response()->json($accounts->map(fn ($a) => ['id' => $a->id, 'label' => "{$a->code} - {$a->name}", 'code' => $a->code, 'name' => $a->name,
-            'category' => $a->category, 'due_type' => $a->due_type, 'third' => (bool) $a->requires_third_party]));
+            'category' => $a->category, 'due_type' => $a->due_type, 'third' => (bool) $a->requires_third_party, 'inventory_group' => $groups[$a->id] ?? null]));
     }
 
     /** Ciudades con su departamento, como el campo "Ciudad" de Siigo. */

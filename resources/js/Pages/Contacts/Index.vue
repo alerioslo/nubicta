@@ -46,7 +46,7 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
 
     <section class="s-card mt-[18px]">
         <div class="flex flex-wrap items-center gap-3 px-[16px] py-[16px]">
-            <div class="relative w-[320px]">
+            <div class="relative w-full sm:w-[320px]">
                 <Icon icon="magnifying-glass" class="absolute left-3 top-[10px] text-muted" />
                 <input v-model="q" class="s-input pl-9" placeholder="Buscar por identificación o nombre" @input="search" />
             </div>
@@ -61,43 +61,45 @@ const download = (base, f) => (window.location.href = base + (base.includes('?')
                     {{ r.label }}<span v-if="r.key" class="opacity-75">({{ counts[r.key] }})</span>
                 </button>
             </div>
-            <div class="ml-auto flex gap-2">
+            <div class="ml-auto flex flex-wrap justify-end gap-2">
                 <DownloadMenu icon="file-excel" label="Exportar" @download="(f) => download(exportUrl, f)" />
                 <Link :href="`/terceros/crear${tipo ? '?tipo=' + tipo : ''}`" class="s-btn s-btn-primary w-[150px]">{{ createLabel }}</Link>
             </div>
         </div>
 
-        <table class="s-table">
-            <thead>
-                <tr>
-                    <th>Identificación</th>
-                    <th>Nombre</th>
-                    <th>Tipo de tercero</th>
-                    <th>Ciudad</th>
-                    <th>Teléfono</th>
-                    <th>Correo electrónico</th>
-                    <th>Estado</th>
-                    <th class="w-[80px]">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="c in contacts.data" :key="c.id">
-                    <td>
-                        <div class="text-ink">{{ c.identification }}<span v-if="c.branch_office" class="text-muted"> · Suc. {{ c.branch_office }}</span></div>
-                        <div class="text-[11px] text-muted">{{ c.identification_type }}</div>
-                    </td>
-                    <td><Link :href="`/terceros/${c.id}`" class="text-primary">{{ c.name }}</Link></td>
-                    <td>{{ c.roles }}</td>
-                    <td>{{ c.city ?? '' }}</td>
-                    <td>{{ c.phone ?? '' }}</td>
-                    <td class="max-w-[240px] truncate">{{ c.email ?? '' }}</td>
-                    <td><span class="s-badge" :class="c.active ? 's-badge-ok' : 's-badge-off'">{{ c.active ? 'Activo' : 'Inactivo' }}</span></td>
-                    <td>
-                        <Link :href="`/terceros/${c.id}/editar`" class="text-primary" title="Editar"><Icon icon="pen" /></Link>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="s-table-wrap">
+            <table class="sticky-actions s-table">
+                <thead>
+                    <tr>
+                        <th>Identificación</th>
+                        <th>Nombre</th>
+                        <th>Tipo de tercero</th>
+                        <th>Ciudad</th>
+                        <th>Teléfono</th>
+                        <th>Correo electrónico</th>
+                        <th>Estado</th>
+                        <th class="w-[80px]">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="c in contacts.data" :key="c.id">
+                        <td>
+                            <div class="text-ink">{{ c.identification }}<span v-if="c.branch_office" class="text-muted"> · Suc. {{ c.branch_office }}</span></div>
+                            <div class="text-[11px] text-muted">{{ c.identification_type }}</div>
+                        </td>
+                        <td><Link :href="`/terceros/${c.id}`" class="text-primary">{{ c.name }}</Link></td>
+                        <td>{{ c.roles }}</td>
+                        <td>{{ c.city ?? '' }}</td>
+                        <td>{{ c.phone ?? '' }}</td>
+                        <td class="max-w-[240px] truncate">{{ c.email ?? '' }}</td>
+                        <td><span class="s-badge" :class="c.active ? 's-badge-ok' : 's-badge-off'">{{ c.active ? 'Activo' : 'Inactivo' }}</span></td>
+                        <td>
+                            <Link :href="`/terceros/${c.id}/editar`" class="text-primary" title="Editar"><Icon icon="pen" /></Link>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <EmptyState v-if="!contacts.data.length" />
         <Pager :paginator="contacts" />
     </section>

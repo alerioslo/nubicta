@@ -12,7 +12,8 @@ const money = (v) => Number(v || 0).toLocaleString('en-US', { minimumFractionDig
 const ACCOUNT_COLUMNS = [['code', 'Código'], ['name', 'Nombre'], ['category', 'Categoría']];
 const CONTACT_COLUMNS = [['identification', 'Identificación'], ['name', 'Nombre'], ['branch', 'Suc']];
 const PREFIXES = [['FV', 'FV - Factura de venta'], ['FC', 'FC - Factura de compra'], ['RC', 'RC - Anticipo clientes'], ['RP', 'RP - Anticipo proveedores'], ['CC', 'CC - Otros']];
-const blank = () => ({ account_id: null, account_label: '', due_type: null, third: false, contact_id: null, contact_label: '', due: null, description: '', debit: 0, credit: 0 });
+const PRODUCT_COLUMNS = [['name', 'Descripción'], ['code', 'Código'], ['reference', 'Referencia de fábrica']];
+const blank = () => ({ account_id: null, account_label: '', due_type: null, third: false, contact_id: null, contact_label: '', due: null, inventory_group: null, inventory: null, description: '', debit: 0, credit: 0 });
 
 const doc = useForm({ document_type: props.docTypes[0]?.id ?? null, date: props.today, items: [blank()], observations: '', after: 'guardar', ...(props.initial ?? {}) });
 if (props.initial) doc.items.push(blank());
@@ -28,13 +29,54 @@ function pickAccount(l, idx, a) {
     l.due_type = a?.due_type ?? null;
     l.third = !!a?.third;
     l.due = null;
+    l.inventory_group = a?.inventory_group ?? null;
+    l.inventory = null;
+    /* Como Siigo: la linea nueva toma el tercero de la anterior y la diferencia para cuadrar el comprobante. */
+    const above = doc.items.slice(0, idx).reverse().find((x) => x.contact_id);
+    if (a && !l.contact_id && above) {
+        l.contact_id = above.contact_id;
+        l.contact_label = above.contact_label;
+    }
+    const diff = round(debit.value - credit.value);
+    if (a && !Number(l.debit) && !Number(l.credit) && diff) {
+        if (diff > 0) l.credit = diff;
+        else l.debit = -diff;
+    }
     if (idx === doc.items.length - 1) doc.items.push(blank());
     if (l.due_type && l.contact_id) recommend.value = true;
+    if (l.inventory_group && l.contact_id) openInventory(l);
 }
 
 function pickContact(l) {
     l.due = null;
     if (l.due_type && l.contact_id) recommend.value = true;
+    if (l.inventory_group && l.contact_id) openInventory(l);
+}
+
+/* Ventana "Detalle de inventarios": la cuenta de un grupo de inventario mueve un producto (entrada al débito, salida al crédito). */
+const inv = ref(null);
+const round = (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100;
+function openInventory(l) {
+    const i = l.inventory;
+    const amount = Number(l.debit) || Number(l.credit);
+    inv.value = { line: l, product_id: i?.product_id ?? null, label: i?.label ?? '', cost: 0, quantity: i?.quantity ?? 0, value: i?.value ?? amount,
+        type: i?.type ?? (Number(l.debit) ? 'Entrada' : 'Salida'), touched: !!i || amount > 0, error: '' };
+}
+function pickProduct(p) {
+    inv.value.cost = Number(p?.cost ?? 0);
+    suggestValue();
+}
+function suggestValue() {
+    if (!inv.value.touched && inv.value.cost) inv.value.value = round(Number(inv.value.quantity || 0) * inv.value.cost);
+}
+function acceptInventory() {
+    const d = inv.value;
+    if (!d.product_id || Number(d.quantity) <= 0 || Number(d.value) <= 0) return (d.error = 'Selecciona el producto e ingresa la cantidad y el valor total');
+    const l = d.line;
+    l.inventory = { product_id: d.product_id, label: d.label, quantity: Number(d.quantity), value: Number(d.value), type: d.type };
+    l.debit = d.type === 'Entrada' ? Number(d.value) : 0;
+    l.credit = d.type === 'Salida' ? Number(d.value) : 0;
+    inv.value = null;
 }
 
 function remove(idx) {
@@ -49,6 +91,7 @@ const recommend = ref(false);
 const detail = ref(null);
 const pending = ref([]);
 async function openDetail(l) {
+    if (l.inventory_group && l.contact_id) return openInventory(l);
     if (!l.due_type || !l.contact_id) return;
     detail.value = { line: l, mode: l.due?.mode ?? 'cruzar', document_id: l.due?.document_id ?? null, document_label: l.due?.mode === 'cruzar' ? l.due.label : '',
         prefix: l.due?.prefix ?? 'CC', number: l.due?.number ?? '', quote: l.due?.quote ?? 1, due_date: l.due?.due_date ?? doc.date };
@@ -101,11 +144,12 @@ function submit(after = 'guardar') {
                             :placeholder="idx > 0 && idx === doc.items.length - 1 ? 'Agregar otro ítem' : 'Buscar'" @pick="(a) => pickAccount(l, idx, a)" /></td>
                         <td>
                             <DocSearch v-model="l.contact_id" v-model:label="l.contact_label" url="/api/buscar/terceros" :columns="CONTACT_COLUMNS" display="name" create-url="/terceros/crear" @pick="pickContact(l)" />
-                            <p v-if="(l.third || l.due_type) && !l.contact_id" class="text-[9px] text-danger">No puede estar vacío</p>
+                            <p v-if="(l.third || l.due_type || l.inventory_group) && !l.contact_id" class="text-[9px] text-danger">No puede estar vacío</p>
                         </td>
                         <td>
-                            <input class="doc-input cursor-pointer" :class="{ 'border-l-[3px] border-l-danger': l.due_type && !l.due }" :disabled="!l.due_type" readonly :value="l.due?.label ?? ''" @click="openDetail(l)" />
-                            <p v-if="l.due_type && l.contact_id && !l.due" class="text-[9px] text-danger">No puede estar vacío</p>
+                            <input class="doc-input cursor-pointer" :class="{ 'border-l-[3px] border-l-danger': (l.due_type && !l.due) || (l.inventory_group && !l.inventory) }" :disabled="!l.due_type && !l.inventory_group" readonly
+                                :value="l.due?.label ?? (l.inventory ? `${l.inventory.type}: ${l.inventory.label} x ${l.inventory.quantity}` : '')" :title="l.inventory?.label" @click="openDetail(l)" />
+                            <p v-if="((l.due_type && !l.due) || (l.inventory_group && !l.inventory)) && l.contact_id" class="text-[9px] text-danger">No puede estar vacío</p>
                         </td>
                         <td><button type="button" class="flex h-[22px] w-[22px] items-center justify-center rounded-full border border-[#555] text-[10px]" title="Detalle contable" @click="openDetail(l)"><Icon icon="arrow-up" /></button></td>
                         <td><input v-model="l.description" class="doc-input" /></td>
@@ -124,7 +168,7 @@ function submit(after = 'guardar') {
             <label class="mt-[14px] flex cursor-pointer items-center gap-[10px] px-[8px] text-[11px]">Adjuntar archivo <Icon icon="paperclip" />
                 <input type="file" class="hidden" @change="attachment = $event.target.files[0] ?? null" /><span class="text-muted">{{ attachment?.name }}</span></label>
         </div>
-        <div class="doc-footer -mx-[22px] mt-[30px]">
+        <div class="doc-footer -mx-3 md:-mx-[22px] mt-[30px]">
             <Link :href="f.back" class="doc-btn doc-btn-blue inline-flex h-[24px] items-center px-[8px]">Cancelar</Link>
             <span ref="saveRef" class="relative inline-flex">
                 <button type="submit" class="doc-btn doc-btn-green" :disabled="doc.processing">Guardar</button>
@@ -138,8 +182,8 @@ function submit(after = 'guardar') {
         </div>
     </form>
 
-    <div v-if="recommend" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div class="w-[600px] rounded-[4px] bg-white text-[13px]">
+    <div v-if="recommend" class="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/40">
+        <div class="w-[600px] max-w-full max-h-[calc(100vh-24px)] overflow-y-auto rounded-[4px] bg-white text-[13px]">
             <div class="flex items-center justify-between border-b border-line px-[28px] py-[18px]">
                 <h2 class="text-[17px] font-semibold text-ink">Recomendación</h2>
                 <button type="button" class="text-primary" @click="recommend = false"><Icon icon="xmark" /></button>
@@ -152,8 +196,31 @@ function submit(after = 'guardar') {
         </div>
     </div>
 
-    <div v-if="detail" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-[190px]">
-        <div class="w-[720px] rounded-[2px] bg-white px-[36px] pb-[14px] pt-[16px] text-[12px]">
+    <div v-if="inv" class="fixed inset-0 z-50 flex items-start justify-center p-3 bg-black/40 pt-[60px]">
+        <div class="w-[500px] max-w-full max-h-[calc(100vh-24px)] overflow-y-auto rounded-[2px] bg-white px-[24px] pb-[20px] pt-[16px] text-[12px]">
+            <h2 class="text-center text-[17px] text-primary">Detalle de inventarios</h2>
+            <p class="mt-[28px] text-[11px]">Cuenta relacionada a un grupo de inventario. Selecciona el producto que deseas afectar</p>
+            <div class="mt-[18px] grid grid-cols-[150px_1fr_1fr_140px] gap-x-[14px]">
+                <label class="block"><span class="font-bold">Producto</span>
+                    <DocSearch v-model="inv.product_id" v-model:label="inv.label" :url="`/api/buscar/productos?cuenta=${inv.line.account_id}`" :columns="PRODUCT_COLUMNS" display="name" create-url="/productos/crear"
+                        class="mt-[4px]" @pick="pickProduct" /></label>
+                <label class="block"><span class="font-bold">Cantidad <Icon icon="circle-question" class="ml-[4px] text-primary" title="Unidades del producto que entran o salen del inventario" /></span>
+                    <NumInput :model-value="inv.quantity" class="mt-[4px]" @update:model-value="(v) => { inv.quantity = v; suggestValue(); }" /></label>
+                <label class="block"><span class="font-bold">Valor total <Icon icon="circle-question" class="ml-[4px] text-primary" title="Valor del movimiento: la entrada se registra en el débito y la salida en el crédito" /></span>
+                    <NumInput :model-value="inv.value" class="mt-[4px]" @update:model-value="(v) => { inv.value = v; inv.touched = true; }" /></label>
+                <label class="block"><span class="font-bold">Tipo de movimiento</span>
+                    <select v-model="inv.type" class="doc-input mt-[4px]"><option>Entrada</option><option>Salida</option></select></label>
+            </div>
+            <p v-if="inv.error" class="mt-[8px] text-[11px] text-danger">{{ inv.error }}</p>
+            <div class="mt-[24px] flex justify-center gap-[6px]">
+                <button type="button" class="doc-btn doc-btn-blue h-[30px] px-[12px]" @click="inv = null">Cancelar</button>
+                <button type="button" class="doc-btn doc-btn-green h-[30px] px-[16px]" @click="acceptInventory">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="detail" class="fixed inset-0 z-50 flex items-start justify-center p-3 bg-black/40 pt-[60px] md:pt-[190px]">
+        <div class="w-[720px] max-w-full max-h-[calc(100vh-24px)] overflow-y-auto rounded-[2px] bg-white px-[36px] pb-[14px] pt-[16px] text-[12px]">
             <h2 class="text-center text-[17px] text-primary">Detalle de cartera / proveedores</h2>
             <p class="mt-[28px]">Crea, modifica o cruza saldos de las obligaciones con terceros</p>
             <p class="mt-[16px] text-[17px] font-semibold text-ink">{{ detail.line.contact_label }}</p>

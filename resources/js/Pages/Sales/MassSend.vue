@@ -1,6 +1,8 @@
 <script setup>
+import { printInPlace } from '../../composables/print';
 import { computed, reactive, ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import { confirmDialog } from '../../composables/dialog';
 import PageHeader from '../../Components/PageHeader.vue';
 
 const props = defineProps({
@@ -64,10 +66,10 @@ function togglePage() {
 }
 const money = (v) => '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 function imprimir() {
-    window.open(`/ventas/envio-masivo/imprimir?ids=${selected.value.join(',')}`, '_blank');
+    printInPlace(`/ventas/envio-masivo/imprimir?ids=${selected.value.join(',')}`);
 }
-function enviar() {
-    if (!confirm(`Se enviarán ${selected.value.length} comprobantes al correo de cada cliente. ¿Continuar?`)) return;
+async function enviar() {
+    if (!await confirmDialog(`Se enviarán ${selected.value.length} comprobantes al correo de cada cliente. ¿Continuar?`)) return;
     router.post('/ventas/envio-masivo/enviar', { ids: selected.value }, { preserveScroll: true });
 }
 </script>
@@ -163,23 +165,25 @@ function enviar() {
             <button type="button" class="h-[34px] rounded-[2px] bg-[#6abf40] px-[8px] text-[13px] text-white disabled:bg-[#ddd] disabled:text-white" :disabled="!selected.length || selected.length > 50" @click="enviar">Enviar</button>
         </div>
 
-        <table class="mt-[10px] w-full bg-white text-center text-[12px] text-ink">
-            <thead class="text-[14px] text-[#555]">
-                <tr class="border-b border-line">
-                    <th class="py-[6px] font-normal"><label class="flex items-center justify-center gap-[6px]"><input type="checkbox" class="h-[16px] w-[16px]" :checked="allOnPage" @change="togglePage" /> Tipo transacción</label></th>
-                    <th class="font-normal">Comprobante</th><th class="w-[90px] font-normal">Fecha de elaboración</th><th class="font-normal">Identificación</th><th class="font-normal">Sucursal</th>
-                    <th class="font-normal">Clientes</th><th class="w-[100px] font-normal">Correo electrónico</th><th class="font-normal">Total</th><th class="font-normal">Envío por email</th><th class="font-normal">Envío a la DIAN</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="d in shown" :key="d.id" class="border-b border-line">
-                    <td class="py-[3px] text-left"><label class="flex items-center gap-[8px] pl-[24px]"><input v-model="selected" type="checkbox" class="h-[14px] w-[14px]" :value="d.id" /> <span class="flex-1 text-center">{{ d.class }}</span></label></td>
-                    <td><Link :href="d.url" class="text-primary">{{ d.name }}</Link></td>
-                    <td>{{ d.date }}</td><td>{{ d.identification }}</td><td>{{ d.branch }}</td><td>{{ d.contact }}</td>
-                    <td class="max-w-[140px] truncate">{{ d.email }}</td><td class="text-right">{{ money(d.total) }}</td><td>{{ d.mail }}</td><td>{{ d.dian }}</td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="s-table-wrap">
+            <table class="mt-[10px] w-full bg-white text-center text-[12px] text-ink">
+                <thead class="text-[14px] text-[#555]">
+                    <tr class="border-b border-line">
+                        <th class="py-[6px] font-normal"><label class="flex items-center justify-center gap-[6px]"><input type="checkbox" class="h-[16px] w-[16px]" :checked="allOnPage" @change="togglePage" /> Tipo transacción</label></th>
+                        <th class="font-normal">Comprobante</th><th class="w-[90px] font-normal">Fecha de elaboración</th><th class="font-normal">Identificación</th><th class="font-normal">Sucursal</th>
+                        <th class="font-normal">Clientes</th><th class="w-[100px] font-normal">Correo electrónico</th><th class="font-normal">Total</th><th class="font-normal">Envío por email</th><th class="font-normal">Envío a la DIAN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="d in shown" :key="d.id" class="border-b border-line">
+                        <td class="py-[3px] text-left"><label class="flex items-center gap-[8px] pl-[24px]"><input v-model="selected" type="checkbox" class="h-[14px] w-[14px]" :value="d.id" /> <span class="flex-1 text-center">{{ d.class }}</span></label></td>
+                        <td><Link :href="d.url" class="text-primary">{{ d.name }}</Link></td>
+                        <td>{{ d.date }}</td><td>{{ d.identification }}</td><td>{{ d.branch }}</td><td>{{ d.contact }}</td>
+                        <td class="max-w-[140px] truncate">{{ d.email }}</td><td class="text-right">{{ money(d.total) }}</td><td>{{ d.mail }}</td><td>{{ d.dian }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
         <div class="mt-[12px] flex items-center text-[11px] text-ink">
             <span>Mostrando <b>{{ rows.length ? (page - 1) * perPage + 1 : 0 }}-{{ Math.min(page * perPage, rows.length) }}</b> de {{ rows.length }}</span>

@@ -14,26 +14,28 @@ const money = (v) => (v === null || v === undefined ? '' : Number(v).toLocaleStr
     <LedgerFilters url="/contabilidad/libro-auxiliar" :filters="filters" :types="types" :fields="['cuentas', 'fechas', 'tercero', 'tipo']" />
 
     <section class="s-card mt-[14px]">
-        <table class="s-table text-[12px]">
-            <thead>
-                <tr>
-                    <th>Código cuenta contable</th><th>Cuenta contable</th><th>Identificación</th><th>Suc.</th><th>Nombre tercero</th>
-                    <th>Comprobante</th><th>Fecha</th><th class="text-right">Saldo inicial</th><th class="text-right">Débito</th>
-                    <th class="text-right">Crédito</th><th class="text-right">Nuevo saldo</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="(l, i) in lines.data" :key="i">
-                    <td>{{ l.code }}</td><td class="max-w-[200px] truncate">{{ l.account }}</td><td>{{ l.identification }}</td><td>{{ l.branch }}</td>
-                    <td class="max-w-[200px] truncate">{{ l.contact }}</td><td class="whitespace-nowrap">{{ l.document }}</td><td>{{ l.date }}</td>
-                    <td class="text-right">{{ money(l.opening) }}</td><td class="text-right">{{ money(l.debit) }}</td>
-                    <td class="text-right">{{ money(l.credit) }}</td><td class="text-right">{{ money(l.balance) }}</td>
-                </tr>
-            </tbody>
-            <tfoot v-if="lines.data.length">
-                <tr class="font-semibold"><td colspan="8" class="text-right">Totales del periodo</td><td class="text-right">{{ money(totals.debit) }}</td><td class="text-right">{{ money(totals.credit) }}</td><td /></tr>
-            </tfoot>
-        </table>
+        <div class="s-table-wrap">
+            <table class="s-table text-[12px]">
+                <thead>
+                    <tr>
+                        <th>Código cuenta contable</th><th>Cuenta contable</th><th>Identificación</th><th>Suc.</th><th>Nombre tercero</th>
+                        <th>Comprobante</th><th>Fecha</th><th class="text-right">Saldo inicial</th><th class="text-right">Débito</th>
+                        <th class="text-right">Crédito</th><th class="text-right">Nuevo saldo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(l, i) in lines.data" :key="i">
+                        <td>{{ l.code }}</td><td class="max-w-[200px] truncate">{{ l.account }}</td><td>{{ l.identification }}</td><td>{{ l.branch }}</td>
+                        <td class="max-w-[200px] truncate">{{ l.contact }}</td><td class="whitespace-nowrap">{{ l.document }}</td><td>{{ l.date }}</td>
+                        <td class="text-right">{{ money(l.opening) }}</td><td class="text-right">{{ money(l.debit) }}</td>
+                        <td class="text-right">{{ money(l.credit) }}</td><td class="text-right">{{ money(l.balance) }}</td>
+                    </tr>
+                </tbody>
+                <tfoot v-if="lines.data.length">
+                    <tr class="font-semibold"><td colspan="8" class="text-right">Totales del periodo</td><td class="text-right">{{ money(totals.debit) }}</td><td class="text-right">{{ money(totals.credit) }}</td><td /></tr>
+                </tfoot>
+            </table>
+        </div>
         <EmptyState v-if="!lines.data.length" />
         <Pager :paginator="lines" />
     </section>

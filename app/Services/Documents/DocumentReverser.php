@@ -206,6 +206,32 @@ class DocumentReverser
         });
     }
 
+    /**
+     * "Borrar" (vigente: reversa contabilidad, inventario y saldos) y "Eliminar" (anulado: sus efectos ya se reversaron al anular)
+     * de un comprobante contable.
+     */
+    public function deleteJournal(JournalEntry $doc): void
+    {
+        if ($doc->status === 'annulled') {
+            if (($doc->source ?? 'erp') !== 'erp') {
+                throw ValidationException::withMessages(['items' => 'Los documentos importados de Siigo son de solo consulta.']);
+            }
+            if (\App\Http\Controllers\Accounting\VerificationController::isVerified('comprobantes', $doc->id)) {
+                throw ValidationException::withMessages(['items' => 'El comprobante está verificado y bloqueado.']);
+            }
+        } else {
+            $this->guard($doc);
+        }
+        DB::transaction(function () use ($doc) {
+            if ($doc->status !== 'annulled') {
+                $this->reverse($doc, 'Eliminación');
+            }
+            \App\Models\AuditLog::record('deleted', $doc, $doc->only(['name', 'date', 'debit', 'credit', 'status']), []);
+            $doc->lines()->delete();
+            $doc->delete();
+        });
+    }
+
     /** Formulario del menu Crear con el que se edita el documento. */
     public static function formKey(Model $doc): ?string
     {

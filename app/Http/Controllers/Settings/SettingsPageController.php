@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\PaymentMethod;
+use App\Services\Ai\AiClient;
 use App\Services\Mail\CompanyMailer;
 use App\Support\CurrentCompany;
 use Illuminate\Http\RedirectResponse;
@@ -42,7 +43,7 @@ class SettingsPageController extends Controller
                 'readonly' => $current[$k],
                 'toggle' => $request->boolean($k),
                 'number' => is_numeric($request->input($k)) ? 0 + $request->input($k) : ($f['default'] ?? 0),
-                'password' => filled($request->input($k)) ? ($page === 'correos' ? CompanyMailer::protect($request->input($k)) : $request->input($k)) : $current[$k],
+                'password' => filled($request->input($k)) ? (in_array($page, ['correos', 'ia'], true) ? CompanyMailer::protect($request->input($k)) : $request->input($k)) : $current[$k],
                 default => mb_substr((string) $request->input($k, ''), 0, 5000),
             };
         }
@@ -55,6 +56,7 @@ class SettingsPageController extends Controller
                 'api' => $this->newApiToken($request),
                 'recordatorios' => $this->testReminder($request),
                 'cobranza' => $this->runCollectionTasks(),
+                'ia' => $this->testAi(),
                 default => back()->with('success', 'Configuración guardada'),
             };
         }
@@ -107,6 +109,21 @@ class SettingsPageController extends Controller
         $r = app(CollectionAutomation::class)->tasks();
 
         return back()->with('success', $r['created'] ? "Se generaron {$r['created']} tareas de cobranza. Las encuentras en Ventas > Seguimiento comercial." : 'Hoy no hay facturas que cumplan los días de gestión configurados.');
+    }
+
+    private function testAi(): RedirectResponse
+    {
+        $ai = AiClient::forCurrentCompany();
+        if (! $ai->configured()) {
+            return back()->with('error', 'Completa la URL de la API, el token y el modelo antes de probar la conexión.');
+        }
+        try {
+            $answer = $ai->chat([['role' => 'user', 'content' => 'Responde únicamente con la palabra OK.']]);
+        } catch (\Throwable $e) {
+            return back()->with('error', 'No se pudo conectar con la IA: '.mb_substr($e->getMessage(), 0, 300));
+        }
+
+        return back()->with('success', 'Conexión exitosa con el modelo '.$ai->model().'. Respuesta: '.mb_substr(trim($answer), 0, 80));
     }
 
     /** Envia un correo real con el servidor guardado y muestra el error SMTP si falla. */

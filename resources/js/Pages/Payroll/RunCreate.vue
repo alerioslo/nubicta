@@ -37,7 +37,7 @@ const submit = () => form.post('/nomina');
         <h2 class="text-[22px] font-semibold text-primary">Crear {{ kinds[kind].toLowerCase() }}</h2>
     </div>
 
-    <form class="s-card mx-[10px] mt-[16px] max-w-[880px] p-[22px] text-[13px]" @submit.prevent="submit">
+    <form class="s-card md:mx-[10px] mt-[16px] max-w-[880px] p-[22px] text-[13px]" @submit.prevent="submit">
         <p class="mb-4 rounded-[2px] bg-[#eef6fc] px-3 py-2 text-[12px] text-[#31708f]">{{ HELP[kind] }}</p>
 
         <div class="grid grid-cols-2 gap-4">

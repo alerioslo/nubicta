@@ -27,7 +27,7 @@ const refresh = () => router.reload();
         <button type="button" class="s-btn s-btn-outline" @click="refresh">Actualizar indicadores</button>
     </div>
 
-    <div class="mt-[16px] grid max-w-[1460px] grid-cols-2 gap-[18px]">
+    <div class="mt-[16px] grid max-w-[1460px] grid-cols-1 gap-[18px] lg:grid-cols-2">
         <template v-for="card in [
             { key: 'ventas', title: 'Ventas' },
             { key: 'compras', title: 'Compras' },
@@ -66,12 +66,14 @@ const refresh = () => router.reload();
 
         <section v-for="card in [{ title: 'Edades de cartera', rows: cartera }, { title: 'Cuentas por pagar', rows: pagar }]" :key="card.title" class="s-card flex flex-col p-[20px]">
             <h3 class="text-[20px] font-extrabold text-ink">{{ card.title }}</h3>
-            <table class="mt-4 w-full border border-line text-[13px]">
-                <tr v-for="(r, i) in card.rows" :key="r.label" :class="i % 2 ? 'bg-[#f5f7f9]' : ''">
-                    <td class="border-r border-line px-3 py-[12px] font-bold text-ink">{{ r.label }}</td>
-                    <td class="px-3 text-right">{{ money(r.value) }}</td>
-                </tr>
-            </table>
+            <div class="s-table-wrap">
+                <table class="mt-4 w-full border border-line text-[13px]">
+                    <tr v-for="(r, i) in card.rows" :key="r.label" :class="i % 2 ? 'bg-[#f5f7f9]' : ''">
+                        <td class="border-r border-line px-3 py-[12px] font-bold text-ink">{{ r.label }}</td>
+                        <td class="px-3 text-right">{{ money(r.value) }}</td>
+                    </tr>
+                </table>
+            </div>
             <Link :href="card.title === 'Edades de cartera' ? '/ventas/clientes' : '/compras/proveedores'" class="ml-auto mt-4 font-bold text-primary"><Icon icon="file-arrow-up" /> Ver reporte detallado</Link>
         </section>
 
@@ -94,12 +96,14 @@ const refresh = () => router.reload();
 
         <section class="s-card flex flex-col p-[20px]">
             <h3 class="text-[20px] font-extrabold text-ink">Disponible</h3>
-            <table class="mt-4 w-full border border-line text-[13px]">
-                <tr v-for="(r, i) in disponible" :key="r.name" :class="i % 2 ? 'bg-[#f5f7f9]' : ''">
-                    <td class="border-r border-line px-3 py-[12px] font-bold text-ink">{{ r.name }}</td>
-                    <td class="px-3 text-right">{{ money(r.value) }}</td>
-                </tr>
-            </table>
+            <div class="s-table-wrap">
+                <table class="mt-4 w-full border border-line text-[13px]">
+                    <tr v-for="(r, i) in disponible" :key="r.name" :class="i % 2 ? 'bg-[#f5f7f9]' : ''">
+                        <td class="border-r border-line px-3 py-[12px] font-bold text-ink">{{ r.name }}</td>
+                        <td class="px-3 text-right">{{ money(r.value) }}</td>
+                    </tr>
+                </table>
+            </div>
             <div class="mt-auto flex items-end pt-4 text-[13px] text-ink-soft">
                 <p>Total disponible: {{ money(totalDisponible) }}</p>
                 <Link href="/bancos" class="ml-auto font-bold text-primary"><Icon icon="file-arrow-up" /> Ver reporte detallado</Link>

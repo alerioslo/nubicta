@@ -1,6 +1,7 @@
 <script setup>
 import { computed, reactive, ref } from 'vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
+import { confirmDialog } from '../../composables/dialog';
 import PageHeader from '../../Components/PageHeader.vue';
 import Pager from '../../Components/Pager.vue';
 import EmptyState from '../../Components/EmptyState.vue';
@@ -86,16 +87,16 @@ function confirmReception() {
 function confirmGoods() {
     form.transform((d) => ({ ...d, remember: d.remember ? 1 : 0 })).post(`/compras/registro-eventos/${row.value.id}/mercancia`, done);
 }
-function accept() {
-    if (!window.confirm('Se enviará a la DIAN la aceptación expresa de la factura. ¿Continuar?')) return;
+async function accept() {
+    if (!await confirmDialog('Se enviará a la DIAN la aceptación expresa de la factura. ¿Continuar?')) return;
     form.post(`/compras/registro-eventos/${row.value.id}/aceptar`, done);
 }
 function claim() {
     if (!claiming.value) return (claiming.value = true);
     form.post(`/compras/registro-eventos/${row.value.id}/reclamo`, done);
 }
-function remove() {
-    if (!window.confirm('¿Deseas borrar este registro?')) return;
+async function remove() {
+    if (!await confirmDialog('¿Deseas borrar este registro?')) return;
     router.delete(`/compras/registro-eventos/${row.value.id}`, { onSuccess: close });
 }
 </script>
@@ -116,21 +117,21 @@ function remove() {
 
     <section class="s-card mt-[44px]">
         <div class="flex gap-6 border-b border-line px-[16px]">
-            <button v-for="s in SUBTABS" :key="s" type="button" class="-mb-px border-b-[3px] py-3 text-[14px] font-semibold"
+            <button v-for="s in SUBTABS" :key="s" type="button" class="-mb-px whitespace-nowrap border-b-[3px] py-3 text-[14px] font-semibold"
                 :class="f.sub === s ? 'border-primary text-primary' : 'border-transparent text-ink-soft'" @click="reload({ sub: s })">{{ s }}</button>
         </div>
 
         <form class="flex flex-wrap items-center gap-3 px-[16px] py-[16px]" @submit.prevent="reload()">
             <span class="flex">
-                <input v-model="f.q" class="s-input w-[260px] rounded-r-none" placeholder="Buscar por CUFE" />
+                <input v-model="f.q" class="s-input w-[200px] rounded-r-none sm:w-[260px]" placeholder="Buscar por CUFE" />
                 <button type="submit" class="s-btn s-btn-primary rounded-l-none px-3" title="Buscar"><Icon icon="magnifying-glass" /></button>
             </span>
             <button type="button" class="s-btn s-btn-outline" @click="openFilters"><Icon icon="filter" /> Filtros</button>
             <button v-if="!finished" type="button" class="s-btn s-btn-primary ml-auto" @click="openNew">Registrar nueva factura</button>
         </form>
 
-        <div class="overflow-x-auto">
-            <table class="s-table w-full table-fixed [&_th]:truncate">
+        <div class="s-table-wrap">
+            <table class="s-table w-full min-w-[960px] table-fixed [&_th]:truncate" :class="finished && 'sticky-actions'">
                 <thead>
                     <tr v-if="finished">
                         <th>Fecha de registro</th><th>CUFE</th><th>NIT</th><th>Comprobante</th><th>Proveedor</th><th>Estado final de registro</th><th>Acciones</th>

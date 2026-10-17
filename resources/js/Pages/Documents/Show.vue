@@ -1,6 +1,8 @@
 <script setup>
+import { printInPlace } from '../../composables/print';
 import { computed, ref } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { confirmDialog, promptDialog } from '../../composables/dialog';
 import PageHeader from '../../Components/PageHeader.vue';
 import DocumentSheet from '../../Components/DocumentSheet.vue';
 
@@ -8,15 +10,15 @@ import DocumentSheet from '../../Components/DocumentSheet.vue';
    Los documentos de venta se ven como en Siigo: estado DIAN y correo arriba y la representacion grafica debajo. */
 const props = defineProps({ doc: { type: Object, required: true }, company: Object, resolution: Object });
 const d = props.doc;
-const sale = !!props.company;
+const sale = d.kind === 'ventas';
 const SHORT = { FV: 'Factura de venta', NC: 'Nota crédito', ND: 'Nota débito', CT: 'Cotización', RM: 'Remisión' };
 const menu = ref('');
 const classic = d.type === 'NC';
 const quote = d.type === 'CT';
 const QUOTE_STATUS = { approved: 'Aprobada', discarded: 'Descartada' };
-const setStatus = (estado) => router.post(`/documentos/${d.kind}/${d.id}/estado`, { estado }, { preserveScroll: true });
-function removeQuote() {
-    if (confirm(`¿Borrar la cotización ${d.name}?`)) router.post(`/documentos/${d.kind}/${d.id}/eliminar`);
+const setStatus = (estado) => router.post(`/documentos/${d.kind}/${d.id}/estado`, { estado }, { preserveScroll: true, preserveState: false });
+async function removeQuote() {
+    if (await confirmDialog(`¿Borrar la cotización ${d.name}?`)) router.post(`/documentos/${d.kind}/${d.id}/eliminar`);
 }
 function copyUrl() {
     navigator.clipboard?.writeText(d.public_url || window.location.href);
@@ -26,7 +28,7 @@ const allHistory = ref(false);
 const fileInput = ref(null);
 const upload = (e) => {
     const file = e.target.files?.[0];
-    if (file) router.post(`/documentos/${d.kind}/${d.id}/adjuntos`, { attachment: file }, { forceFormData: true, preserveScroll: true });
+    if (file) router.post(`/documentos/${d.kind}/${d.id}/adjuntos`, { attachment: file }, { forceFormData: true, preserveScroll: true, preserveState: false });
 };
 const showLedger = ref(false);
 const mailed = ['sent', 'read'].includes(d.mail_status);
@@ -45,18 +47,18 @@ const annulled = d.status === 'annulled';
 const STATUS = { Accepted: 'Aceptado por la DIAN', Rejected: 'Rechazado por la DIAN', Sent: 'Enviado, pendiente de respuesta', Draft: 'Pendiente de envío', Pending: 'En cola: la DIAN no respondió, se reintenta automáticamente' };
 const ledgerTotal = (k) => d.ledger.reduce((a, l) => a + l[k], 0);
 
-function annul() {
-    if (!confirm(`¿Anular el documento ${d.name}? Se reversará su contabilización, inventario y saldos.`)) return;
-    router.post(`/documentos/${d.kind}/${d.id}/anular`, {}, { preserveScroll: true });
+async function annul() {
+    if (!await confirmDialog(`¿Anular el documento ${d.name}? Se reversará su contabilización, inventario y saldos.`)) return;
+    router.post(`/documentos/${d.kind}/${d.id}/anular`, {}, { preserveScroll: true, preserveState: false });
 }
 const resending = ref(false);
-function resendDian() {
-    if (!confirm(`¿Reenviar ${d.name} a la DIAN?`)) return;
-    router.post(`/documentos/${d.kind}/${d.id}/dian`, {}, { preserveScroll: true, onStart: () => { resending.value = true; }, onFinish: () => { resending.value = false; } });
+async function resendDian() {
+    if (!await confirmDialog(`¿Reenviar ${d.name} a la DIAN?`)) return;
+    router.post(`/documentos/${d.kind}/${d.id}/dian`, {}, { preserveScroll: true, preserveState: false, onStart: () => { resending.value = true; }, onFinish: () => { resending.value = false; } });
 }
-function sendMail() {
-    const to = prompt('Correo del destinatario', d.contact?.email ?? '');
-    if (to) router.post(`/documentos/${d.kind}/${d.id}/correo`, { to }, { preserveScroll: true });
+async function sendMail() {
+    const to = await promptDialog('Correo del destinatario', d.contact?.email ?? '');
+    if (to) router.post(`/documentos/${d.kind}/${d.id}/correo`, { to }, { preserveScroll: true, preserveState: false });
 }
 </script>
 
@@ -72,7 +74,7 @@ function sendMail() {
         <div v-if="classic" class="mt-[14px] flex gap-[12px] border-t border-line pt-[26px]" @click.stop>
             <button type="button" class="s-btn h-[34px] bg-[#e0e0e0] px-[16px] text-[13px] font-semibold text-[#9e9e9e]" disabled><Icon icon="paper-plane" class="mr-[6px]" />Enviar a la DIAN</button>
             <button v-if="d.mailable && !annulled" type="button" class="s-btn s-btn-outline h-[34px] px-[16px] text-[13px] font-semibold" @click="sendMail"><Icon icon="envelope" class="mr-[6px]" />Enviar por mail</button>
-            <a :href="`/documentos/${d.kind}/${d.id}/imprimir`" target="_blank" class="s-btn s-btn-outline h-[34px] px-[16px] text-[13px] font-semibold"><Icon icon="print" class="mr-[6px]" />Imprimir</a>
+            <button type="button" class="s-btn s-btn-outline h-[34px] px-[16px] text-[13px] font-semibold" @click="printInPlace(`/documentos/${d.kind}/${d.id}/imprimir`)"><Icon icon="print" class="mr-[6px]" />Imprimir</button>
             <div class="relative">
                 <button type="button" class="s-btn s-btn-outline h-[34px] px-[16px] text-[13px] font-semibold" @click="menu = menu === 'mas' ? '' : 'mas'">Más <Icon icon="caret-down" class="ml-[6px]" /></button>
                 <div v-if="menu === 'mas'" class="absolute left-0 top-[38px] z-20 min-w-[210px] rounded-[4px] border border-line bg-white py-[4px] text-[13px] shadow-lg">
@@ -115,7 +117,7 @@ function sendMail() {
                 </div>
             </div>
             <div class="flex gap-[10px]">
-                <a :href="`/documentos/${d.kind}/${d.id}/imprimir`" target="_blank" class="icon-btn" title="Imprimir"><Icon icon="print" /></a>
+                <button type="button" class="icon-btn" title="Imprimir" @click="printInPlace(`/documentos/${d.kind}/${d.id}/imprimir`)"><Icon icon="print" /></button>
                 <div class="relative">
                     <button type="button" class="icon-btn" title="Observaciones" @click="menu = menu === 'obs' ? '' : 'obs'"><Icon icon="comment" /></button>
                     <div v-if="menu === 'obs'" class="absolute right-0 top-[38px] z-20 w-[300px] rounded-[4px] border border-line bg-white p-[12px] text-[12px] shadow-lg">{{ d.observations || 'El documento no tiene observaciones.' }}</div>
@@ -139,8 +141,8 @@ function sendMail() {
                 </div>
             </div>
             <div class="flex gap-[10px]" @click.stop>
-                <a :href="`/documentos/${d.kind}/${d.id}/imprimir`" target="_blank" class="icon-btn" title="Descargar PDF"><Icon icon="file" /></a>
-                <a :href="`/documentos/${d.kind}/${d.id}/imprimir`" target="_blank" class="icon-btn" title="Imprimir"><Icon icon="print" /></a>
+                <button type="button" class="icon-btn" title="Descargar PDF" @click="printInPlace(`/documentos/${d.kind}/${d.id}/imprimir`)"><Icon icon="file" /></button>
+                <button type="button" class="icon-btn" title="Imprimir" @click="printInPlace(`/documentos/${d.kind}/${d.id}/imprimir`)"><Icon icon="print" /></button>
                 <div class="relative">
                     <button type="button" class="icon-btn" title="Observaciones" @click="menu = menu === 'obs' ? '' : 'obs'"><Icon icon="comment" /></button>
                     <div v-if="menu === 'obs'" class="absolute right-0 top-[38px] z-20 w-[300px] rounded-[4px] border border-line bg-white p-[12px] text-[12px] shadow-lg">{{ d.observations || 'El documento no tiene observaciones.' }}</div>
@@ -253,10 +255,10 @@ function sendMail() {
     <template v-else>
     <PageHeader :title="`${d.type_name ?? 'Documento'} ${d.name}`" :back="back">
         <template #actions>
-            <a v-if="d.printable" :href="`/documentos/${d.kind}/${d.id}/imprimir`" target="_blank" class="s-btn s-btn-outline"><Icon icon="print" /> Imprimir / PDF</a>
+            <button v-if="d.printable" type="button" class="s-btn s-btn-outline" @click="printInPlace(`/documentos/${d.kind}/${d.id}/imprimir`)"><Icon icon="print" /> Imprimir / PDF</button>
             <a v-if="d.dian?.xml" :href="`/documentos/${d.kind}/${d.id}/xml`" class="s-btn s-btn-outline"><Icon icon="file-code" /> XML</a>
             <button v-if="d.mailable && !annulled" type="button" class="s-btn s-btn-outline" @click="sendMail"><Icon icon="envelope" /> {{ ['sent', 'read', 'failed', 'failed_delivery'].includes(d.mail_status) ? 'Reenviar correo' : 'Enviar por correo' }}</button>
-            <button v-if="d.favorite !== null" type="button" class="s-btn s-btn-outline" :title="d.favorite ? 'Quitar de favoritos' : 'Marcar como favorito para copiarlo después'" @click="router.post(`/documentos/${d.kind}/${d.id}/favorito`, {}, { preserveScroll: true })">
+            <button v-if="d.favorite !== null" type="button" class="s-btn s-btn-outline" :title="d.favorite ? 'Quitar de favoritos' : 'Marcar como favorito para copiarlo después'" @click="router.post(`/documentos/${d.kind}/${d.id}/favorito`, {}, { preserveScroll: true, preserveState: false })">
                 <Icon icon="circle-check" :class="d.favorite && 'text-[#f5a623]'" /> {{ d.favorite ? 'Favorito' : 'Marcar favorito' }}
             </button>
             <Link v-if="d.copy_url" :href="d.copy_url" class="s-btn s-btn-outline"><Icon icon="file-lines" /> Copiar</Link>

@@ -431,6 +431,7 @@ Route::middleware('auth')->group(function () {
     });
     Route::get('/compras/importar-xml', [\App\Http\Controllers\Purchases\XmlImportController::class, 'create'])->middleware('can:compras.crear');
     Route::post('/compras/importar-xml', [\App\Http\Controllers\Purchases\XmlImportController::class, 'store'])->middleware('can:compras.crear');
+    Route::post('/compras/importar-xml/{id}/vincular-ia', [\App\Http\Controllers\Purchases\XmlImportController::class, 'match'])->whereNumber('id')->middleware('can:compras.crear');
 
     foreach (\App\Http\Controllers\DocumentFormController::FORMS as $uri => $form) {
         Route::get($uri, [\App\Http\Controllers\DocumentFormController::class, 'create'])->middleware("can:{$form['perm']}")->defaults('form', $uri);

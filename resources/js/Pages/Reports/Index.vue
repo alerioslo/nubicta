@@ -49,7 +49,7 @@ const columns = (groups) => [groups.filter((_, i) => i % 2 === 0), groups.filter
             <Icon :icon="closed[s.section] && !q ? 'chevron-right' : 'chevron-down'" class="text-muted" />
             <span class="text-[17px] font-bold text-ink">{{ s.section }}</span>
         </button>
-        <div v-if="!closed[s.section] || q" class="grid grid-cols-2 gap-x-[60px] border-t border-line px-[22px] pb-[22px] pt-[16px]">
+        <div v-if="!closed[s.section] || q" class="grid grid-cols-1 gap-x-[60px] border-t border-line px-[14px] pb-[22px] pt-[16px] md:grid-cols-2 md:px-[22px]">
             <div v-for="(col, ci) in columns(s.groups)" :key="ci" class="flex flex-col gap-[18px]">
                 <div v-for="g in col" :key="g.name">
                     <h3 v-if="g.name !== s.section || s.groups.length > 1" class="mb-[8px] text-[15px] font-bold text-ink">{{ g.name }}</h3>

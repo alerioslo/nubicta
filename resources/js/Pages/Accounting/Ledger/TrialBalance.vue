@@ -23,27 +23,29 @@ const money = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 
     </LedgerFilters>
 
     <section class="s-card mt-[14px]">
-        <table class="s-table text-[12px]">
-            <thead>
-                <tr>
-                    <th>Nivel</th><th>Código cuenta contable</th><th>Nombre cuenta contable</th><th>Identificación</th><th>Nombre tercero</th>
-                    <th class="text-right">Saldo inicial</th><th class="text-right">Movimiento débito</th><th class="text-right">Movimiento crédito</th><th class="text-right">Saldo final</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="(r, i) in rows" :key="i" :class="{ 'font-semibold': r.level < 3 }">
-                    <td>{{ levels[r.level] }}</td><td>{{ r.code }}</td><td>{{ r.name }}</td><td>{{ r.identification }}</td><td>{{ r.contact }}</td>
-                    <td class="text-right">{{ money(r.opening) }}</td><td class="text-right">{{ money(r.debit) }}</td>
-                    <td class="text-right">{{ money(r.credit) }}</td><td class="text-right">{{ money(r.balance) }}</td>
-                </tr>
-            </tbody>
-            <tfoot v-if="rows.length">
-                <tr class="font-semibold">
-                    <td colspan="5" class="text-right">Total</td><td class="text-right">{{ money(totals.opening) }}</td><td class="text-right">{{ money(totals.debit) }}</td>
-                    <td class="text-right">{{ money(totals.credit) }}</td><td class="text-right">{{ money(totals.balance) }}</td>
-                </tr>
-            </tfoot>
-        </table>
+        <div class="s-table-wrap">
+            <table class="s-table text-[12px]">
+                <thead>
+                    <tr>
+                        <th>Nivel</th><th>Código cuenta contable</th><th>Nombre cuenta contable</th><th>Identificación</th><th>Nombre tercero</th>
+                        <th class="text-right">Saldo inicial</th><th class="text-right">Movimiento débito</th><th class="text-right">Movimiento crédito</th><th class="text-right">Saldo final</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(r, i) in rows" :key="i" :class="{ 'font-semibold': r.level < 3 }">
+                        <td>{{ levels[r.level] }}</td><td>{{ r.code }}</td><td>{{ r.name }}</td><td>{{ r.identification }}</td><td>{{ r.contact }}</td>
+                        <td class="text-right">{{ money(r.opening) }}</td><td class="text-right">{{ money(r.debit) }}</td>
+                        <td class="text-right">{{ money(r.credit) }}</td><td class="text-right">{{ money(r.balance) }}</td>
+                    </tr>
+                </tbody>
+                <tfoot v-if="rows.length">
+                    <tr class="font-semibold">
+                        <td colspan="5" class="text-right">Total</td><td class="text-right">{{ money(totals.opening) }}</td><td class="text-right">{{ money(totals.debit) }}</td>
+                        <td class="text-right">{{ money(totals.credit) }}</td><td class="text-right">{{ money(totals.balance) }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
         <EmptyState v-if="!rows.length" />
     </section>
 </template>

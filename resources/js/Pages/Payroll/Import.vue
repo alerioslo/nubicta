@@ -17,7 +17,7 @@ const toggle = (n) => (open.value = open.value === n ? 0 : n);
 
 <template>
     <Head :title="title" />
-    <div class="-mx-[22px] flex h-[56px] items-center bg-white px-[24px] shadow-sm">
+    <div class="-mx-3 md:-mx-[22px] flex h-[56px] items-center bg-white px-[24px] shadow-sm">
         <h1 class="text-[20px] font-bold text-ink">{{ title }}</h1>
         <Link href="/configuracion" class="ml-auto flex h-[30px] w-[30px] items-center justify-center rounded-full border border-[#dfe3e7] text-primary"><Icon icon="xmark" /></Link>
     </div>
@@ -66,15 +66,17 @@ const toggle = (n) => (open.value = open.value === n ? 0 : n);
                 <template v-else>
                     <p class="mb-3 px-[22px]">Archivo <b>{{ preview.file }}</b>: {{ preview.rows.length }} registros<span v-if="errors" class="text-danger">, {{ errors }} con errores</span>.</p>
                     <p v-if="confirm.errors.file" class="s-error px-[22px]">{{ confirm.errors.file }}</p>
-                    <table class="s-table">
-                        <thead><tr><th>Fila</th><th>Identificación</th><th>Nombre</th><th>Acción</th><th>Validación</th></tr></thead>
-                        <tbody>
-                            <tr v-for="r in preview.rows" :key="r.row">
-                                <td>{{ r.row }}</td><td>{{ r.identification }}</td><td>{{ r.name }}</td><td>{{ r.action }}</td>
-                                <td><span v-if="r.errors" class="text-danger">{{ r.errors }}</span><span v-else class="s-badge s-badge-ok">Correcto</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="s-table-wrap">
+                        <table class="s-table">
+                            <thead><tr><th>Fila</th><th>Identificación</th><th>Nombre</th><th>Acción</th><th>Validación</th></tr></thead>
+                            <tbody>
+                                <tr v-for="r in preview.rows" :key="r.row">
+                                    <td>{{ r.row }}</td><td>{{ r.identification }}</td><td>{{ r.name }}</td><td>{{ r.action }}</td>
+                                    <td><span v-if="r.errors" class="text-danger">{{ r.errors }}</span><span v-else class="s-badge s-badge-ok">Correcto</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </template>
             </div>
         </section>

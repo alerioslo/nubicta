@@ -17,14 +17,14 @@ const download = (f) => (window.location.href = `/nomina/pila/descargar?mes=${pr
     <PageHeader title="Nómina" :tabs="tabs" active="Más procesos" />
     <h2 class="mt-[24px] px-[22px] text-[22px] font-semibold text-primary">Liquidación planilla integrada de aportes (PILA)</h2>
 
-    <section class="s-card mx-[10px] mt-[14px] flex flex-wrap items-end gap-3 p-4 text-[12px]">
+    <section class="s-card md:mx-[10px] mt-[14px] flex flex-wrap items-end gap-3 p-4 text-[12px]">
         <label class="flex flex-col gap-1">Periodo de cotización <input v-model="month" type="month" class="s-input h-[32px]" /></label>
         <button type="button" class="s-btn s-btn-primary" @click="consult">Consultar</button>
         <DownloadMenu @download="download" />
         <p class="w-full text-[11.5px] text-muted">Se toma de las nóminas del ERP contabilizadas en el mes. Con estos valores diligencias la planilla en el operador PILA (Aportes en Línea, SOI, Mi Planilla...).</p>
     </section>
 
-    <section class="s-card mx-[10px] mt-[12px] overflow-x-auto p-[16px]">
+    <section class="s-card md:mx-[10px] mt-[12px] overflow-x-auto p-[16px]">
         <table class="s-table w-full whitespace-nowrap text-[12px]">
             <thead>
                 <tr>

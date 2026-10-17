@@ -2,9 +2,11 @@
 import DownloadMenu from '../Components/DownloadMenu.vue';
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import { alertDialog, confirmDialog } from '../composables/dialog';
 import PageHeader from '../Components/PageHeader.vue';
 import Pager from '../Components/Pager.vue';
 import EmptyState from '../Components/EmptyState.vue';
+import RowMenu from '../Components/RowMenu.vue';
 
 /*
  * Listado generico. Celdas: texto o {text, href, badge, align, truncate, button, post, confirm, download, select, split: {text, download|href}, menu: [{text, href|post}]}.
@@ -24,6 +26,14 @@ const list = computed(() => (Array.isArray(props.rows) ? props.rows : props.rows
 const columns = computed(() => props.view.subtab_columns?.[f.sub] ?? props.view.columns);
 const cell = (c) => (c !== null && typeof c === 'object' ? c : { text: c ?? '' });
 const badgeClass = { ok: 's-badge-ok', warn: 's-badge-warn', danger: 's-badge-danger', off: '' };
+const stickyActions = computed(() => {
+    const cols = columns.value ?? [];
+    if (/acci[oó]n/i.test(String(cols[cols.length - 1] ?? ''))) return true;
+    return list.value.some((r) => {
+        const last = cell(r[r.length - 1]);
+        return !!(last.actions || last.split || last.menu || last.button);
+    });
+});
 
 const selected = ref([]);
 const selectable = computed(() => list.value.map((r) => r.find((c) => c?.select)?.select).filter(Boolean));
@@ -44,15 +54,15 @@ function reload(extra = {}) {
     router.get(props.view.url, params, { preserveState: true, replace: true });
 }
 
-function post(url, data = {}, confirmText = null) {
-    if (confirmText && !window.confirm(confirmText)) return;
+async function post(url, data = {}, confirmText = null) {
+    if (confirmText && !(await confirmDialog(confirmText))) return;
     busy.value = true;
     router.post(url, data, { preserveScroll: true, onFinish: () => (busy.value = false), onSuccess: () => (selected.value = []) });
 }
 
 function runButton(b) {
     if (b.selection) {
-        if (!selected.value.length) return window.alert('Selecciona al menos un comprobante de la lista.');
+        if (!selected.value.length) return alertDialog('Selecciona al menos un comprobante de la lista.');
         if (b.selection === 'open') return window.open(`${b.url}?ids=${selected.value.join(',')}`, '_blank');
         return post(b.url, { ids: selected.value }, b.confirm?.replace(':n', selected.value.length));
     }
@@ -61,7 +71,7 @@ function runButton(b) {
 function upload(b, file) {
     if (!file) return;
     busy.value = true;
-    router.post(b.upload, { file }, { forceFormData: true, preserveScroll: true, onError: (e) => window.alert(Object.values(e)[0]), onFinish: () => (busy.value = false) });
+    router.post(b.upload, { file }, { forceFormData: true, preserveScroll: true, onError: (e) => alertDialog(Object.values(e)[0]), onFinish: () => (busy.value = false) });
 }
 const criteria = ref(true);
 const ranges = ['Últimos 15 días', 'Este mes', 'Mes anterior', 'Este trimestre', 'Rango'];
@@ -102,19 +112,20 @@ function downloadHref(b) {
         <p v-if="view.intro" class="mt-[10px] text-[13px] text-ink">{{ view.intro }}</p>
     </div>
 
-    <div v-if="view.info" class="mx-[22px] mt-[16px] flex gap-3 rounded border border-[#b9dcf3] bg-[#eaf5fc] px-4 py-3 text-[13px] text-ink">
+    <div v-if="view.info" class="md:mx-[22px] mt-[16px] flex gap-3 rounded border border-[#b9dcf3] bg-[#eaf5fc] px-4 py-3 text-[13px] text-ink">
         <Icon icon="circle-info" class="mt-[2px] text-primary" />
         <p>{{ view.info }}</p>
     </div>
 
     <section v-if="view.blue" class="mt-[18px]">
-        <form class="flex items-center" @submit.prevent="reload()">
-            <input v-model="f.q" class="h-[28px] w-[311px] rounded-l-[4px] bg-[#eceff1] px-[8px] text-[12px] outline-none" :placeholder="view.search" />
+        <form class="flex flex-wrap items-center gap-y-2" @submit.prevent="reload()">
+            <input v-model="f.q" class="h-[28px] w-[calc(100%-23px)] rounded-l-[4px] sm:w-[311px] bg-[#eceff1] px-[8px] text-[12px] outline-none" :placeholder="view.search" />
             <button type="submit" class="grid h-[28px] w-[23px] place-items-center rounded-r-[4px] bg-[#c9ced3] text-[11px] text-muted" aria-label="Buscar"><Icon icon="magnifying-glass" /></button>
             <Link v-for="b in (view.buttons ?? []).filter((x) => x.href)" :key="b.label" :href="fill(b.href)" class="s-btn s-btn-primary ml-auto">{{ b.label }}</Link>
         </form>
-        <div class="mt-[12px] overflow-hidden rounded-[4px] bg-white shadow-sm">
-            <table class="s-table w-full">
+        <div class="mt-[12px] rounded-[4px] bg-white shadow-sm">
+            <div class="s-table-wrap rounded-t-[4px]">
+            <table class="s-table w-full" :class="stickyActions && 'sticky-actions'">
                 <thead><tr><th v-for="c in columns" :key="c" class="!bg-[#0072ce] !text-white">{{ c }}</th></tr></thead>
                 <tbody>
                     <tr v-for="(r, i) in list" :key="i">
@@ -131,6 +142,7 @@ function downloadHref(b) {
                     </tr>
                 </tbody>
             </table>
+            </div>
             <template v-if="!list.length">
                 <EmptyState icon="file-circle-question" v-bind="view.empty ? { title: view.empty[0], text: view.empty[1] } : {}" />
                 <div v-if="view.empty_button" class="-mt-[20px] pb-[18px] text-center">
@@ -141,18 +153,18 @@ function downloadHref(b) {
         </div>
     </section>
 
-    <section v-else-if="view.classic" class="mt-[20px] rounded-[4px] bg-white px-[14px] pb-[24px] pt-[22px] text-[12px] text-ink">
+    <section v-else-if="view.classic" class="mt-[20px] rounded-[4px] bg-white px-[10px] sm:px-[14px] pb-[24px] pt-[22px] text-[12px] text-ink">
         <button type="button" class="flex items-center gap-1 text-[12px] text-ink" @click="criteria = !criteria">
             <Icon :icon="criteria ? 'chevron-up' : 'chevron-down'" class="text-[9px] text-primary" /> {{ criteria ? 'Ocultar' : 'Mostrar' }} criterios de búsqueda
         </button>
-        <form v-show="criteria" class="mt-[8px] rounded-[4px] border border-line px-[20px] pb-[8px] pt-[18px]" @submit.prevent="reload({ page: '' })">
-            <div class="grid grid-cols-2 gap-x-[40px]">
-                <label class="flex items-start gap-[12px]"><span class="w-[86px] pt-[3px] text-right">{{ view.search_label }}</span>
-                    <span class="relative w-[338px]"><input v-model="f.q" class="h-[20px] w-full border border-[#c9ced3] px-[3px] pr-[20px]" placeholder="Buscar" />
+        <form v-show="criteria" class="mt-[8px] rounded-[4px] border border-line px-[10px] pb-[8px] pt-[18px] sm:px-[20px]" @submit.prevent="reload({ page: '' })">
+            <div class="grid grid-cols-1 gap-x-[40px] gap-y-[10px] lg:grid-cols-2 lg:gap-y-0">
+                <label class="flex items-start gap-[12px]"><span class="w-[86px] shrink-0 pt-[3px] text-right">{{ view.search_label }}</span>
+                    <span class="relative w-full max-w-[338px]"><input v-model="f.q" class="h-[20px] w-full border border-[#c9ced3] px-[3px] pr-[20px]" placeholder="Buscar" />
                         <Icon icon="magnifying-glass" class="absolute right-[5px] top-[4px] text-[11px]" /></span>
                 </label>
-                <div class="flex items-start gap-[12px]"><span class="w-[86px] text-right leading-[18px]">Fecha<br />elaboración</span>
-                    <div class="flex gap-[4px]">
+                <div class="flex items-start gap-[12px]"><span class="w-[86px] shrink-0 text-right leading-[18px]">Fecha<br />elaboración</span>
+                    <div class="flex flex-wrap gap-[4px]">
                         <select v-model="f.anio" class="h-[20px] w-[84px] border border-[#c9ced3]" @change="applyRange()">
                             <option v-for="y in years" :key="y" :value="String(y)">{{ y }}</option>
                         </select>
@@ -165,9 +177,9 @@ function downloadHref(b) {
                         </div>
                     </div>
                 </div>
-                <span></span>
-                <label class="mt-[14px] flex items-center gap-[12px]"><span class="w-[86px] text-right">Usuario</span>
-                    <span class="relative w-[338px]"><input v-model="f.usuario" class="h-[20px] w-full border border-[#c9ced3] px-[3px] pr-[20px]" />
+                <span class="hidden lg:block"></span>
+                <label class="flex items-center gap-[12px] lg:mt-[14px]"><span class="w-[86px] shrink-0 text-right">Usuario</span>
+                    <span class="relative w-full max-w-[338px]"><input v-model="f.usuario" class="h-[20px] w-full border border-[#c9ced3] px-[3px] pr-[20px]" />
                         <button v-if="f.usuario" type="button" class="absolute right-[6px] top-[2px] font-bold" @click="f.usuario = ''">×</button></span>
                 </label>
             </div>
@@ -179,7 +191,8 @@ function downloadHref(b) {
         <div class="mt-[8px] flex justify-end">
             <a :href="downloadHref({ download: `${view.url}/excel` })" class="grid h-[26px] w-[26px] place-items-center rounded-[3px] border border-line" title="Exportar a Excel"><Icon icon="file-excel" /></a>
         </div>
-        <table class="mt-[8px] w-full">
+        <div class="s-table-wrap mt-[8px]">
+        <table class="w-full">
             <thead><tr class="bg-[#0072ce] text-left text-[12px] font-bold text-white">
                 <th v-for="(c, j) in columns" :key="c" class="px-[6px] py-[6px]" :class="j === columns.length - 1 && 'text-right'">{{ c }}</th>
             </tr></thead>
@@ -193,34 +206,35 @@ function downloadHref(b) {
                 </tr>
             </tbody>
         </table>
+        </div>
         <p v-if="!list.length" class="py-[66px] text-center text-[14px] text-muted">No se encontraron resultados para tu búsqueda</p>
         <Pager v-if="paginator && paginator.total > paginator.per_page" :paginator="paginator" />
     </section>
 
     <section v-else class="s-card mt-[18px]">
-        <div v-if="view.subtabs" class="flex gap-6 border-b border-line px-[16px]">
-            <button v-for="s in view.subtabs" :key="s" type="button" class="-mb-px border-b-[3px] py-3 text-[14px] font-semibold"
+        <div v-if="view.subtabs" class="flex gap-6 overflow-x-auto border-b border-line px-[16px]">
+            <button v-for="s in view.subtabs" :key="s" type="button" class="-mb-px whitespace-nowrap border-b-[3px] py-3 text-[14px] font-semibold"
                 :class="f.sub === s ? 'border-primary text-primary' : 'border-transparent text-ink-soft'" @click="reload({ sub: s })">{{ s }}</button>
         </div>
 
         <form class="flex flex-wrap items-end gap-3 px-[16px] py-[16px]" @submit.prevent="reload()">
-            <label v-if="view.year" class="flex flex-col text-[12px] text-ink-soft">Año
-                <select v-model="f.anio" class="s-input w-[140px]" @change="reload()">
+            <label v-if="view.year" class="flex w-full flex-col text-[12px] text-ink-soft sm:w-auto">Año
+                <select v-model="f.anio" class="s-input sm:w-[140px]" @change="reload()">
                     <option v-for="y in 6" :key="y" :value="String(thisYear - y + 1)">{{ thisYear - y + 1 }}</option>
                 </select>
             </label>
-            <label v-if="view.search" class="flex flex-col text-[12px] text-ink-soft">{{ view.search_label ?? '' }}
-                <span class="relative w-[300px]">
+            <label v-if="view.search" class="flex w-full flex-col text-[12px] text-ink-soft sm:w-auto">{{ view.search_label ?? '' }}
+                <span class="relative w-full sm:w-[300px]">
                     <Icon icon="magnifying-glass" class="absolute left-3 top-[10px] text-muted" />
                     <input v-model="f.q" class="s-input pl-9" :placeholder="view.search" />
                 </span>
             </label>
             <template v-if="view.dates">
-                <label class="flex flex-col text-[12px] text-ink-soft">Fecha desde<input v-model="f.desde" type="date" class="s-input w-[160px]" /></label>
-                <label class="flex flex-col text-[12px] text-ink-soft">Fecha hasta<input v-model="f.hasta" type="date" class="s-input w-[160px]" /></label>
+                <label class="flex w-[calc(50%-6px)] flex-col text-[12px] text-ink-soft sm:w-auto">Fecha desde<input v-model="f.desde" type="date" class="s-input sm:w-[160px]" /></label>
+                <label class="flex w-[calc(50%-6px)] flex-col text-[12px] text-ink-soft sm:w-auto">Fecha hasta<input v-model="f.hasta" type="date" class="s-input sm:w-[160px]" /></label>
             </template>
-            <label v-for="s in view.selects ?? []" :key="s.name" class="flex flex-col text-[12px] text-ink-soft">{{ s.label }}
-                <select v-model="f[s.name]" class="s-input w-[170px]" @change="reload()">
+            <label v-for="s in view.selects ?? []" :key="s.name" class="flex w-full flex-col text-[12px] text-ink-soft sm:w-auto">{{ s.label }}
+                <select v-model="f[s.name]" class="s-input sm:w-[170px]" @change="reload()">
                     <option value="">Todos</option>
                     <option v-for="o in s.options" :key="o" :value="o">{{ o }}</option>
                 </select>
@@ -230,7 +244,7 @@ function downloadHref(b) {
             </span>
             <Link v-if="(view.chips ?? []).some((c) => c.clear)" :href="view.clear_url ?? view.chips.find((c) => c.clear).clear" class="pb-[6px] text-[12px] text-primary">Limpiar filtros</Link>
             <button v-if="(view.search && !view.search_only) || view.dates" type="submit" class="s-btn s-btn-outline"><Icon icon="sliders" /> Más filtros</button>
-            <div class="ml-auto flex items-center gap-2">
+            <div class="ml-auto flex flex-wrap items-center justify-end gap-2">
                 <span v-if="selected.length" class="text-[12px] text-muted">{{ selected.length }} seleccionado(s)</span>
                 <template v-for="b in view.buttons ?? []" :key="b.label">
                     <div v-if="b.menu" class="relative" @click.stop>
@@ -259,8 +273,8 @@ function downloadHref(b) {
             </div>
         </form>
 
-        <div class="overflow-x-auto">
-            <table class="s-table w-full">
+        <div class="s-table-wrap">
+            <table class="s-table w-full" :class="stickyActions && 'sticky-actions'">
                 <thead>
                     <tr>
                         <th v-for="c in columns" :key="c">
@@ -274,17 +288,17 @@ function downloadHref(b) {
                         <td v-for="(raw, j) in r" :key="j" :class="['whitespace-nowrap', cell(raw).align === 'right' && 'text-right', cell(raw).truncate && 'max-w-[220px] truncate']" :title="cell(raw).truncate ? cell(raw).text : null">
                             <input v-if="cell(raw).select" v-model="selected" type="checkbox" :value="cell(raw).select" />
                             <span v-else-if="cell(raw).badge" class="s-badge" :class="badgeClass[cell(raw).badge]">{{ cell(raw).text }}</span>
-                            <div v-else-if="cell(raw).split" class="relative inline-flex" @click.stop>
+                            <RowMenu v-else-if="cell(raw).split" :open="menuOpen === `row${i}`" @close="menuOpen = null">
+                                <template #anchor>
                                 <a v-if="cell(raw).split.download" :href="cell(raw).split.download" class="rounded-l-[4px] border border-primary px-[34px] py-[4px] text-[12px] text-primary hover:bg-[#f0f7fd]">{{ cell(raw).split.text }}</a>
                                 <Link v-else :href="cell(raw).split.href" class="rounded-l-[4px] border border-primary px-[34px] py-[4px] text-[12px] text-primary hover:bg-[#f0f7fd]">{{ cell(raw).split.text }}</Link>
                                 <button type="button" class="rounded-r-[4px] border border-l-0 border-primary px-[8px] text-primary hover:bg-[#f0f7fd] disabled:opacity-40" :disabled="!cell(raw).menu?.length" @click="menuOpen = menuOpen === `row${i}` ? null : `row${i}`"><Icon icon="caret-down" /></button>
-                                <div v-if="menuOpen === `row${i}`" class="absolute right-0 top-[30px] z-30 min-w-[170px] rounded-[6px] bg-white py-[6px] text-left shadow-lg">
-                                    <template v-for="a in cell(raw).menu" :key="a.text">
-                                        <Link v-if="a.href" :href="a.href" class="block px-[14px] py-[7px] text-[13px] hover:bg-[#f0f7fd]">{{ a.text }}</Link>
-                                        <button v-else type="button" class="block w-full px-[14px] py-[7px] text-left text-[13px] hover:bg-[#f0f7fd]" :disabled="busy" @click="menuOpen = null; post(a.post, a.data ?? {}, a.confirm)">{{ a.text }}</button>
-                                    </template>
-                                </div>
-                            </div>
+                                </template>
+                                <template v-for="a in cell(raw).menu" :key="a.text">
+                                    <Link v-if="a.href" :href="a.href" class="block whitespace-nowrap px-[14px] py-[7px] text-[13px] hover:bg-[#f0f7fd]">{{ a.text }}</Link>
+                                    <button v-else type="button" class="block w-full whitespace-nowrap px-[14px] py-[7px] text-left text-[13px] hover:bg-[#f0f7fd]" :disabled="busy" @click="menuOpen = null; post(a.post, a.data ?? {}, a.confirm)">{{ a.text }}</button>
+                                </template>
+                            </RowMenu>
                             <template v-else-if="cell(raw).actions">
                                 <template v-for="a in cell(raw).actions" :key="a.text">
                                     <Link v-if="a.href" :href="a.href" class="mr-3 font-semibold text-primary hover:underline">{{ a.text }}</Link>

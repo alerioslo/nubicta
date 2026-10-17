@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import { confirmDialog } from '../../composables/dialog';
 import PageHeader from '../../Components/PageHeader.vue';
 import Pager from '../../Components/Pager.vue';
 
@@ -37,7 +38,7 @@ function upload(file) {
     busy.value = true;
     router.post('/compras/soporte-legalizar', { file }, { forceFormData: true, preserveScroll: true, onFinish: () => (busy.value = false) });
 }
-const post = (url, confirmText) => (!confirmText || confirm(confirmText)) && router.post(url, {}, { preserveScroll: true });
+const post = async (url, confirmText) => (!confirmText || (await confirmDialog(confirmText))) && router.post(url, {}, { preserveScroll: true });
 const cell = (c) => (c && typeof c === 'object' ? c : { text: c ?? '' });
 </script>
 
@@ -74,28 +75,30 @@ const cell = (c) => (c && typeof c === 'object' ? c : { text: c ?? '' });
         </div>
     </form>
 
-    <section class="mt-[10px] bg-white px-[14px] pb-[16px] pt-[10px]">
+    <section class="mt-[10px] bg-white px-[10px] pb-[16px] pt-[10px] sm:px-[14px]">
         <div class="flex justify-end"><button type="button" class="grid h-[26px] w-[26px] place-items-center rounded-[2px] border border-[#ccc] text-ink" title="Exportar a Excel" @click="excel"><Icon icon="file-excel" /></button></div>
-        <table class="mt-[10px] w-full text-left text-[12px] text-ink">
-            <thead class="bg-[#0072ce] text-[13px] text-white">
-                <tr><th class="px-[6px] py-[6px] font-semibold">Documento soporte</th><th class="font-semibold">Fecha creación</th><th class="font-semibold">Nombre Comprobante</th><th class="font-semibold">Número de comprobante</th><th class="font-semibold">Estado</th><th class="font-semibold">Acción</th></tr>
-            </thead>
-            <tbody>
-                <tr v-for="(r, i) in rows.data" :key="i" class="border-b border-line">
-                    <td class="px-[6px] py-[6px]"><a :href="cell(r[0]).download" class="text-primary hover:underline">{{ cell(r[0]).text }}</a></td>
-                    <td>{{ cell(r[1]).text }}</td>
-                    <td>{{ cell(r[2]).text }}</td>
-                    <td><Link v-if="cell(r[3]).href" :href="cell(r[3]).href" class="text-primary hover:underline">{{ cell(r[3]).text }}</Link></td>
-                    <td>{{ cell(r[4]).text }}</td>
-                    <td>
-                        <template v-for="a in cell(r[5]).actions ?? []" :key="a.text">
-                            <Link v-if="a.href" :href="a.href" class="mr-3 font-semibold text-primary hover:underline">{{ a.text }}</Link>
-                            <button v-else type="button" class="mr-3 font-semibold text-[#c62828] hover:underline" @click="post(a.post, a.confirm)">{{ a.text }}</button>
-                        </template>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="s-table-wrap">
+            <table class="sticky-actions mt-[10px] w-full text-left text-[12px] text-ink">
+                <thead class="text-[13px] text-white">
+                    <tr class="bg-[#0072ce]"><th class="px-[6px] py-[6px] font-semibold">Documento soporte</th><th class="font-semibold">Fecha creación</th><th class="font-semibold">Nombre Comprobante</th><th class="font-semibold">Número de comprobante</th><th class="font-semibold">Estado</th><th class="font-semibold">Acción</th></tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(r, i) in rows.data" :key="i" class="border-b border-line">
+                        <td class="px-[6px] py-[6px]"><a :href="cell(r[0]).download" class="text-primary hover:underline">{{ cell(r[0]).text }}</a></td>
+                        <td>{{ cell(r[1]).text }}</td>
+                        <td>{{ cell(r[2]).text }}</td>
+                        <td><Link v-if="cell(r[3]).href" :href="cell(r[3]).href" class="text-primary hover:underline">{{ cell(r[3]).text }}</Link></td>
+                        <td>{{ cell(r[4]).text }}</td>
+                        <td>
+                            <template v-for="a in cell(r[5]).actions ?? []" :key="a.text">
+                                <Link v-if="a.href" :href="a.href" class="mr-3 font-semibold text-primary hover:underline">{{ a.text }}</Link>
+                                <button v-else type="button" class="mr-3 font-semibold text-[#c62828] hover:underline" @click="post(a.post, a.confirm)">{{ a.text }}</button>
+                            </template>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <p v-if="!rows.data.length" class="py-[60px] text-center text-[14px] text-muted">No se encontraron resultados para tu búsqueda</p>
         <Pager v-else :paginator="rows" />
     </section>

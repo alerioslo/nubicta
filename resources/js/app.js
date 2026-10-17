@@ -3,6 +3,7 @@ import { createInertiaApp } from '@inertiajs/vue3';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import './icons';
 import AppLayout from './Layouts/AppLayout.vue';
+import AppDialog from './Components/AppDialog.vue';
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ERP` : 'ERP'),
@@ -18,7 +19,7 @@ createInertiaApp({
         return page;
     },
     setup({ el, App, props, plugin }) {
-        createApp({ render: () => h(App, props) })
+        createApp({ render: () => [h(App, props), h(AppDialog)] })
             .use(plugin)
             .component('Icon', FontAwesomeIcon)
             .mount(el);

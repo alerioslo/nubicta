@@ -193,7 +193,7 @@ function toggleFav() {
 
 <template>
     <Head :title="report.title" />
-    <div class="-mx-[22px] -mt-[18px] mb-[16px] flex h-[62px] items-center gap-[14px] border-b border-[#e3e7ea] bg-white px-[30px]">
+    <div class="-mx-3 md:-mx-[22px] -mt-[18px] mb-[16px] flex h-[62px] items-center gap-[14px] border-b border-[#e3e7ea] bg-white px-[30px]">
         <Link href="/reportes" class="text-[17px] text-primary" aria-label="Volver"><Icon icon="arrow-left" /></Link>
         <h1 class="text-[21px] font-semibold text-ink">{{ report.title }}</h1>
         <button type="button" class="text-[17px] text-[#f5b301]" :title="isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'" @click="toggleFav">
@@ -292,7 +292,7 @@ function toggleFav() {
 
     <Teleport to="body">
         <div v-if="panel" class="fixed inset-0 z-50 flex justify-end bg-black/30" @click.self="panel = false">
-            <aside class="flex h-full w-[440px] flex-col bg-white shadow-xl">
+            <aside class="flex h-full w-[440px] max-w-full flex-col bg-white shadow-xl">
                 <div class="flex h-[64px] items-center justify-between border-b border-[#edf0f2] px-[24px]">
                     <h2 class="text-[16px] font-semibold text-ink">Más filtros</h2>
                     <button type="button" class="text-[16px] text-[#5d6b78]" aria-label="Cerrar" @click="panel = false"><Icon icon="xmark" /></button>

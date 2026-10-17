@@ -22,7 +22,7 @@ const submit = (action = 'save') => {
     <form class="mt-[14px] max-w-[900px] space-y-[14px] text-[13px]" @submit.prevent="submit()">
         <section v-for="s in def.sections" :key="s.title" class="s-card">
             <h3 class="border-b border-[#edf0f2] px-[22px] py-[14px] text-[16px] font-semibold text-ink">{{ s.title }}</h3>
-            <div class="grid grid-cols-2 gap-x-[24px] gap-y-[14px] px-[22px] py-[16px]">
+            <div class="grid grid-cols-1 gap-x-[24px] gap-y-[14px] px-[14px] py-[16px] md:grid-cols-2 md:px-[22px]">
                 <div v-for="fl in s.fields" :key="fl.key" :class="{ 'col-span-2': fl.type === 'textarea' || fl.type === 'toggle' }">
                     <label v-if="fl.type === 'toggle'" class="flex items-center gap-[10px]">
                         <span class="s-switch"><input v-model="form[fl.key]" type="checkbox" /><span /></span> {{ fl.label }}
