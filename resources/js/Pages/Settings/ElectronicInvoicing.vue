@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
 import Field from '../../Components/Field.vue';
@@ -25,21 +25,21 @@ const focus = typeof window !== 'undefined' ? new URLSearchParams(window.locatio
 if (focus) setTimeout(() => document.getElementById(`habilitacion-${focus}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
 const current = ref(TABS.some((t) => t.key === props.tab) ? props.tab : 'habilitacion');
 
-const s = props.settings;
+const s = computed(() => props.settings);
 const software = useForm({
-    environment: s.environment,
-    simulated: s.simulated,
-    software_id: s.software_id ?? '',
+    environment: props.settings.environment,
+    simulated: props.settings.simulated,
+    software_id: props.settings.software_id ?? '',
     software_pin: '',
-    test_set_id: s.test_set_id ?? '',
-    payroll_software_id: s.payroll_software_id ?? '',
+    test_set_id: props.settings.test_set_id ?? '',
+    payroll_software_id: props.settings.payroll_software_id ?? '',
     payroll_software_pin: '',
-    payroll_test_set_id: s.payroll_test_set_id ?? '',
-    support_software_id: s.support_software_id ?? '',
+    payroll_test_set_id: props.settings.payroll_test_set_id ?? '',
+    support_software_id: props.settings.support_software_id ?? '',
     support_software_pin: '',
-    support_test_set_id: s.support_test_set_id ?? '',
-    reception_email: s.reception_email ?? '',
-    technical_contact: s.technical_contact ?? '',
+    support_test_set_id: props.settings.support_test_set_id ?? '',
+    reception_email: props.settings.reception_email ?? '',
+    technical_contact: props.settings.technical_contact ?? '',
 });
 const saveSoftware = () => software.put('/configuracion/facturacion-electronica/software', { preserveScroll: true });
 
@@ -54,23 +54,28 @@ function action(url, key, method = 'post', data = {}) {
     router[method](url, data, { preserveScroll: true, onFinish: () => (busy.value = null) });
 }
 
-// Avance en vivo del set de pruebas: se consulta mientras esté en proceso y al terminar se recarga la página con el resultado.
+// Avance en vivo del set de pruebas: se consulta mientras esté en proceso y al terminar se refrescan los datos sin recargar.
 const live = reactive({});
-const hab = (key) => ({ ...s.habilitation[key], ...(live[key] ?? {}) });
+const hab = (key) => ({ ...s.value.habilitation[key], ...(live[key] ?? {}) });
 const timers = {};
-function watchSet(key) {
+function watchSet(key, delay = 1500) {
     clearTimeout(timers[key]);
     timers[key] = setTimeout(async () => {
         try {
             const res = await fetch(`/configuracion/facturacion-electronica/set-pruebas/${key}/estado`, { headers: { Accept: 'application/json' } });
             if (res.ok) live[key] = await res.json();
         } catch {}
-        if ((live[key]?.status ?? 'en_proceso') === 'en_proceso') watchSet(key);
-        else router.get(window.location.pathname + window.location.search, {}, { preserveScroll: true });
-    }, 2000);
+        if ((live[key]?.status ?? 'en_proceso') === 'en_proceso') watchSet(key, 2000);
+        else router.reload({ only: ['settings'], onFinish: () => delete live[key] });
+    }, delay);
 }
-const sendSet = (key) => router.post(`/configuracion/facturacion-electronica/set-pruebas/${key}`, {}, { preserveScroll: true, onStart: () => (busy.value = key), onFinish: () => (busy.value = null) });
-onMounted(() => Object.keys(s.habilitation).forEach((k) => s.habilitation[k].status === 'en_proceso' && watchSet(k)));
+const sendSet = (key) => {
+    delete live[key];
+    router.post(`/configuracion/facturacion-electronica/set-pruebas/${key}`, {}, { preserveScroll: true, onStart: () => (busy.value = key), onFinish: () => (busy.value = null) });
+};
+const watchRunning = () => Object.keys(s.value.habilitation).forEach((k) => s.value.habilitation[k].status === 'en_proceso' && watchSet(k));
+watch(() => props.settings, watchRunning);
+onMounted(watchRunning);
 onBeforeUnmount(() => Object.values(timers).forEach(clearTimeout));
 
 const target = ref({});
@@ -85,8 +90,8 @@ const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('es-CO', { day:
 /* Cada paso lista sus requisitos (cumplido o no) y a donde ir para completarlos. */
 const stepStatus = computed(() => {
     const c = props.company;
-    const fe = s.habilitation.fe;
-    const cert = s.certificate;
+    const fe = s.value.habilitation.fe;
+    const cert = s.value.certificate;
     const invoice = props.resolutions.find((r) => r.type === 'FV' && r.is_electronic && r.resolution_number) ?? props.resolutions.find((r) => r.type === 'FV' && r.is_electronic);
     const steps = [
         {
@@ -106,8 +111,8 @@ const stepStatus = computed(() => {
         {
             label: 'Software propio', go: { tab: 'software', text: 'Editar software propio' },
             checks: [
-                ['Identificador del software', s.software_id], ['PIN del software', s.has_pin ? 'Registrado' : null],
-                ...(s.environment === 'produccion' ? [] : [['TestSetId de facturación', s.test_set_id]]),
+                ['Identificador del software', s.value.software_id], ['PIN del software', s.value.has_pin ? 'Registrado' : null],
+                ...(s.value.environment === 'produccion' ? [] : [['TestSetId de facturación', s.value.test_set_id]]),
             ],
         },
         {
@@ -128,8 +133,8 @@ const stepStatus = computed(() => {
             ],
         },
         {
-            label: 'Producción', done: s.environment === 'produccion',
-            checks: [['Set de pruebas aprobado', fe.status === 'aprobado' ? 'Sí' : null], ['Ambiente de producción activo', s.environment === 'produccion' ? `Desde ${s.production_since}` : null]],
+            label: 'Producción', done: s.value.environment === 'produccion',
+            checks: [['Set de pruebas aprobado', fe.status === 'aprobado' ? 'Sí' : null], ['Ambiente de producción activo', s.value.environment === 'produccion' ? `Desde ${s.value.production_since}` : null]],
         },
     ];
 
