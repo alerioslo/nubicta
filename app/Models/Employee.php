@@ -37,4 +37,18 @@ class Employee extends Model
     {
         return $this->belongsTo(Contact::class);
     }
+
+    /** Vuelve empleado a un tercero (cliente, proveedor u otro): lo marca y le abre un contrato con salario mínimo para completarlo. */
+    public static function enroll(Contact $contact): self
+    {
+        if (! $contact->is_employee) {
+            $contact->forceFill(['is_employee' => true])->save();
+        }
+
+        return self::query()->where('contact_id', $contact->id)->orderByDesc('active')->orderByDesc('id')->first()
+            ?? self::query()->create([
+                'contact_id' => $contact->id, 'contract_type' => 'Indefinido', 'payment_frequency' => 'Mensual',
+                'start_date' => now()->toDateString(), 'salary' => (new \App\Services\Payroll\PayrollLaw)->minimumWage(), 'active' => true,
+            ]);
+    }
 }

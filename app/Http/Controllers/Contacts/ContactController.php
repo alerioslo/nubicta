@@ -72,13 +72,18 @@ class ContactController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $contact = DB::transaction(function () use ($request) {
+        $employee = null;
+        $contact = DB::transaction(function () use ($request, &$employee) {
             $data = $this->validated($request);
             $contact = Contact::create($this->attributes($data));
             $this->syncPeople($contact, $data['people'] ?? []);
+            $employee = $contact->is_employee ? \App\Models\Employee::enroll($contact) : null;
 
             return $contact;
         });
+        if ($employee && ! $request->input('volver')) {
+            return redirect("/nomina/empleados/{$employee->id}/editar")->with('success', 'Empleado creado. Completa su contrato y su información de nómina.');
+        }
 
         return redirect($request->input('volver') ?: "/terceros/{$contact->id}/editar")->with('success', 'Tercero creado correctamente.');
     }
@@ -135,6 +140,7 @@ class ContactController extends Controller
             $data = $this->validated($request, $contact);
             $contact->update($this->attributes($data));
             $this->syncPeople($contact, $data['people'] ?? []);
+            $contact->is_employee && \App\Models\Employee::enroll($contact);
         });
 
         return back()->with('success', 'Tercero actualizado correctamente.');
@@ -232,7 +238,9 @@ class ContactController extends Controller
             'people.*.phone' => ['nullable', 'string', 'max:30'],
             'people.*.position' => ['nullable', 'string', 'max:120'],
         ], [
-            'identification.unique' => 'Ya existe un tercero con esta identificación y código de sucursal.',
+            'identification.unique' => $request->boolean('is_employee') && ! $contact
+                ? 'Ya existe un tercero con esta identificación. Para volverlo empleado ve a Nómina > Empleados > "Agregar tercero existente".'
+                : 'Ya existe un tercero con esta identificación y código de sucursal.',
             'first_name.required_if' => 'Los nombres son obligatorios.',
             'last_name.required_if' => 'Los apellidos son obligatorios.',
             'business_name.required_if' => 'La razón social es obligatoria.',

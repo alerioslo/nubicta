@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, ref } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import DocSearch from '../../Components/Forms/DocSearch.vue';
 import PageHeader from '../../Components/PageHeader.vue';
 import Pager from '../../Components/Pager.vue';
 import EmptyState from '../../Components/EmptyState.vue';
@@ -19,6 +20,14 @@ const search = () => {
     clearTimeout(t);
     t = setTimeout(reload, 350);
 };
+const adding = ref(false);
+const add = useForm({ contact_id: null, contact_label: '' });
+const openAdd = () => {
+    add.reset();
+    add.clearErrors();
+    adding.value = true;
+};
+const submitAdd = () => add.transform(({ contact_id }) => ({ contact_id })).post('/nomina/empleados', { onSuccess: () => (adding.value = false) });
 const money = (v) => '$ ' + Number(v).toLocaleString('es-CO', { maximumFractionDigits: 0 });
 </script>
 
@@ -35,7 +44,8 @@ const money = (v) => '$ ' + Number(v).toLocaleString('es-CO', { maximumFractionD
                 <input v-model="f.q" class="s-input pr-9" placeholder="Buscar: Nombre, N° Id, N° Contrato" @input="search" />
                 <button type="button" class="absolute right-0 top-0 grid h-full w-[24px] place-items-center rounded-r-[4px] bg-primary text-[11px] text-white" aria-label="Buscar" @click="reload"><Icon icon="magnifying-glass" /></button>
             </div>
-            <Link href="/terceros/crear?tipo=empleado" class="s-btn s-btn-primary ml-auto">Crear nuevo empleado</Link>
+            <button type="button" class="s-btn s-btn-outline ml-auto" @click.stop="openAdd">Agregar tercero existente</button>
+            <Link href="/terceros/crear?tipo=empleado" class="s-btn s-btn-primary">Crear nuevo empleado</Link>
         </div>
         <div class="s-table-wrap">
             <table class="sticky-actions s-table">
@@ -77,4 +87,20 @@ const money = (v) => '$ ' + Number(v).toLocaleString('es-CO', { maximumFractionD
         <EmptyState v-if="!employees.data.length" />
         <Pager :paginator="employees" />
     </section>
+
+    <div v-if="adding" class="fixed inset-0 z-50 flex items-start justify-center p-3 bg-black/40 pt-[60px] md:pt-[160px]" @click.self="adding = false">
+        <form class="w-[480px] max-w-full rounded-[4px] bg-white p-[20px] text-[13px] shadow-xl" @submit.prevent="submitAdd">
+            <div class="flex items-start justify-between"><p class="text-[16px] font-semibold">Agregar tercero existente como empleado</p><button type="button" class="text-primary" @click="adding = false"><Icon icon="xmark" /></button></div>
+            <p class="mt-[12px] rounded-[3px] bg-[#f0f9ff] px-[10px] py-[8px]"><Icon icon="circle-info" class="text-[#0275b3]" /> Usa esta opción si la persona ya está creada como cliente, proveedor u otro. Conserva sus demás tipos y se le abre un contrato para completar.</p>
+            <label class="mt-[12px] block">
+                <span class="s-label">Tercero <span class="req">*</span></span>
+                <DocSearch v-model="add.contact_id" v-model:label="add.contact_label" url="/api/buscar/terceros" input-class="s-input w-full" placeholder="Buscar por nombre o identificación" />
+            </label>
+            <p v-if="add.errors.contact_id" class="mt-1 text-[12px] text-danger">{{ add.errors.contact_id }}</p>
+            <div class="mt-[18px] flex justify-end gap-[8px]">
+                <button type="button" class="s-btn s-btn-outline" @click="adding = false">Cancelar</button>
+                <button type="submit" class="s-btn s-btn-primary" :disabled="!add.contact_id || add.processing">Agregar como empleado</button>
+            </div>
+        </form>
+    </div>
 </template>

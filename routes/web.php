@@ -339,6 +339,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/pila/csv', [$p, 'pilaExport']);
         Route::get('/vacaciones', [$p, 'vacations']);
         Route::get('/certificado-ingresos', [$p, 'certificate']);
+        Route::post('/empleados', [$p, 'storeEmployee'])->middleware('can:nomina.crear');
         Route::get('/empleados/{employee}/editar', [$p, 'editEmployee'])->whereNumber('employee')->middleware('can:nomina.editar');
         Route::put('/empleados/{employee}', [$p, 'updateEmployee'])->whereNumber('employee')->middleware('can:nomina.editar');
         Route::prefix('{run}')->whereNumber('run')->group(function () use ($p) {

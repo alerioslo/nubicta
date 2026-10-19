@@ -206,6 +206,23 @@ class PayrollRunController extends Controller
         ]);
     }
 
+    /** Agrega como empleado a un tercero que ya existe (por ejemplo un cliente) y abre su contrato para completarlo. */
+    public function storeEmployee(Request $request): RedirectResponse
+    {
+        $data = $request->validate(
+            ['contact_id' => ['required', 'integer', Rule::exists('contacts', 'id')->where('company_id', CurrentCompany::id())]],
+            ['contact_id.required' => 'Selecciona el tercero que quieres agregar como empleado.']
+        );
+        $contact = \App\Models\Contact::query()->findOrFail($data['contact_id']);
+        if ($existing = Employee::query()->where('contact_id', $contact->id)->where('active', true)->first()) {
+            return redirect("/nomina/empleados/{$existing->id}/editar")->with('error', "{$contact->name} ya es empleado; aquí puedes revisar su contrato.");
+        }
+        $employee = DB::transaction(fn () => Employee::enroll($contact));
+        $employee->active || $employee->update(['active' => true, 'end_date' => null, 'termination_reason' => null]);
+
+        return redirect("/nomina/empleados/{$employee->id}/editar")->with('success', "{$contact->name} quedó como empleado. Completa su contrato y su información de nómina.");
+    }
+
     public function updateEmployee(Request $request, Employee $employee): RedirectResponse
     {
         $contact = ['nullable', 'integer', Rule::exists('contacts', 'id')->where('company_id', CurrentCompany::id())];
