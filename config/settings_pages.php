@@ -99,9 +99,9 @@ return [
     ],
     'api' => [
         'title' => 'Credenciales de integración a plataformas digitales (API)',
-        'notice' => 'Credenciales para que otras plataformas (tienda en línea, módulo de depósito) consulten o creen información en el ERP. Envía la llave en la cabecera "Authorization: Bearer <llave>" a /api/v1: terceros, productos, facturas (GET) y terceros (POST, con permiso de escritura). Deja las IPs vacías para permitir cualquier origen.',
+        'notice' => 'Credenciales para que otras plataformas (tienda en línea, punto de venta, CRM) consulten y creen información en el ERP: terceros, productos, existencias, facturas electrónicas, notas, compras, recibos, comprobantes, reportes y webhooks. Envía la llave en la cabecera "Authorization: Bearer <llave>" a /api/v1; la llave actúa con los permisos del usuario que la genera. Deja las IPs vacías para permitir cualquier origen.',
         'test' => 'Generar nueva llave',
-        'docs' => 'https://nubicta.online/api',
+        'docs' => '/api/v1/docs',
         'sections' => [
             ['title' => 'Acceso API', 'fields' => [
                 ['key' => 'enabled', 'label' => 'Habilitar API', 'type' => 'toggle', 'default' => false],

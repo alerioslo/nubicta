@@ -35,7 +35,7 @@ use Inertia\Response;
 class DocumentFormController extends Controller
 {
     /** Tipos de documento que Siigo no expone por API: se muestran con la numeracion que tiene Siigo. */
-    private const FALLBACK_TYPES = [
+    public const FALLBACK_TYPES = [
         'DS' => [['code' => '1', 'name' => 'Documento soporte', 'consecutive' => 297]],
         'NA' => [['code' => '1', 'name' => 'Nota de ajuste documento soporte', 'consecutive' => 1]],
         'ND' => [['code' => '1', 'name' => 'Nota débito', 'consecutive' => 1]],

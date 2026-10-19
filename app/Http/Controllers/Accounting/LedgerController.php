@@ -121,7 +121,7 @@ class LedgerController extends Controller
     }
 
     /** Saldos por cuenta (y tercero) rodados a los niveles PUC hasta el nivel pedido. */
-    private function balances(Request $request, int $level, bool $byContact, bool $allLevels = true): array
+    public function balances(Request $request, int $level, bool $byContact, bool $allLevels = true): array
     {
         [$from, $to] = $this->range($request);
         $rows = $this->filtered($request)->where('date', '<=', $to)
