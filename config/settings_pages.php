@@ -101,6 +101,7 @@ return [
         'title' => 'Credenciales de integración a plataformas digitales (API)',
         'notice' => 'Credenciales para que otras plataformas (tienda en línea, módulo de depósito) consulten o creen información en el ERP. Envía la llave en la cabecera "Authorization: Bearer <llave>" a /api/v1: terceros, productos, facturas (GET) y terceros (POST, con permiso de escritura). Deja las IPs vacías para permitir cualquier origen.',
         'test' => 'Generar nueva llave',
+        'docs' => 'https://nubicta.online/api',
         'sections' => [
             ['title' => 'Acceso API', 'fields' => [
                 ['key' => 'enabled', 'label' => 'Habilitar API', 'type' => 'toggle', 'default' => false],

@@ -123,7 +123,7 @@ class DocumentMapper
                 'number' => $type?->resolution_number ?? '', 'valid_from' => $type?->valid_from?->toDateString() ?? '', 'valid_to' => $type?->valid_to?->toDateString() ?? '',
                 'prefix' => $type?->prefix ?? '', 'from' => $type?->range_from ?? 1, 'to' => $type?->range_to ?? 99999999,
             ],
-            'software' => ['id' => (string) $softwareId, 'pin' => (string) $pin, 'provider_nit' => $this->company->nit, 'provider_dv' => (string) $this->company->dv],
+            'software' => ['id' => (string) $softwareId, 'pin' => (string) $pin, 'provider_nit' => $this->company->nit, 'provider_dv' => $this->company->verificationDigit()],
             'supplier' => $supplier,
             'customer' => $customer,
             'payment' => ['id' => $credit ? '2' : '1', 'code' => $credit ? 'ZZZ' : '10', 'due_date' => ($doc->due_date ?? $doc->date)->toDateString()],
@@ -154,7 +154,7 @@ class DocumentMapper
 
         return [
             'type' => $c->person_type === 'juridica' ? '1' : '2', 'id_type' => (string) ($c->identification_type ?: '31'),
-            'id' => preg_replace('/\D/', '', (string) $c->nit), 'dv' => (string) $c->dv, 'name' => $c->business_name,
+            'id' => preg_replace('/\D/', '', (string) $c->nit), 'dv' => $c->verificationDigit(), 'name' => $c->business_name,
             'address' => $c->address, 'municipality_code' => $c->municipality_code, 'city' => $place['city'], 'department' => $place['department'],
             'department_code' => $c->department_code ?: substr((string) $c->municipality_code, 0, 2), 'postal' => $c->postal_code,
             'email' => $c->email, 'phone' => $c->phone,

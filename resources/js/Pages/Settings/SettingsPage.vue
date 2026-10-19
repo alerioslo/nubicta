@@ -16,7 +16,8 @@ const submit = (action = 'save') => {
     <Head :title="def.title" />
     <PageHeader :title="def.title" back="/configuracion" />
     <p v-if="def.notice" class="mt-[12px] flex max-w-[900px] items-start gap-[10px] rounded-[6px] border border-[#bae6fd] bg-primary-light px-[14px] py-[10px] text-[13px] text-ink">
-        <Icon icon="circle-info" class="mt-[2px] text-primary" /> {{ def.notice }}
+        <Icon icon="circle-info" class="mt-[2px] text-primary" />
+        <span>{{ def.notice }} <a v-if="def.docs" :href="def.docs" target="_blank" rel="noopener" class="font-semibold text-primary underline">Ver documentación de la API</a></span>
     </p>
 
     <form class="mt-[14px] max-w-[900px] space-y-[14px] text-[13px]" @submit.prevent="submit()">

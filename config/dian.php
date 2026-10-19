@@ -12,7 +12,7 @@ return [
 
     // Documentos que exige cada set de pruebas (ajustar al set asignado en el portal DIAN).
     'test_sets' => [
-        'fe' => ['FV' => 30, 'NC' => 10, 'ND' => 10],
+        'fe' => ['FV' => 6, 'NC' => 2, 'ND' => 2],
         'nomina' => ['NE' => 8, 'NA' => 2],
         'ds' => ['DS' => 10, 'NA' => 2],
     ],

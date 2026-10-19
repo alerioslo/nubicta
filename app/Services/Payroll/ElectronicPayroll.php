@@ -158,9 +158,9 @@ class ElectronicPayroll
             'notes' => null, 'period_start' => $start, 'period_end' => $end,
             'period_code' => ['Semanal' => '1', 'Decenal' => '2', 'Catorcenal' => '3', 'Quincenal' => '4', 'Mensual' => '5'][$employee?->payment_frequency ?? 'Mensual'] ?? '5',
             'worked_time' => (string) max(1, PayrollLaw::days360($hired, $end)),
-            'software' => ['id' => (string) $softwareId, 'pin' => (string) $pin, 'provider_nit' => preg_replace('/\D/', '', (string) $company->nit), 'provider_dv' => (string) $company->dv],
+            'software' => ['id' => (string) $softwareId, 'pin' => (string) $pin, 'provider_nit' => preg_replace('/\D/', '', (string) $company->nit), 'provider_dv' => $company->verificationDigit()],
             'employer' => [
-                'name' => $company->business_name ?: trim("{$company->first_name} {$company->last_name}"), 'nit' => preg_replace('/\D/', '', (string) $company->nit), 'dv' => (string) $company->dv,
+                'name' => $company->business_name ?: trim("{$company->first_name} {$company->last_name}"), 'nit' => preg_replace('/\D/', '', (string) $company->nit), 'dv' => $company->verificationDigit(),
                 'department_code' => $company->department_code ?: substr((string) $company->municipality_code, 0, 2), 'municipality_code' => (string) $company->municipality_code,
                 'address' => (string) $company->address,
             ],

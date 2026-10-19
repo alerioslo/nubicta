@@ -48,6 +48,11 @@ class DianService
         $missing = [];
         if (blank($c->nit) || $c->nit === '000000000') {
             $missing[] = 'NIT de la empresa';
+        } elseif ($c->verificationDigit() === '') {
+            $missing[] = 'DV del NIT de la empresa';
+        }
+        if (blank($c->business_name)) {
+            $missing[] = 'Razón social de la empresa';
         }
         if (blank($c->address) || blank($c->municipality_code)) {
             $missing[] = 'Dirección y municipio de la empresa';
@@ -399,7 +404,7 @@ class DianService
             'number' => $number, 'code' => $code, 'claim' => $claim,
             'issue_date' => $now->toDateString(), 'issue_time' => $now->format('H:i:s').'-05:00',
             'environment' => $this->settings->environment === 'produccion' ? '1' : '2',
-            'software' => ['id' => (string) $softwareId, 'pin' => (string) $pin, 'provider_nit' => preg_replace('/\D/', '', (string) $this->company->nit), 'provider_dv' => (string) $this->company->dv],
+            'software' => ['id' => (string) $softwareId, 'pin' => (string) $pin, 'provider_nit' => preg_replace('/\D/', '', (string) $this->company->nit), 'provider_dv' => $this->company->verificationDigit()],
             'sender' => $mapper->companyParty(),
             'receiver' => ['id_type' => '31', 'type' => preg_match('/^[89]/', (string) $event->supplier_nit) ? '1' : '2', 'id' => (string) $event->supplier_nit, 'dv' => (string) $event->supplier_dv, 'name' => (string) $event->supplier_name, 'tax_scheme' => ['01', 'IVA']],
             'invoice' => ['number' => (string) $event->document_number, 'cufe' => $event->cufe],
@@ -423,12 +428,25 @@ class DianService
         return ['valid' => $r['valid'], 'message' => $message, 'cude' => $built['cude'], 'number' => $number, 'path' => "$dir/$file.xml"];
     }
 
-    /** Envía el set de pruebas completo del ámbito y consulta el resultado de cada lote. */
+    /** Envía el set de pruebas completo del ámbito y consulta el resultado de cada lote; nunca dos envíos a la vez por empresa. */
     public function runTestSet(string $scope): array
     {
         if ($missing = $this->missing($scope)) {
             throw new RuntimeException('Antes de enviar el set de pruebas completa: '.implode(', ', $missing).'.');
         }
+        $lock = \Illuminate\Support\Facades\Cache::lock('dian-testset-'.\Illuminate\Support\Facades\DB::connection()->getDatabaseName().'-'.$this->company->id.'-'.$scope, 1800);
+        if (! $lock->get()) {
+            throw new RuntimeException('El set de pruebas ya se está enviando. Espera a que termine antes de volver a enviarlo.');
+        }
+        try {
+            return $this->sendTestSet($scope);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function sendTestSet(string $scope): array
+    {
         [, , $testSet] = $this->settings->softwareFor($scope);
         @set_time_limit(0);
         ignore_user_abort(true);
@@ -436,6 +454,7 @@ class DianService
         $seq = max(self::TEST_RESOLUTION['from'], (int) ($this->settings->habilitationFor($scope)['last_seq'] ?? 0));
         $template = $this->settings->simulated ? null : $this->testTemplate($scope);
         $reference = null;
+        $this->settings->update(['habilitation' => array_merge($this->settings->habilitation ?? DianSetting::emptyHabilitation(), [$scope => $state])]);
 
         foreach (config("dian.test_sets.$scope") as $kind => $count) {
             for ($i = 1; $i <= $count; $i++) {

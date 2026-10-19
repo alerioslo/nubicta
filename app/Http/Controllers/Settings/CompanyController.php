@@ -81,7 +81,7 @@ class CompanyController extends Controller
             'has_partners' => ['boolean'],
         ], [], ['nit' => 'número de identificación', 'business_name' => 'razón social']);
 
-        $data['dv'] = $data['identification_type'] === '31' ? ColombianNit::verificationDigit($data['nit']) : null;
+        $data['dv'] = ColombianNit::verificationDigit($data['nit']);
 
         if ($request->hasFile('logo')) {
             $data['logo_path'] = $request->file('logo')->store('logos', 'public');

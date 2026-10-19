@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
 import Field from '../../Components/Field.vue';
 
@@ -62,17 +62,66 @@ props.ranges.forEach((r, i) => {
     if (options.length === 1) target.value[i] = options[0].id;
 });
 
+const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+/* Cada paso lista sus requisitos (cumplido o no) y a donde ir para completarlos. */
 const stepStatus = computed(() => {
+    const c = props.company;
     const fe = s.habilitation.fe;
-    return [
-        { label: 'Datos de la empresa', done: props.company.nit && props.company.nit !== '000000000' && !!props.company.address },
-        { label: 'Certificado digital', done: !!s.certificate },
-        { label: 'Software propio', done: !!s.software_id && s.has_pin },
-        { label: 'Set de pruebas', done: fe.status === 'aprobado' },
-        { label: 'Resolución de numeración', done: props.resolutions.some((r) => r.type === 'FV' && r.resolution_number) },
-        { label: 'Producción', done: s.environment === 'produccion' },
+    const cert = s.certificate;
+    const invoice = props.resolutions.find((r) => r.type === 'FV' && r.is_electronic && r.resolution_number) ?? props.resolutions.find((r) => r.type === 'FV' && r.is_electronic);
+    const steps = [
+        {
+            label: 'Datos de la empresa', go: { href: '/configuracion/empresa', text: 'Editar datos de la empresa' },
+            checks: [
+                ['Razón social', c.business_name], ['NIT o cédula', c.nit && c.nit !== '000000000' ? c.nit : null], ['Dígito de verificación (DV)', c.dv],
+                ['Dirección', c.address], ['Municipio', c.municipality ?? c.municipality_code], ['Correo electrónico', c.email], ['Régimen tributario', c.tax_regime ? 'Registrado' : null],
+            ],
+        },
+        {
+            label: 'Certificado digital', go: { tab: 'certificado', text: cert ? 'Ver o reemplazar certificado' : 'Cargar certificado' },
+            checks: [
+                ['Certificado cargado', cert?.common_name ?? (cert ? 'Cargado' : null)],
+                ['Certificado vigente', cert?.valid_to && new Date(cert.valid_to) > new Date() ? `Hasta ${fmtDate(cert.valid_to)}` : null],
+            ],
+        },
+        {
+            label: 'Software propio', go: { tab: 'software', text: 'Editar software propio' },
+            checks: [
+                ['Identificador del software', s.software_id], ['PIN del software', s.has_pin ? 'Registrado' : null],
+                ...(s.environment === 'produccion' ? [] : [['TestSetId de facturación', s.test_set_id]]),
+            ],
+        },
+        {
+            label: 'Set de pruebas', go: { scope: 'fe', text: 'Ver set de pruebas' }, done: ['aprobado'].includes(fe.status),
+            checks: [
+                ...fe.missing.map((m) => [m, null]),
+                ['Set de facturación aprobado por la DIAN', fe.status === 'aprobado' ? `${fmtDate(fe.approved_at)}` : null, `${fe.accepted} de ${fe.required} aceptados${fe.rejected ? `, ${fe.rejected} rechazados` : ''}`],
+            ],
+            errors: fe.errors ?? [],
+        },
+        {
+            label: 'Resolución de numeración', go: { tab: 'resoluciones', text: 'Ver resoluciones' },
+            checks: [
+                ['Resolución de facturación electrónica', invoice?.resolution_number],
+                ['Prefijo y rango', invoice?.range ? `${invoice.prefix ?? ''} ${invoice.range}`.trim() : null],
+                ['Resolución vigente', invoice?.valid_to && !invoice.expired ? `Hasta ${invoice.valid_to}` : null],
+                ['Clave técnica', invoice?.has_key ? 'Registrada' : null],
+            ],
+        },
+        {
+            label: 'Producción', done: s.environment === 'produccion',
+            checks: [['Set de pruebas aprobado', fe.status === 'aprobado' ? 'Sí' : null], ['Ambiente de producción activo', s.environment === 'produccion' ? `Desde ${s.production_since}` : null]],
+        },
     ];
+
+    return steps.map((st) => ({ ...st, done: st.done ?? st.checks.every(([, v]) => !!v) }));
 });
+const selected = ref(Math.max(0, stepStatus.value.findIndex((st) => !st.done)));
+const step = computed(() => stepStatus.value[selected.value]);
+function goStep(go) {
+    if (go.tab) current.value = go.tab;
+    else if (go.scope) document.getElementById(`habilitacion-${go.scope}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 
 const STATUS = {
     pendiente: ['Pendiente', 's-badge-off'],
@@ -81,7 +130,6 @@ const STATUS = {
     simulado: ['Aprobado (simulado)', 's-badge-warn'],
     rechazado: ['Rechazado', 's-badge-danger'],
 };
-const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 </script>
 
 <template>
@@ -106,17 +154,45 @@ const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('es-CO', { day:
         <section class="s-card p-[22px]">
             <h2 class="s-section-title mb-4">Proceso de habilitación ante la DIAN</h2>
             <ol class="grid grid-cols-6 gap-3">
-                <li v-for="(st, i) in stepStatus" :key="st.label" class="flex flex-col items-center gap-2 text-center">
-                    <span
-                        class="flex h-[34px] w-[34px] items-center justify-center rounded-full text-[14px] font-bold"
-                        :class="st.done ? 'bg-[#7ac142] text-white' : 'bg-[#edf0f2] text-muted'"
-                    >
-                        <Icon v-if="st.done" icon="check" />
-                        <template v-else>{{ i + 1 }}</template>
-                    </span>
-                    <span class="text-[12px]" :class="st.done ? 'text-ink font-semibold' : 'text-muted'">{{ st.label }}</span>
+                <li v-for="(st, i) in stepStatus" :key="st.label">
+                    <button type="button" class="flex w-full flex-col items-center gap-2 rounded-[6px] px-1 py-2 text-center hover:bg-[#f0f9ff]" :class="{ 'bg-[#f0f9ff] ring-1 ring-primary': selected === i }" @click="selected = i">
+                        <span
+                            class="flex h-[34px] w-[34px] items-center justify-center rounded-full text-[14px] font-bold"
+                            :class="st.done ? 'bg-[#7ac142] text-white' : selected === i ? 'bg-primary text-white' : 'bg-[#edf0f2] text-muted'"
+                        >
+                            <Icon v-if="st.done" icon="check" />
+                            <template v-else>{{ i + 1 }}</template>
+                        </span>
+                        <span class="text-[12px]" :class="st.done || selected === i ? 'text-ink font-semibold' : 'text-muted'">{{ st.label }}</span>
+                        <span v-if="!st.done" class="text-[10.5px] text-[#a86b00]">{{ st.checks.filter(([, v]) => !v).length }} pendiente(s)</span>
+                    </button>
                 </li>
             </ol>
+            <div class="mt-4 rounded-[6px] border border-line bg-[#fafbfc] p-4">
+                <div class="mb-3 flex items-center justify-between">
+                    <h3 class="text-[14px] font-bold text-ink">Paso {{ selected + 1 }}: {{ step.label }}</h3>
+                    <span class="s-badge" :class="step.done ? 's-badge-ok' : 's-badge-warn'">{{ step.done ? 'Completo' : 'Falta completar' }}</span>
+                </div>
+                <ul class="grid grid-cols-1 gap-x-6 gap-y-[6px] text-[13px] md:grid-cols-2">
+                    <li v-for="[label, value, note] in step.checks" :key="label" class="flex items-start gap-2">
+                        <Icon :icon="value ? 'circle-check' : 'circle-xmark'" :class="value ? 'text-[#5a9e2b]' : 'text-[#c62828]'" class="mt-[3px]" />
+                        <span>
+                            <span :class="value ? 'text-ink' : 'font-semibold text-[#c62828]'">{{ label }}</span>
+                            <span v-if="value && value !== true" class="text-muted">: {{ value }}</span>
+                            <span v-else-if="!value" class="text-[#c62828]"> (falta)</span>
+                            <span v-if="note" class="block text-[11.5px] text-muted">{{ note }}</span>
+                        </span>
+                    </li>
+                </ul>
+                <ul v-if="step.errors?.length" class="mt-3 flex flex-col gap-1 rounded-[4px] bg-[#fdecea] p-3 text-[12px] text-[#c62828]">
+                    <li class="font-semibold">Últimos errores de la DIAN:</li>
+                    <li v-for="e in step.errors" :key="e">{{ e }}</li>
+                </ul>
+                <div v-if="step.go" class="mt-3">
+                    <Link v-if="step.go.href" :href="step.go.href" class="s-btn s-btn-outline"><Icon icon="pen" /> {{ step.go.text }}</Link>
+                    <button v-else type="button" class="s-btn s-btn-outline" @click="goStep(step.go)"><Icon icon="pen" /> {{ step.go.text }}</button>
+                </div>
+            </div>
             <div class="mt-5 flex items-center gap-3 border-t border-line pt-4">
                 <button type="button" class="s-btn s-btn-outline" :disabled="busy" @click="action('/configuracion/facturacion-electronica/probar-conexion', 'conn')">
                     <Icon icon="cloud" /> {{ busy === 'conn' ? 'Conectando…' : 'Probar conexión DIAN' }}

@@ -41,6 +41,17 @@ class Company extends Model
         return $this->belongsTo(Department::class, 'department_code', 'code');
     }
 
+    /** DV del NIT o cédula: la DIAN lo exige siempre en el emisor y en el proveedor del software. */
+    public function verificationDigit(): string
+    {
+        $nit = \App\Support\ColombianNit::normalize((string) $this->nit);
+        if ($nit === '' || strlen($nit) > 15) {
+            return (string) $this->dv;
+        }
+
+        return \App\Support\ColombianNit::verificationDigit($nit);
+    }
+
     public function fullNit(): string
     {
         return $this->dv !== null && $this->dv !== '' ? "{$this->nit}-{$this->dv}" : $this->nit;

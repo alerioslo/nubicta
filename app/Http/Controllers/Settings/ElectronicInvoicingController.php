@@ -50,7 +50,8 @@ class ElectronicInvoicingController extends Controller
                     'missing' => $dian->missing($k),
                 ]),
             ],
-            'company' => $s->company->only(['nit', 'dv', 'business_name', 'address', 'email']),
+            'company' => $s->company->only(['nit', 'business_name', 'address', 'email', 'municipality_code', 'tax_regime', 'identification_type'])
+                + ['dv' => $s->company->verificationDigit(), 'municipality' => $s->company->municipality?->name],
             'resolutions' => DocumentType::whereIn('type', ['FV', 'NC', 'ND', 'DS', 'NA'])->orderBy('type')->orderBy('code')->get()
                 ->map(fn (DocumentType $d) => [
                     'id' => $d->id, 'label' => $d->label(), 'name' => $d->name, 'type' => $d->type,
