@@ -66,6 +66,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/rangos', [ElectronicInvoicingController::class, 'queryRanges']);
             Route::post('/rangos/aplicar', [ElectronicInvoicingController::class, 'applyRange']);
             Route::post('/set-pruebas/{scope}', [ElectronicInvoicingController::class, 'runTestSet']);
+            Route::get('/set-pruebas/{scope}/estado', [ElectronicInvoicingController::class, 'testSetProgress']);
             Route::post('/produccion', [ElectronicInvoicingController::class, 'activateProduction']);
             Route::get('/envios/{transmission}', [ElectronicInvoicingController::class, 'transmission'])->whereNumber('transmission');
         });

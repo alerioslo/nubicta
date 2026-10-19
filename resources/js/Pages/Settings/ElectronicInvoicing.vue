@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import PageHeader from '../../Components/PageHeader.vue';
 import Field from '../../Components/Field.vue';
@@ -53,6 +53,25 @@ function action(url, key, method = 'post', data = {}) {
     busy.value = key;
     router[method](url, data, { preserveScroll: true, onFinish: () => (busy.value = null) });
 }
+
+// Avance en vivo del set de pruebas: se consulta mientras esté en proceso y al terminar se recarga la página con el resultado.
+const live = reactive({});
+const hab = (key) => ({ ...s.habilitation[key], ...(live[key] ?? {}) });
+const timers = {};
+function watchSet(key) {
+    clearTimeout(timers[key]);
+    timers[key] = setTimeout(async () => {
+        try {
+            const res = await fetch(`/configuracion/facturacion-electronica/set-pruebas/${key}/estado`, { headers: { Accept: 'application/json' } });
+            if (res.ok) live[key] = await res.json();
+        } catch {}
+        if ((live[key]?.status ?? 'en_proceso') === 'en_proceso') watchSet(key);
+        else router.get(window.location.pathname + window.location.search, {}, { preserveScroll: true });
+    }, 2000);
+}
+const sendSet = (key) => router.post(`/configuracion/facturacion-electronica/set-pruebas/${key}`, {}, { preserveScroll: true, onStart: () => (busy.value = key), onFinish: () => (busy.value = null) });
+onMounted(() => Object.keys(s.habilitation).forEach((k) => s.habilitation[k].status === 'en_proceso' && watchSet(k)));
+onBeforeUnmount(() => Object.values(timers).forEach(clearTimeout));
 
 const target = ref({});
 // El rango de factura trae clave técnica; el de documento soporte no (su CUDS usa el PIN del software).
@@ -216,21 +235,46 @@ const STATUS = {
         </section>
 
         <div class="grid grid-cols-3 gap-[18px]">
-            <section v-for="(h, key) in s.habilitation" :id="`habilitacion-${key}`" :key="key" class="s-card flex flex-col p-[22px]" :class="{ 'ring-2 ring-primary': focus === key }">
+            <section v-for="key in Object.keys(s.habilitation)" :id="`habilitacion-${key}`" :key="key" class="s-card flex flex-col p-[22px]" :class="{ 'ring-2 ring-primary': focus === key }">
+                <template v-for="h in [hab(key)]" :key="key">
                 <div class="mb-3 flex items-center justify-between">
                     <h3 class="s-section-title">{{ h.label }}</h3>
-                    <span class="s-badge" :class="STATUS[h.status]?.[1]">{{ STATUS[h.status]?.[0] ?? h.status }}</span>
+                    <span class="s-badge" :class="STATUS[h.status]?.[1]">
+                        <Icon v-if="h.status === 'en_proceso'" icon="spinner" class="animate-spin" /> {{ STATUS[h.status]?.[0] ?? h.status }}
+                    </span>
                 </div>
                 <p class="text-[12px] text-muted">
                     Set de pruebas:
                     <span v-for="(n, k, i) in h.detail" :key="k">{{ i ? ', ' : '' }}{{ n }} {{ k }}</span>
                 </p>
-                <div class="my-3 h-[8px] overflow-hidden rounded-full bg-[#edf0f2]">
-                    <div class="h-full bg-[#7ac142]" :style="{ width: Math.min(100, (h.accepted / h.required) * 100) + '%' }" />
+                <template v-if="h.status === 'en_proceso'">
+                    <div class="my-3 h-[8px] overflow-hidden rounded-full bg-[#edf0f2]">
+                        <div class="h-full bg-primary transition-all" :style="{ width: Math.min(100, (h.sent / (h.total || h.required)) * 100) + '%' }" />
+                    </div>
+                    <p class="text-[13px] text-primary">
+                        Enviando a la DIAN: <b>{{ h.sent }}</b> de {{ h.total || h.required }} documentos · <b>{{ h.accepted }}</b> aceptados · <b>{{ h.rejected }}</b> rechazados
+                    </p>
+                    <p class="mt-1 text-[12px] text-muted">Puede tardar unos minutos. Puedes salir de esta página: el envío sigue y el avance se ve al volver.</p>
+                </template>
+                <template v-else>
+                    <div class="my-3 h-[8px] overflow-hidden rounded-full bg-[#edf0f2]">
+                        <div class="h-full bg-[#7ac142]" :style="{ width: Math.min(100, (h.accepted / h.required) * 100) + '%' }" />
+                    </div>
+                    <p class="text-[13px]">
+                        <b>{{ h.accepted }}</b> aceptados · <b>{{ h.rejected }}</b> rechazados · {{ h.required }} requeridos
+                    </p>
+                </template>
+                <div v-if="h.events?.length" class="mt-3 rounded-[4px] border border-line bg-[#fafbfc]">
+                    <p class="border-b border-line px-[10px] py-[6px] text-[12px] font-semibold">Eventos del envío</p>
+                    <ul class="flex max-h-[220px] flex-col gap-[2px] overflow-y-auto px-[10px] py-[6px] text-[12px]">
+                        <li v-for="(ev, i) in [...h.events].reverse()" :key="i" class="flex gap-[6px]" :class="ev.ok === false ? 'text-[#c62828]' : ev.ok ? 'text-[#008a5c]' : 'text-ink'">
+                            <span class="shrink-0 text-muted">{{ ev.at }}</span>
+                            <Icon v-if="ev.ok === null && i === 0 && h.status === 'en_proceso'" icon="spinner" class="mt-[2px] shrink-0 animate-spin" />
+                            <Icon v-else :icon="ev.ok === null ? 'circle-info' : ev.ok ? 'circle-check' : 'circle-xmark'" class="mt-[2px] shrink-0" />
+                            <span>{{ ev.text }}</span>
+                        </li>
+                    </ul>
                 </div>
-                <p class="text-[13px]">
-                    <b>{{ h.accepted }}</b> aceptados · <b>{{ h.rejected }}</b> rechazados · {{ h.required }} requeridos
-                </p>
                 <p v-if="h.approved_at && h.status === 'aprobado'" class="mt-1 text-[12px] text-[#008a5c]">Aprobado por la DIAN el {{ fmtDate(h.approved_at) }}</p>
                 <p v-if="h.status === 'simulado'" class="mt-1 text-[12px] text-[#a86b00]">Se corrió en modo simulado: no se envió nada a la DIAN. Desactiva el modo simulado y envíalo de nuevo.</p>
                 <ul v-if="h.errors?.length" class="mt-2 flex flex-col gap-1 text-[12px] text-[#c62828]">
@@ -242,11 +286,12 @@ const STATUS = {
                 <button
                     type="button"
                     class="s-btn s-btn-primary mt-auto self-start"
-                    :disabled="busy || h.missing.length > 0"
-                    @click="action(`/configuracion/facturacion-electronica/set-pruebas/${key}`, key)"
+                    :disabled="busy || h.missing.length > 0 || h.status === 'en_proceso'"
+                    @click="sendSet(key)"
                 >
-                    {{ busy === key ? 'Enviando set…' : h.status === 'aprobado' ? 'Reenviar set de pruebas' : 'Enviar set de pruebas' }}
+                    {{ busy === key ? 'Iniciando…' : h.status === 'en_proceso' ? 'Enviando set…' : h.status === 'aprobado' ? 'Reenviar set de pruebas' : 'Enviar set de pruebas' }}
                 </button>
+                </template>
             </section>
         </div>
     </div>

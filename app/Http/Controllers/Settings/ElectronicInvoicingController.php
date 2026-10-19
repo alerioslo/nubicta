@@ -200,10 +200,17 @@ class ElectronicInvoicingController extends Controller
         abort_unless(array_key_exists($scope, DianSetting::SCOPES), 404);
 
         return $this->attempt(function (DianService $d) use ($scope) {
-            $r = $d->runTestSet($scope);
+            $d->startTestSet($scope);
 
-            return "Set de pruebas enviado: {$r['accepted']} aceptados y {$r['rejected']} rechazados de {$r['sent']}.";
+            return 'Se empezó a enviar el set de pruebas. Puedes seguir el avance aquí abajo.';
         }, 'habilitacion');
+    }
+
+    public function testSetProgress(string $scope): \Illuminate\Http\JsonResponse
+    {
+        abort_unless(array_key_exists($scope, DianSetting::SCOPES), 404);
+
+        return response()->json(DianService::forCurrent()->testSetProgress($scope));
     }
 
     public function activateProduction(): RedirectResponse

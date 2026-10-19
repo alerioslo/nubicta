@@ -431,13 +431,7 @@ class DianService
     /** Envía el set de pruebas completo del ámbito y consulta el resultado de cada lote; nunca dos envíos a la vez por empresa. */
     public function runTestSet(string $scope): array
     {
-        if ($missing = $this->missing($scope)) {
-            throw new RuntimeException('Antes de enviar el set de pruebas completa: '.implode(', ', $missing).'.');
-        }
-        $lock = \Illuminate\Support\Facades\Cache::lock('dian-testset-'.\Illuminate\Support\Facades\DB::connection()->getDatabaseName().'-'.$this->company->id.'-'.$scope, 1800);
-        if (! $lock->get()) {
-            throw new RuntimeException('El set de pruebas ya se está enviando. Espera a que termine antes de volver a enviarlo.');
-        }
+        $lock = $this->testSetLock($scope);
         try {
             return $this->sendTestSet($scope);
         } finally {
@@ -445,20 +439,89 @@ class DianService
         }
     }
 
+    /** Igual que runTestSet, pero el envío corre después de responder al navegador; la pantalla sigue el avance con testSetProgress. */
+    public function startTestSet(string $scope): void
+    {
+        $lock = $this->testSetLock($scope);
+        $state = $this->settings->habilitationFor($scope);
+        $this->saveTestSet($scope, ['status' => 'en_proceso', 'sent' => 0, 'accepted' => 0, 'rejected' => 0, 'approved_at' => null, 'errors' => [],
+            'total' => array_sum(config("dian.test_sets.$scope")), 'last_seq' => $state['last_seq'] ?? null, 'updated_at' => now()->toIso8601String(),
+            'events' => [['at' => now()->format('H:i:s'), 'ok' => null, 'text' => 'Preparando el set de pruebas…']]]);
+        app()->terminating(function () use ($scope, $lock) {
+            try {
+                $this->sendTestSet($scope);
+            } catch (\Throwable $e) {
+                report($e);
+                $state = $this->settings->fresh()->habilitationFor($scope);
+                $state['events'][] = ['at' => now()->format('H:i:s'), 'ok' => false, 'text' => 'El envío se detuvo: '.mb_substr($e->getMessage(), 0, 300)];
+                $this->saveTestSet($scope, array_merge($state, ['status' => 'rechazado', 'errors' => [...($state['errors'] ?? []), mb_substr($e->getMessage(), 0, 300)]]));
+            } finally {
+                $lock->release();
+            }
+        });
+    }
+
+    /** Estado del set; si figura en proceso pero nadie lo está enviando, lo marca como interrumpido. */
+    public function testSetProgress(string $scope): array
+    {
+        $state = $this->settings->fresh()->habilitationFor($scope);
+        if (($state['status'] ?? null) === 'en_proceso' && ($lock = $this->testSetLockFor($scope))->get()) {
+            $lock->release();
+            $state['status'] = 'rechazado';
+            $state['errors'] = [...($state['errors'] ?? []), 'El envío se interrumpió antes de terminar. Vuelve a enviar el set de pruebas.'];
+            $this->saveTestSet($scope, $state);
+        }
+
+        return $state;
+    }
+
+    private function testSetLockFor(string $scope): \Illuminate\Contracts\Cache\Lock
+    {
+        return \Illuminate\Support\Facades\Cache::lock('dian-testset-'.\Illuminate\Support\Facades\DB::connection()->getDatabaseName().'-'.$this->company->id.'-'.$scope, 1800);
+    }
+
+    private function testSetLock(string $scope): \Illuminate\Contracts\Cache\Lock
+    {
+        if ($missing = $this->missing($scope)) {
+            throw new RuntimeException('Antes de enviar el set de pruebas completa: '.implode(', ', $missing).'.');
+        }
+        $lock = $this->testSetLockFor($scope);
+        if (! $lock->get()) {
+            throw new RuntimeException('El set de pruebas ya se está enviando. Espera a que termine antes de volver a enviarlo.');
+        }
+
+        return $lock;
+    }
+
+    private function saveTestSet(string $scope, array $state): void
+    {
+        $this->settings->refresh();
+        $this->settings->update(['habilitation' => array_merge($this->settings->habilitation ?? DianSetting::emptyHabilitation(), [$scope => $state])]);
+    }
+
     private function sendTestSet(string $scope): array
     {
         [, , $testSet] = $this->settings->softwareFor($scope);
         @set_time_limit(0);
         ignore_user_abort(true);
-        $state = ['status' => 'en_proceso', 'sent' => 0, 'accepted' => 0, 'rejected' => 0, 'approved_at' => null, 'simulated' => (bool) $this->settings->simulated, 'errors' => []];
+        $total = array_sum(config("dian.test_sets.$scope"));
+        $state = ['status' => 'en_proceso', 'sent' => 0, 'accepted' => 0, 'rejected' => 0, 'approved_at' => null, 'simulated' => (bool) $this->settings->simulated, 'errors' => [], 'total' => $total, 'events' => []];
         $seq = max(self::TEST_RESOLUTION['from'], (int) ($this->settings->habilitationFor($scope)['last_seq'] ?? 0));
+        $event = function (?bool $ok, string $text, bool $replaceLast = false) use (&$state, $scope) {
+            $replaceLast && array_pop($state['events']);
+            $state['events'] = array_slice([...$state['events'], ['at' => now()->format('H:i:s'), 'ok' => $ok, 'text' => $text]], -40);
+            $state['updated_at'] = now()->toIso8601String();
+            $this->saveTestSet($scope, $state);
+        };
+        $event(null, $this->settings->simulated ? 'Modo simulado: no se enviará nada a la DIAN.' : 'Firmando documentos con el certificado de la empresa…');
         $template = $this->settings->simulated ? null : $this->testTemplate($scope);
         $reference = null;
-        $this->settings->update(['habilitation' => array_merge($this->settings->habilitation ?? DianSetting::emptyHabilitation(), [$scope => $state])]);
 
         foreach (config("dian.test_sets.$scope") as $kind => $count) {
             for ($i = 1; $i <= $count; $i++) {
                 $number = self::TEST_PREFIX[$scope].(++$seq);
+                $state['last_seq'] = $seq;
+                $event(null, "Enviando {$kind} {$number} (".($state['sent'] + 1)." de {$total}) y esperando la respuesta de la DIAN…");
                 $params = ['fileName' => "z$number.zip", 'testSetId' => (string) $testSet, 'number' => $number, 'kind' => $kind];
                 if ($template && $scope === 'nomina') {
                     [$xml, $key] = $this->testPayroll($template, $kind, $seq, $reference);
@@ -485,6 +548,10 @@ class DianService
                 $state['sent']++;
                 if (! $trackId) {
                     $state['rejected']++;
+                    $message = $this->text($zip['xml'], 'ProcessedMessage') ?? $this->nodes($zip['xml'], 'string')[0]->textContent ?? 'la DIAN no devolvió número de seguimiento';
+                    count($state['errors']) < 5 && $state['errors'][] = "$number: ".mb_substr((string) $message, 0, 300);
+                    $event(false, "{$kind} {$number}: no se pudo enviar (".mb_substr((string) $message, 0, 200).').', true);
+
                     continue;
                 }
                 $status = $this->statusZip($trackId, $params, $log);
@@ -492,22 +559,27 @@ class DianService
                     $state['rejected']++;
                     $state['set_rejected'] = true;
                     $state['errors'][] = "{$number}: El set de pruebas quedó en estado Rechazado en la DIAN. Reinícielo en el portal de habilitación (o registre un nuevo TestSetId) antes de volver a enviarlo.";
+                    $event(false, "{$kind} {$number}: la DIAN informa que el set de pruebas está Rechazado; se detiene el envío.", true);
                     break 2;
                 }
                 if (str_contains($status['xml'], 'se encuentra Aceptado')) {
-                    $state['accepted'] = array_sum(config("dian.test_sets.$scope"));
+                    $state['accepted'] = $total;
                     $state['rejected'] = 0;
                     $state['errors'] = [];
                     $state['set_accepted'] = true;
+                    $event(true, "{$kind} {$number}: la DIAN informa que el set de pruebas ya está Aceptado.", true);
                     break 2;
                 }
                 if ($status['valid']) {
                     $state['accepted']++;
+                    $event(true, "{$kind} {$number}: aceptado por la DIAN.", true);
                 } else {
                     $state['rejected']++;
+                    $message = mb_substr((string) ($this->nodes($status['xml'], 'string')[0]->textContent ?? $this->text($status['xml'], 'StatusDescription') ?? 'Rechazado'), 0, 300);
                     if (count($state['errors']) < 5) {
-                        $state['errors'][] = $number.': '.mb_substr((string) ($this->nodes($status['xml'], 'string')[0]->textContent ?? $this->text($status['xml'], 'StatusDescription') ?? 'Rechazado'), 0, 300);
+                        $state['errors'][] = "$number: $message";
                     }
+                    $event(false, "{$kind} {$number}: rechazado. {$message}", true);
                 }
             }
         }
@@ -516,10 +588,11 @@ class DianService
         if (! empty($state['set_accepted']) || ($state['rejected'] === 0 && $state['accepted'] > 0)) {
             $state['status'] = $state['simulated'] ? 'simulado' : 'aprobado';
             $state['approved_at'] = now()->toIso8601String();
+            $event(true, $state['simulated'] ? 'Terminó la simulación.' : '¡Set de pruebas aprobado! Ya puedes activar el ambiente de producción.');
         } else {
             $state['status'] = 'rechazado';
+            $event(false, "Terminó el envío: {$state['accepted']} aceptados y {$state['rejected']} rechazados. Revisa los errores y corrige antes de reenviar.");
         }
-        $this->settings->update(['habilitation' => array_merge($this->settings->habilitation ?? DianSetting::emptyHabilitation(), [$scope => $state])]);
 
         return $state;
     }
