@@ -79,7 +79,7 @@ class SettingsPageController extends Controller
         $data['token_hint'] = substr($token, 0, 10).str_repeat('•', 12).' (generada el '.now()->format('d/m/Y H:i').')';
         $this->save('api', $data);
 
-        return back()->with('success', "Llave generada: $token — cópiala ahora, no se volverá a mostrar. La llave anterior quedó revocada.");
+        return back()->with('success', 'Se generó la llave. La anterior quedó revocada.')->with('api_token', $token);
     }
 
     private function testReminder(Request $request): RedirectResponse

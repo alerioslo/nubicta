@@ -1,14 +1,41 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
 import PageHeader from '../../Components/PageHeader.vue';
 
 /* Pagina de configuracion declarativa (config/settings_pages.php). */
 const props = defineProps({ page: String, def: Object, values: Object, secretsSet: Array });
 const form = useForm({ ...props.values, action: 'save' });
+const inertia = usePage();
+const apiToken = ref(null);
+const copied = ref(false);
+const keyInput = ref(null);
+
+watch(() => props.values?.token_hint, (hint) => {
+    if (hint) form.token_hint = hint;
+});
+
+watch(() => inertia.props.flash?.api_token, (token) => {
+    if (!token) return;
+    apiToken.value = token;
+    copied.value = false;
+}, { immediate: true });
 
 const submit = (action = 'save') => {
     form.action = action;
     form.put(`/configuracion/ajustes/${props.page}`, { preserveScroll: true });
+};
+
+const copyToken = async () => {
+    const value = apiToken.value ?? '';
+    try {
+        await navigator.clipboard.writeText(value);
+    } catch {
+        keyInput.value?.focus();
+        keyInput.value?.select();
+        document.execCommand('copy');
+    }
+    copied.value = true;
 };
 </script>
 
@@ -48,4 +75,16 @@ const submit = (action = 'save') => {
             <button type="submit" class="s-btn s-btn-primary" :disabled="form.processing">Guardar</button>
         </div>
     </form>
+
+    <div v-if="apiToken" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="api-token-title">
+        <div class="w-full max-w-[520px] rounded-[2px] bg-white px-[22px] pb-[16px] pt-[18px] text-[13px] text-[#333] shadow-lg">
+            <h2 id="api-token-title" class="text-[15px] font-semibold text-ink">Llave de acceso</h2>
+            <p class="mt-[8px] leading-[1.5]">Cópiala ahora. No se volverá a mostrar. Si cierras esta ventana sin copiarla, genera otra: la anterior queda revocada.</p>
+            <input ref="keyInput" :value="apiToken" readonly class="s-input mt-[12px] w-full font-mono text-[12px]" @focus="$event.target.select()" />
+            <div class="mt-[12px] flex justify-end gap-[8px]">
+                <button type="button" class="s-btn s-btn-outline" @click="copyToken">{{ copied ? 'Copiada' : 'Copiar' }}</button>
+                <button type="button" class="s-btn s-btn-primary" @click="apiToken = null">Cerrar</button>
+            </div>
+        </div>
+    </div>
 </template>
