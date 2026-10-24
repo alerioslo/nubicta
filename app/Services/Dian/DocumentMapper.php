@@ -82,6 +82,8 @@ class DocumentMapper
         $lines = [];
         $docTaxes = [];
         $lineWithholdings = [];
+        $mandate = $kind === 'FV' && collect($items)->contains(fn ($it) => ($it->role ?? null) === 'mandante');
+        $provider = $mandate ? $this->mandateParty($doc->principal ?? null) : null;
         $units = DB::table('products')->whereIn('id', collect($items)->pluck('product_id')->filter()->unique())->pluck('unit_code', 'id');
         foreach ($items as $it) {
             $base = (float) $it->subtotal;
@@ -95,10 +97,16 @@ class DocumentMapper
                     $lineWithholdings[] = ['code' => $code[0], 'name' => $code[1], 'percent' => Tax::percent($t->type, $t->percentage), 'base' => $t->type === 'ReteIVA' ? (float) $it->tax_total : $base, 'amount' => (float) $t->value];
                 }
             }
+            if (($it->tax_code ?? null) === 'ZZ') {
+                $lineTaxes[] = ['code' => 'ZZ', 'name' => 'No aplica', 'percent' => 0, 'base' => $base, 'amount' => 0];
+            }
+            $role = $it->role ?? null;
             $lines[] = [
                 'code' => $it->code ?: 'ITEM'.$it->position, 'description' => $it->description, 'quantity' => (float) $it->quantity,
                 'price' => round((float) $it->price * $factor, 2), 'discount' => round((float) $it->discount * $factor, 2), 'base' => $base, 'taxes' => $lineTaxes,
                 'unit' => ($it->product_id ?? null) ? ($units[$it->product_id] ?: '94') : '94',
+                'scheme_id' => $mandate ? ($role === 'mandante' ? '1' : '0') : null,
+                'provider' => $role === 'mandante' ? $provider : null,
             ];
         }
         $docTaxes = collect($docTaxes)->groupBy(fn ($t) => $t['code'].'|'.$t['percent'])
@@ -108,6 +116,8 @@ class DocumentMapper
         $taxAmount = round(array_sum(array_column($docTaxes, 'amount')), 2);
         $time = ($doc->created_at ?? now())->copy()->setTimezone('America/Bogota');
         $credit = (float) $doc->balance > 0;
+        $settled = $doc instanceof SalesDocument && $doc->payment_form === 'contado';
+        $external = $doc instanceof SalesDocument ? $doc->external_invoice : null;
 
         return [
             'kind' => $kind,
@@ -126,25 +136,46 @@ class DocumentMapper
             'software' => ['id' => (string) $softwareId, 'pin' => (string) $pin, 'provider_nit' => $this->company->nit, 'provider_dv' => $this->company->verificationDigit()],
             'supplier' => $supplier,
             'customer' => $customer,
-            'payment' => ['id' => $credit ? '2' : '1', 'code' => $credit ? 'ZZZ' : '10', 'due_date' => ($doc->due_date ?? $doc->date)->toDateString()],
+            'customization' => $mandate ? '11' : null,
+            'payment' => ['id' => $credit ? '2' : '1', 'code' => $credit ? 'ZZZ' : ($settled ? '1' : '10'), 'due_date' => ($doc->due_date ?? $doc->date)->toDateString(), 'show_due' => $settled],
             'lines' => $lines,
             'taxes' => $docTaxes,
             'withholdings' => [],
             'line_withholdings' => $lineWithholdings,
             'totals' => [
                 'line_extension' => $lineExtension,
-                'tax_exclusive' => round(collect($lines)->filter(fn ($l) => $l['taxes'])->sum('base'), 2),
+                'tax_exclusive' => round(collect($lines)->sum(fn ($l) => collect($l['taxes'])->contains(fn ($t) => $t['code'] !== 'ZZ') ? $l['base'] : 0), 2),
                 'tax_inclusive' => round($lineExtension + $taxAmount, 2),
                 'payable' => round($lineExtension + $taxAmount, 2),
             ],
             'reference' => $related ? [
                 'number' => (DocumentType::query()->whereKey($related->document_type_id)->value('prefix') ?? '').$related->number,
                 'key' => $related->cufe ?? $related->cuds ?? '', 'date' => $related->date->toDateString(),
-            ] : null,
+            ] : ($external ? [
+                'number' => (string) ($external['numero'] ?? ''),
+                'key' => (string) ($external['cufe'] ?? ''),
+                'date' => substr((string) ($external['fecha'] ?? ''), 0, 10),
+            ] : null),
             'discrepancy' => in_array($kind, ['NC', 'ND'], true)
                 ? CorrectionConcepts::for($kind, $doc->reason)
                 : ['code' => '2', 'description' => $doc->observations ?: 'Ajuste de valor'],
         ];
+    }
+
+    /** Party del mandante que se repite en cada línea suya. No va en el emisor. */
+    private function mandateParty(?array $principal): ?array
+    {
+        if (! $principal || empty($principal['identificacion'])) {
+            return null;
+        }
+        $type = (string) ($principal['tipo_documento'] ?? '31');
+        $id = preg_replace('/\D/', '', (string) $principal['identificacion']) ?? '';
+        $dv = (string) ($principal['dv'] ?? '');
+        if ($type === '31' && $dv === '') {
+            $dv = (string) ColombianNit::resolveVerificationDigit($id, null);
+        }
+
+        return ['id_type' => $type, 'id' => $id, 'dv' => $dv];
     }
 
     public function companyParty(): array

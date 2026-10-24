@@ -34,6 +34,7 @@ class SalesDocument extends Model
     {
         return [
             'date' => 'date', 'due_date' => 'date',
+            'principal' => 'array', 'external_invoice' => 'array',
             'subtotal' => 'decimal:2', 'discount' => 'decimal:2', 'tax_total' => 'decimal:2',
             'withholding_total' => 'decimal:2', 'total' => 'decimal:2', 'balance' => 'decimal:2',
         ];

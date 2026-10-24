@@ -23,6 +23,12 @@ const months = (() => {
     const [a, b] = [new Date(r.valid_from), new Date(r.valid_to)];
     return (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth();
 })();
+const p = d.principal;
+const head = p ? {
+    logo: p.logo_url || c.logo, name: p.nombre, nit: p.identificacion, dv: p.dv, address: p.direccion, city: p.ciudad,
+    email: p.correo, phone: p.telefono, phone2: p.whatsapp, site: p.sitio,
+} : { logo: c.logo, name: c.trade_name || c.name, nit: c.nit_number, dv: c.dv, address: c.address, city: c.city, email: c.email, phone: c.phone, phone2: c.phone2, site: null };
+const roleLabel = (i) => (i.role === 'mandante' ? 'Mandante' : (i.role === 'mandatario' ? 'Mandatario' : ''));
 const software = d.source === 'siigo'
     ? 'Fabricante Software y Proveedor tecnológico: Siigo SAS - NIT 830.048.145-8, Nombre Software: Siigo Nube. Firma electrónica: ver en el XML'
     : `Software propio: Nubicta (licencia MIT) · Fabricante del software: ${c.name ?? ''} - NIT ${nit(c.nit_number, c.dv)} · Firma electrónica: ver en el XML`;
@@ -40,16 +46,18 @@ onMounted(async () => {
         <p v-if="d.dian" class="side">{{ software }}</p>
 
         <header class="top">
-            <img v-if="c.logo" :src="c.logo" alt="" class="logo" />
+            <img v-if="head.logo" :src="head.logo" alt="" class="logo" />
             <div class="company">
-                <b>{{ c.trade_name || c.name }}</b>
-                <p>Nit {{ nit(c.nit_number, c.dv) }}</p>
-                <p>{{ c.address }}</p>
-                <p>{{ c.city }}<span v-if="c.phone"> - Tel. ({{ c.phone }})</span><span v-if="c.phone2 && c.phone2 !== c.phone"> {{ c.phone2 }}</span></p>
-                <p>{{ c.email }}</p>
+                <b>{{ head.name }}</b>
+                <p>Nit {{ nit(head.nit, head.dv) }}</p>
+                <p>{{ head.address }}</p>
+                <p>{{ head.city }}<span v-if="head.phone"> - Tel. ({{ head.phone }})</span><span v-if="head.phone2 && head.phone2 !== head.phone"> {{ head.phone2 }}</span></p>
+                <p>{{ head.email }}<span v-if="head.site"> · {{ head.site }}</span></p>
             </div>
             <img v-if="qr" :src="qr" alt="QR DIAN" class="qr" />
         </header>
+
+        <p v-if="p" class="mandate">Mandatario: {{ c.trade_name || c.name }} · NIT {{ nit(c.nit_number, c.dv) }}</p>
 
         <section class="title">
             <p>{{ title }}</p>
@@ -73,7 +81,7 @@ onMounted(async () => {
             </thead>
             <tbody>
                 <tr v-for="(i, k) in d.items" :key="k">
-                    <td>{{ i.description }}</td><td>{{ i.unit }}</td><td class="r">{{ qty(i.quantity) }}</td>
+                    <td>{{ i.description }}<div v-if="roleLabel(i)" class="role">{{ roleLabel(i) }}</div></td><td>{{ i.unit }}</td><td class="r">{{ qty(i.quantity) }}</td>
                     <td class="r">{{ money(i.price) }}</td><td class="r">{{ money(i.tax_total) }}</td><td class="r">{{ money(i.total) }}</td>
                 </tr>
             </tbody>
@@ -91,6 +99,11 @@ onMounted(async () => {
                 <tr><td>Tarifa</td><td>Vr. Base</td><td>Valor</td></tr>
                 <tr v-for="t in d.tax_summary" :key="t.rate"><td class="r">{{ money(t.rate) }}%</td><td class="r">{{ money(t.base) }}</td><td class="r">{{ money(t.value) }}</td></tr>
             </table>
+        </section>
+
+        <section v-if="p?.atencion || p?.cuentas?.length" class="block">
+            <p v-if="p.atencion"><b>Atención:</b> {{ p.atencion }}</p>
+            <p v-for="(cta, k) in p.cuentas" :key="k">{{ [cta.banco, cta.tipo, cta.numero].filter(Boolean).join(' · ') }}</p>
         </section>
 
         <section v-if="d.payments?.length" class="block">
@@ -149,6 +162,8 @@ onMounted(async () => {
 .legal p { margin: 0 0 2px; }
 .obs { text-align: left; margin-bottom: 10px !important; white-space: pre-line; }
 .cufe { word-break: break-all; }
+.mandate { text-align: center; margin: 8px 0 0; font-weight: bold; }
+.role { font-size: 10px; color: #555; }
 @media print { .sheet { margin: 0; width: auto; page-break-after: always; } }
 /* Tirilla de impresora POS (80 mm): sin logo ni textos laterales, encabezado a la izquierda y QR a la derecha. */
 @media (max-width: 480px) {

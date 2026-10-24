@@ -342,8 +342,13 @@ class DocumentFormController extends Controller
     {
         $type = is_numeric($request->input('document_type')) ? DocumentType::query()->find((int) $request->input('document_type')) : null;
         $invoice = $request->integer('related_id') ? \App\Models\SalesDocument::query()->where('type', 'FV')->find($request->integer('related_id')) : null;
+        $ext = $request->input('external_invoice');
+        $external = $form['doc'] === 'NC' && is_array($ext) && filled($ext['numero'] ?? null) && filled($ext['cufe'] ?? null) && filled($ext['fecha'] ?? null);
         $label = $form['doc'] === 'NC' ? 'nota crédito' : 'nota débito';
-        if ($type?->isElectronic() && ! $invoice) {
+        if ($invoice && $external) {
+            throw ValidationException::withMessages(['related_id' => 'Indica la factura del sistema o una factura externa, no las dos']);
+        }
+        if ($type?->isElectronic() && ! $invoice && ! $external) {
             throw ValidationException::withMessages(['related_id' => "La {$label} electrónica debe indicar la factura que corrige"]);
         }
         if ($type && ! $type->isElectronic() && $invoice && (filled($invoice->cufe) || DocumentType::query()->find($invoice->document_type_id)?->isElectronic())) {
@@ -361,12 +366,28 @@ class DocumentFormController extends Controller
 
         switch ($form['page']) {
             case 'Trade':
-                $valid = $lines->filter(fn ($l) => ($l['product_id'] ?? $l['account_id'] ?? $l['fixed_asset_id'] ?? null) && (float) ($l['quantity'] ?? 0) > 0);
+                $valid = $lines->filter(fn ($l) => (
+                    ($l['product_id'] ?? $l['account_id'] ?? $l['fixed_asset_id'] ?? null) || ! empty($l['free'])
+                ) && (float) ($l['quantity'] ?? 0) > 0);
                 if ($valid->isEmpty()) {
                     $fail('Debes agregar al menos un ítem con cantidad');
                 }
+                foreach ($valid as $l) {
+                    if ((float) ($l['price'] ?? 0) < 0 && ($l['tax_code'] ?? null) !== 'ZZ') {
+                        $fail('El precio negativo solo se permite en una línea con impuesto No aplica (ZZ)');
+                    }
+                    if (($l['tax_code'] ?? null) === 'ZZ' && ! empty($l['tax_id'])) {
+                        $fail('No aplica (ZZ) no se combina con otro impuesto');
+                    }
+                }
+                if ($request->boolean('mandate') && $valid->contains(fn ($l) => ($l['role'] ?? null) === 'mandante')) {
+                    $principal = $request->input('principal');
+                    if (! is_array($principal) || ! filled($principal['identificacion'] ?? null) || ! filled($principal['nombre'] ?? null)) {
+                        $fail('Indica el mandante: identificación y nombre');
+                    }
+                }
                 $total = (float) $request->input('total', 0);
-                if (! empty($form['payments']) && ! $request->boolean('credit')) {
+                if (! empty($form['payments']) && ! $request->boolean('credit') && $request->input('payment_form') !== 'contado') {
                     $paid = collect($request->input('payments', []))->sum(fn ($p) => (float) ($p['value'] ?? 0));
                     if (abs($paid - $total) > 0.009) {
                         $fail('El total de las formas de pago debe ser igual al total del documento');

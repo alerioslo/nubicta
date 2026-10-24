@@ -109,7 +109,8 @@ class LookupController extends Controller
         $doc = ($purchases ? PurchaseDocument::class : SalesDocument::class)::query()->findOrFail($id);
 
         return response()->json(collect(\App\Services\Documents\DocumentLocator::payload($doc))
-            ->only(['contact_id', 'contact_label', 'person_id', 'seller_id', 'cost_center_id', 'credit', 'due_date', 'payments']));
+            ->only(['contact_id', 'contact_label', 'person_id', 'seller_id', 'cost_center_id', 'credit', 'due_date', 'payments'])
+            ->merge(['principal' => $doc->principal, 'payment_form' => $doc->payment_form])->all());
     }
 
     public function documentItems(Request $request, int $id): JsonResponse
@@ -125,6 +126,7 @@ class LookupController extends Controller
             'label' => trim(($i->code ? "{$i->code} - " : '').$i->description),
             'description' => $i->description, 'quantity' => (float) $i->quantity, 'price' => (float) $i->price, 'discount' => (float) $i->discount,
             'tax_id' => $i->tax_percentage > 0 ? $taxes->first(fn ($t) => abs((float) $t->percentage - (float) $i->tax_percentage) < 0.01)?->id : null,
+            'role' => $i->role ?? null, 'tax_code' => $i->tax_code ?? null, 'free' => ! $i->product_id && ! ($i->account_id ?? null),
         ]));
     }
 

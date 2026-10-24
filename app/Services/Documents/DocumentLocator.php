@@ -144,7 +144,8 @@ class DocumentLocator
             'supplier_invoice' => $sales ? null : (trim(($doc->supplier_prefix ?? '').'-'.($doc->supplier_number ?? ''), '-') ?: null),
             'seller' => $sales && $doc->seller_id ? DB::table('sellers')->where('id', $doc->seller_id)->value('name') : null,
             'items' => $items->map(fn ($i) => [
-                'code' => $i->code, 'description' => $i->description, 'quantity' => (float) $i->quantity, 'price' => (float) $i->price,
+                'code' => $i->code, 'description' => $i->description, 'role' => $i->role ?? null, 'tax_code' => $i->tax_code ?? null,
+                'quantity' => (float) $i->quantity, 'price' => (float) $i->price,
                 'discount' => (float) $i->discount, 'subtotal' => (float) $i->subtotal, 'tax_total' => (float) $i->tax_total, 'total' => (float) $i->total,
                 'taxes' => ($taxes[$i->id] ?? collect())->map(fn ($t) => "{$t->name} ".number_format((float) $t->value, 2))->implode(', '),
                 'unit' => $units[$i->product_id] ?? null, 'warehouse' => $warehouses[$i->warehouse_id] ?? null,
@@ -158,7 +159,7 @@ class DocumentLocator
                 'rate' => (float) $rate, 'base' => (float) $g->sum(fn ($t) => $bases[$t->$fk]->subtotal ?? 0), 'value' => (float) $g->sum('value'),
             ])->sortByDesc('rate')->values(),
             // Se imprime "Efectivo" en todas las formas de pago y agrega el vencimiento en las de crédito.
-            'payments' => $payments->map(fn ($p) => ['name' => $p->name, 'value' => (float) $p->value, 'due_date' => $p->due_date, 'form' => 'Efectivo']),
+            'payments' => $payments->map(fn ($p) => ['name' => $p->name, 'value' => (float) $p->value, 'due_date' => $p->due_date, 'form' => ($sales && $doc->payment_form === 'contado') ? 'Contado' : 'Efectivo']),
             'number_label' => $sales && $doc->prefix ? "{$doc->prefix} {$doc->number}" : null,
             'created' => ['by' => $doc->created_by ? DB::table('users')->where('id', $doc->created_by)->value('name')
                     : ($sales && in_array($doc->type, ['CT', 'RM'], true) && $doc->seller_id ? DB::table('sellers')->where('id', $doc->seller_id)->value('name') : null),
@@ -207,7 +208,10 @@ class DocumentLocator
                 'phone' => $contact ? trim('('.($contact->phone_indicative ?: '000').') '.($contact->phone ?: $contact->mobile).' - Ext. '.($contact->phone_extension ?: '000')) : null,
                 'city' => $contact?->city ? "{$contact->city} - Colombia" : null,
             ],
-            'related_doc' => $related ? ['label' => $related->prefix ? "{$related->prefix}-{$related->number}" : $related->name, 'cufe' => $related->cufe] : null,
+            'related_doc' => $related ? ['label' => $related->prefix ? "{$related->prefix}-{$related->number}" : $related->name, 'cufe' => $related->cufe]
+                : ($doc->external_invoice ? ['label' => $doc->external_invoice['numero'] ?? '', 'cufe' => $doc->external_invoice['cufe'] ?? ''] : null),
+            'principal' => $doc->principal,
+            'payment_form' => $doc->payment_form,
             'type_code' => DB::table('document_types')->where('id', $doc->document_type_id)->value('code'),
             'issued_at' => $doc->created_at?->format('d/m/Y, H:i'),
             'words' => self::words((float) $doc->total),

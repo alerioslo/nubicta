@@ -97,6 +97,18 @@ return [
             ]],
         ],
     ],
+    'mandato' => [
+        'title' => 'Cuentas de mandato',
+        'notice' => 'Estas cuentas se usan cuando una factura o una nota crédito trae líneas del mandante, un ajuste sin impuesto o un contado ya pagado. No se reemplazan por las cuentas de venta. Si falta alguna y el documento la necesita, no se guarda ni se envía a la DIAN.',
+        'sections' => [
+            ['title' => 'Cuentas de mandato', 'fields' => [
+                ['key' => 'bridge', 'label' => 'Puente de recaudo', 'type' => 'text', 'help' => 'Código PUC. Débito del total cuando la forma de pago es contado ya pagado.'],
+                ['key' => 'liability', 'label' => 'Pasivo de mandato', 'type' => 'text', 'help' => 'Código PUC. Crédito del valor de las líneas del mandante, sin IVA.'],
+                ['key' => 'vat', 'label' => 'IVA de mandato', 'type' => 'text', 'help' => 'Código PUC. Distinta de la cuenta de IVA propio.'],
+                ['key' => 'adjustment', 'label' => 'Ajuste sin impuesto', 'type' => 'text', 'help' => 'Código PUC de ingreso o gasto. Recibe el valor de la línea ZZ, también si es negativo.'],
+            ]],
+        ],
+    ],
     'api' => [
         'title' => 'Credenciales de integración a plataformas digitales (API)',
         'notice' => 'Credenciales para que otras plataformas (tienda en línea, punto de venta, CRM) consulten y creen información en el ERP: terceros, productos, existencias, facturas electrónicas, notas, compras, recibos, comprobantes, reportes y webhooks. Envía la llave en la cabecera "Authorization: Bearer <llave>" a /api/v1; la llave actúa con los permisos del usuario que la genera. Deja las IPs vacías para permitir cualquier origen.',

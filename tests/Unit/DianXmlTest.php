@@ -244,6 +244,55 @@ class DianXmlTest extends TestCase
         return $xp;
     }
 
+    public function test_mandate_invoice_uses_profile_11_roles_and_zz(): void
+    {
+        $d = $this->invoice();
+        $d['customization'] = '11';
+        $d['payment'] = ['id' => '1', 'code' => '1', 'due_date' => '2026-10-14', 'show_due' => true];
+        $d['lines'] = [
+            ['code' => 'INT', 'description' => 'Internet', 'quantity' => 1, 'price' => 100000, 'discount' => 0, 'base' => 100000, 'unit' => '94',
+                'scheme_id' => '1', 'provider' => ['id_type' => '31', 'id' => '900111222', 'dv' => '1'],
+                'taxes' => [['code' => '01', 'name' => 'IVA', 'percent' => 19, 'base' => 100000, 'amount' => 19000]]],
+            ['code' => 'MAN', 'description' => 'Mantenimiento', 'quantity' => 1, 'price' => 20000, 'discount' => 0, 'base' => 20000, 'unit' => '94',
+                'scheme_id' => '0', 'taxes' => [['code' => '01', 'name' => 'IVA', 'percent' => 19, 'base' => 20000, 'amount' => 3800]]],
+            ['code' => 'AJU', 'description' => 'Ajuste', 'quantity' => 1, 'price' => -50, 'discount' => 0, 'base' => -50, 'unit' => '94',
+                'scheme_id' => '0', 'taxes' => [['code' => 'ZZ', 'name' => 'No aplica', 'percent' => 0, 'base' => -50, 'amount' => 0]]],
+        ];
+        $d['taxes'] = [['code' => '01', 'name' => 'IVA', 'percent' => 19, 'base' => 120000, 'amount' => 22800]];
+        $d['totals'] = ['line_extension' => 119950, 'tax_exclusive' => 120000, 'tax_inclusive' => 142750, 'payable' => 142750];
+
+        $xml = (new UblBuilder)->build($d)['xml'];
+
+        $this->assertStringContainsString('<cbc:CustomizationID>11</cbc:CustomizationID>', $xml);
+        $this->assertStringContainsString('<cbc:ID schemeID="1">1</cbc:ID>', $xml);
+        $this->assertStringContainsString('<cbc:ID schemeID="0">2</cbc:ID>', $xml);
+        $this->assertStringContainsString('<cac:InformationContentProviderParty>', $xml);
+        $this->assertSame(1, substr_count($xml, '<cac:InformationContentProviderParty>'));
+        $this->assertStringContainsString('schemeName="31"', $xml);
+        $this->assertStringContainsString('>900111222</cbc:ID>', $xml);
+        $this->assertStringContainsString('<cbc:ID>ZZ</cbc:ID>', $xml);
+        $this->assertStringContainsString('<cbc:PaymentMeansCode>1</cbc:PaymentMeansCode>', $xml);
+        $this->assertStringContainsString('<cbc:PaymentDueDate>2026-10-14</cbc:PaymentDueDate>', $xml);
+        $this->assertStringContainsString('<cbc:LineExtensionAmount currencyID="COP">119950.00</cbc:LineExtensionAmount>', $xml);
+        $this->assertStringContainsString('<cbc:TaxExclusiveAmount currencyID="COP">120000.00</cbc:TaxExclusiveAmount>', $xml);
+        $this->assertStringContainsString('<cbc:PayableAmount currencyID="COP">142750.00</cbc:PayableAmount>', $xml);
+        $this->assertStringNotContainsString('<cbc:CustomizationID>10</cbc:CustomizationID>', $xml);
+    }
+
+    public function test_credit_note_stays_on_profile_20_with_external_invoice(): void
+    {
+        $d = ['kind' => 'NC'] + $this->invoice();
+        $d['reference'] = ['number' => 'FE123', 'key' => 'abc123', 'date' => '2026-10-01'];
+        $d['lines'][0]['scheme_id'] = '1';
+        $d['lines'][0]['provider'] = ['id_type' => '31', 'id' => '900111222', 'dv' => '1'];
+
+        $xml = (new UblBuilder)->build($d)['xml'];
+
+        $this->assertStringContainsString('<cbc:CustomizationID>20</cbc:CustomizationID>', $xml);
+        $this->assertStringContainsString('<cbc:ID>FE123</cbc:ID>', $xml);
+        $this->assertStringContainsString('>abc123</cbc:UUID>', $xml);
+    }
+
     private function invoice(): array
     {
         $party = fn (string $id, string $name) => [

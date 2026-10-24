@@ -29,6 +29,7 @@ class Webhooks
         'factura.anulada' => 'Se anuló una factura de venta.',
         'factura.dian' => 'Cambió el estado DIAN de una factura (aceptada, rechazada...).',
         'nota_credito.creada' => 'Se elaboró una nota crédito.',
+        'nota_credito.dian' => 'Cambió el estado DIAN de una nota crédito (aceptada o rechazada).',
         'nota_debito.creada' => 'Se elaboró una nota débito.',
         'cotizacion.creada' => 'Se elaboró una cotización.',
         'compra.creada' => 'Se registró una factura de compra.',
@@ -60,6 +61,9 @@ class Webhooks
             }
             if ($m->type === 'FV' && $m->wasChanged('dian_status') && in_array($m->dian_status, ['Accepted', 'Rejected'], true)) {
                 app(self::class)->fire('factura.dian', $m);
+            }
+            if ($m->type === 'NC' && $m->wasChanged('dian_status') && in_array($m->dian_status, ['Accepted', 'Rejected'], true)) {
+                app(self::class)->fire('nota_credito.dian', $m);
             }
         });
         PurchaseDocument::created(fn ($m) => app(self::class)->fire(['FC' => 'compra.creada', 'DS' => 'documento_soporte.creado'][$m->type] ?? null, $m));

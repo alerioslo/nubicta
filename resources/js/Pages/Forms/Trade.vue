@@ -23,7 +23,8 @@ const CONTACT_COLUMNS = [['name', 'Nombre completo'], ['identification', 'Identi
 const PAYMENT_COLUMNS = [['name', 'Nombre'], ['account', 'Cuenta contable']];
 const RANGES = [['0', 'Hoy'], ['15', 'a 15 días'], ['30', 'a 30 días'], ['45', 'a 45 días'], ['60', 'a 60 días'], ['90', 'a 90 días'], ['120', 'a 120 días'], ['360', 'a 360 días']];
 
-const blankItem = () => ({ type: 'Producto', item_id: null, label: '', description: '', quantity: 1, price: 0, discount: 0, tax_id: null, withholding_id: null, prices: null, unit: '', stock: null, stock_control: false });
+const blankItem = () => ({ type: 'Producto', item_id: null, label: '', description: '', quantity: 1, price: 0, discount: 0, tax_id: null, withholding_id: null, prices: null, unit: '', stock: null, stock_control: false, role: 'mandatario', free: false, tax_code: null });
+const blankPrincipal = () => ({ contact_id: null, label: '', identificacion: '', dv: '', nombre: '', ciudad: '', codigo_ciudad: '', regimen: '', correo: '', direccion: '', logo_url: '', telefono: '', whatsapp: '', sitio: '', atencion: '', cuentas: '' });
 const blankPayment = () => ({ method_id: null, label: '', value: 0, range: '0', due_date: null });
 const defaultType = props.docTypes.length === 1 || !f.purchase ? ((f.dian_reason && props.docTypes.find((t) => t.electronic)) || props.docTypes[0])?.id ?? null : null;
 
@@ -39,6 +40,11 @@ const doc = useForm({
     checks: Object.fromEntries((f.checks ?? []).map((c) => [c, false])),
     header_text: '', footer_text: '', observations: '',
     items: [blankItem()],
+    mandate: false,
+    payment_form: '',
+    principal: blankPrincipal(),
+    use_external: false,
+    external_invoice: { numero: '', cufe: '', fecha: '' },
     credit: false,
     payments: [blankPayment()],
     summary_retentions: Object.fromEntries((f.retentions ?? []).map((r) => [r, null])),
@@ -66,9 +72,14 @@ const currentType = computed(() => props.docTypes.find((d) => d.id === doc.docum
 const partyLabel = computed(() => (f.party === 'proveedor' ? (f.related || f.classic ? 'Proveedor' : 'Proveedores') : (['RM', 'ND'].includes(f.doc) ? 'Clientes' : 'Cliente')));
 const taxById = (id, list) => list.find((t) => t.id === id);
 
+const mandateDoc = computed(() => f.doc === 'FV' || f.doc === 'NC');
 function lineCalc(i) {
     const gross = Number(i.quantity || 0) * Number(i.price || 0);
     const disc = percentDiscount.value ? (gross * Number(i.discount || 0)) / 100 : Number(i.discount || 0);
+    if (i.tax_code === 'ZZ') {
+        const net = gross - disc;
+        return { gross, disc, base: round(net), tax: 0, charge: null, wh: null, withholding: 0 };
+    }
     const charge = taxById(i.tax_id, props.charges);
     const rate = rateOf(charge);
     const net = gross - disc;
@@ -98,7 +109,7 @@ const totals = computed(() => {
     const charges = group('charge').filter((c) => c.value > 0);
     const withholdings = group('wh').filter((w) => w.value > 0);
     const net = subtotal + sum('tax') - sum('withholding') - summary.reduce((a, s) => a + s.value, 0);
-    const paid = f.credit_toggle && doc.credit ? net : doc.payments.reduce((a, p) => a + Number(p.value || 0), 0);
+    const paid = doc.payment_form === 'contado' || (f.credit_toggle && doc.credit) ? net : doc.payments.reduce((a, p) => a + Number(p.value || 0), 0);
 
     return { gross: sum('gross'), disc: sum('disc'), subtotal, charges, withholdings, summary, net: round(net), paid: round(paid) };
 });
@@ -173,6 +184,12 @@ async function pickRelated(d) {
         sellerLabel.value = seller.name;
     }
     if ('cost_center_id' in head && head.cost_center_id) doc.cost_center_id = head.cost_center_id;
+    if (head.principal) {
+        doc.mandate = true;
+        const cuentas = Array.isArray(head.principal.cuentas) ? head.principal.cuentas.map((c) => [c.banco, c.tipo, c.numero].filter(Boolean).join(';')).join('\n') : (head.principal.cuentas || '');
+        doc.principal = { ...blankPrincipal(), ...head.principal, cuentas };
+    }
+    if (head.payment_form === 'contado') doc.payment_form = 'contado';
     if (f.credit_toggle && head.credit) {
         doc.credit = true;
     } else if (head.payments?.length) {
@@ -180,7 +197,7 @@ async function pickRelated(d) {
         if (!doc.payments.length) doc.payments = [blankPayment()];
     }
     doc.items = items.length
-        ? items.map((i) => ({ ...blankItem(), type: i.type, item_id: i.product_id ?? i.account_id, label: i.label, description: i.description, quantity: i.quantity, price: i.price, discount: i.discount, tax_id: i.tax_id }))
+        ? items.map((i) => ({ ...blankItem(), type: i.free ? 'Libre' : i.type, item_id: i.free ? null : (i.product_id ?? i.account_id), label: i.label, description: i.description, quantity: i.quantity, price: i.price, discount: i.discount, tax_id: i.tax_code === 'ZZ' ? null : i.tax_id, role: i.role || 'mandatario', free: !!i.free, tax_code: i.tax_code === 'ZZ' ? 'ZZ' : null }))
         : [blankItem()];
     if (sale) doc.items.push(blankItem());
 }
@@ -239,6 +256,34 @@ function leaveRows(e) {
 onMounted(() => document.addEventListener('pointerdown', leaveRows));
 onBeforeUnmount(() => document.removeEventListener('pointerdown', leaveRows));
 
+function setZz(row, on) {
+    row.tax_code = on ? 'ZZ' : null;
+    if (on) {
+        row.tax_id = null;
+        row.withholding_id = null;
+    }
+}
+
+function addFreeLine() {
+    const row = { ...blankItem(), free: true, type: 'Libre', role: doc.mandate ? 'mandante' : 'mandatario', description: '' };
+    const last = doc.items[doc.items.length - 1];
+    if (sale && last && !last.item_id && !last.free) doc.items.splice(doc.items.length - 1, 0, row);
+    else doc.items.push(row);
+    editing.value = doc.items.indexOf(row);
+}
+
+function pickPrincipal(c) {
+    if (!c) return;
+    doc.principal.identificacion = c.identification || '';
+    doc.principal.dv = c.dv ?? '';
+    doc.principal.nombre = c.name || '';
+    doc.principal.correo = c.email || '';
+    doc.principal.direccion = c.address || '';
+    doc.principal.telefono = c.phone || '';
+    doc.principal.codigo_ciudad = c.municipality_code || '';
+    doc.principal.regimen = c.vat_responsible ? 'Responsable de IVA' : 'No responsable de IVA';
+}
+
 function removeItem(idx) {
     doc.items.splice(idx, 1);
     if (!doc.items.length) doc.items.push(blankItem());
@@ -256,7 +301,7 @@ function saveTaxes() {
     taxModal.value.row.withholding_id = taxModal.value.withholding_id;
     taxModal.value = null;
 }
-const taxLabel = (row) => taxById(row.tax_id, props.charges)?.name ?? (row.item_id ? '0' : '');
+const taxLabel = (row) => (row.tax_code === 'ZZ' ? 'No aplica (ZZ)' : (taxById(row.tax_id, props.charges)?.name ?? (row.item_id || row.free ? '0' : '')));
 
 function pickPayment(p, m) {
     p.due_date = m?.credit ? addDays(doc.date || props.today, p.range || '0') : null;
@@ -284,11 +329,18 @@ async function submit(action) {
     doc.transform((d) => ({
         ...d,
         attachment: attachment.value,
-        items: d.items.filter((i) => i.item_id).map((i) => ({
+        payment_form: d.payment_form === 'contado' ? 'contado' : null,
+        principal: d.mandate ? d.principal : null,
+        external_invoice: d.use_external ? d.external_invoice : null,
+        related_id: d.use_external ? null : d.related_id,
+        items: d.items.filter((i) => i.item_id || i.free).map((i) => ({
             ...i,
-            product_id: i.type === 'Producto' ? i.item_id : null,
-            account_id: i.type === 'Cuenta contable' ? i.item_id : null,
-            fixed_asset_id: i.type === 'Activo fijo' ? i.item_id : null,
+            product_id: i.free || i.type !== 'Producto' ? null : i.item_id,
+            account_id: !i.free && i.type === 'Cuenta contable' ? i.item_id : null,
+            fixed_asset_id: !i.free && i.type === 'Activo fijo' ? i.item_id : null,
+            role: d.mandate ? (i.role || 'mandatario') : null,
+            tax_code: i.tax_code === 'ZZ' ? 'ZZ' : null,
+            free: i.free ? true : null,
         })),
     })).post(f.url, { preserveScroll: true });
 }
@@ -307,6 +359,7 @@ async function submit(action) {
         <div :class="f.classic ? 'px-[14px] pt-[8px]' : 'doc-body'">
             <div class="flex items-center gap-[12px]">
                 <h1 class="doc-title">{{ f.title }}</h1>
+                <label v-if="mandateDoc" class="flex items-center gap-[6px] text-[12px]"><input v-model="doc.mandate" type="checkbox" /> Facturar por mandato</label>
                 <a v-if="f.logo || f.doc === 'NC'" href="/ayuda#ventas" target="_blank" class="rounded-[2px] border border-[#ccc] px-[8px] py-[1px] text-[10px] text-primary hover:underline">Ver tutoriales</a>
             </div>
             <div v-if="f.classic" class="mt-[14px] flex justify-end gap-[8px]">
@@ -321,7 +374,15 @@ async function submit(action) {
                 <div class="flex flex-col gap-[10px]">
                     <div v-if="f.related" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
                         <span class="doc-label">{{ f.related_label }}</span>
-                        <DocSearch v-model="doc.related_id" v-model:label="doc.related_label" :url="`/api/buscar/documentos?modulo=${f.related}`" @pick="pickRelated" />
+                        <div>
+                            <DocSearch v-if="!doc.use_external" v-model="doc.related_id" v-model:label="doc.related_label" :url="`/api/buscar/documentos?modulo=${f.related}`" @pick="pickRelated" />
+                            <div v-else class="grid gap-[4px]">
+                                <input v-model="doc.external_invoice.numero" class="doc-input" placeholder="Número de la factura" />
+                                <input v-model="doc.external_invoice.cufe" class="doc-input" placeholder="CUFE" />
+                                <input v-model="doc.external_invoice.fecha" type="date" class="doc-input w-[150px]" />
+                            </div>
+                            <label v-if="f.doc === 'NC'" class="mt-[4px] flex items-center gap-[4px] text-[11px]"><input v-model="doc.use_external" type="checkbox" /> Factura de otro sistema</label>
+                        </div>
                         <p v-if="doc.errors.related_id" class="col-start-2 text-[10px] text-danger">{{ doc.errors.related_id }}</p>
                     </div>
                     <div class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
@@ -429,6 +490,23 @@ async function submit(action) {
                 </div>
             </div>
 
+            <div v-if="doc.mandate" class="mt-[18px] grid grid-cols-2 gap-x-[24px] gap-y-[8px] rounded-[2px] border border-[#d7e3ea] bg-[#f7fbfd] p-[12px] text-[11.5px]">
+                <p class="col-span-2 text-[12px] font-semibold">Mandante</p>
+                <DocSearch v-model="doc.principal.contact_id" v-model:label="doc.principal.label" url="/api/buscar/terceros" :columns="CONTACT_COLUMNS" placeholder="Elegir un tercero" @pick="pickPrincipal" />
+                <input v-model="doc.principal.identificacion" class="doc-input" placeholder="NIT" />
+                <input v-model="doc.principal.nombre" class="doc-input" placeholder="Nombre" />
+                <input v-model="doc.principal.ciudad" class="doc-input" placeholder="Ciudad" />
+                <input v-model="doc.principal.regimen" class="doc-input" placeholder="Régimen" />
+                <input v-model="doc.principal.correo" class="doc-input" placeholder="Correo" />
+                <input v-model="doc.principal.direccion" class="doc-input col-span-2" placeholder="Dirección" />
+                <input v-model="doc.principal.logo_url" class="doc-input" placeholder="Logo (URL, solo PDF)" />
+                <input v-model="doc.principal.telefono" class="doc-input" placeholder="Teléfono (solo PDF)" />
+                <input v-model="doc.principal.whatsapp" class="doc-input" placeholder="WhatsApp (solo PDF)" />
+                <input v-model="doc.principal.sitio" class="doc-input" placeholder="Sitio (solo PDF)" />
+                <textarea v-model="doc.principal.atencion" rows="2" class="doc-input col-span-2 h-auto py-[4px]" placeholder="Atención al cliente (solo PDF)" />
+                <textarea v-model="doc.principal.cuentas" rows="2" class="doc-input col-span-2 h-auto py-[4px]" placeholder="Cuentas, una por línea: Banco; tipo; número" />
+            </div>
+
             <div v-if="f.header_text" class="mt-[18px]">
                 <p class="text-[15px] font-bold text-ink">{{ f.header_text }}</p>
                 <textarea v-model="doc.header_text" rows="3" class="doc-input mt-[4px] h-auto py-[4px]" />
@@ -440,6 +518,7 @@ async function submit(action) {
                     <thead>
                         <tr>
                             <th class="w-[14px]">#</th>
+                            <th v-if="doc.mandate" class="w-[78px]">De</th>
                             <th v-if="f.item_type" :class="f.classic ? 'w-[78px]' : 'w-[62px]'">Tipo</th>
                             <th :class="f.classic ? '' : 'w-[120px]'">{{ f.classic ? 'Ítem' : 'Producto' }}</th>
                             <th :class="{ 'w-[90px]': f.classic }">Descripción</th>
@@ -459,10 +538,11 @@ async function submit(action) {
                     <tbody>
                         <template v-for="(row, idx) in doc.items" :key="idx">
                             <!-- Linea terminada: se muestra como texto hasta que se vuelve a hacer clic. -->
-                            <tr v-if="sale && row.item_id && editing !== idx" class="cursor-pointer text-[11.5px]" :class="shortOf(row) ? 'bg-[#fdecec] hover:bg-[#fbdcdc]' : 'hover:bg-[#fafafa]'" @click="editing = idx">
+                            <tr v-if="sale && (row.item_id || row.free) && editing !== idx" class="cursor-pointer text-[11.5px]" :class="shortOf(row) ? 'bg-[#fdecec] hover:bg-[#fbdcdc]' : 'hover:bg-[#fafafa]'" @click="editing = idx">
                                 <td class="py-[6px] text-[11px]">{{ idx + 1 }}</td>
+                                <td v-if="doc.mandate">{{ row.role === 'mandante' ? 'ISP' : 'Empresa' }}</td>
                                 <td v-if="f.item_type">{{ row.type }}</td>
-                                <td>{{ row.label }}</td>
+                                <td>{{ row.free ? 'Línea libre' : row.label }}</td>
                                 <td>{{ row.description }}</td>
                                 <td class="text-right" :class="shortOf(row) && 'font-bold text-[#b26a00]'" :title="shortOf(row) ? `Producto sin saldo. Disponible: ${money(row.stock)}` : null">
                                     {{ money(row.quantity) }}
@@ -476,17 +556,24 @@ async function submit(action) {
                             </tr>
                             <tr v-else data-edit-row @focusin="editing = idx">
                                 <td class="pt-[6px] text-[11px]">{{ idx + 1 }}</td>
+                                <td v-if="doc.mandate">
+                                    <select v-model="row.role" class="doc-input px-[2px]">
+                                        <option value="mandante">ISP</option>
+                                        <option value="mandatario">Empresa</option>
+                                    </select>
+                                </td>
                                 <td v-if="f.item_type">
                                     <select v-model="row.type" class="doc-input px-[2px]" @change="row.item_id = null; row.label = ''">
                                         <option v-for="(label, t) in itemTypes" :key="t" :value="t">{{ label }}</option>
                                     </select>
                                 </td>
                                 <td>
-                                    <DocSearch v-model="row.item_id" v-model:label="row.label" :url="ITEM_URL[row.type]" :placeholder="sale && idx > 0 && !row.item_id ? 'Agregar otro ítem' : 'Buscar'"
+                                    <span v-if="row.free" class="text-[11px] text-[#666]">Línea libre</span>
+                                    <DocSearch v-else v-model="row.item_id" v-model:label="row.label" :url="ITEM_URL[row.type]" :placeholder="sale && idx > 0 && !row.item_id ? 'Agregar otro ítem' : 'Buscar'"
                                         :columns="sale && row.type === 'Producto' ? PRODUCT_COLUMNS : null" :create-url="sale && row.type === 'Producto' ? '/productos/crear' : ''"
                                         :display="sale && row.type === 'Producto' ? 'code' : 'label'" @pick="(i) => pickItem(row, idx, i)" />
                                 </td>
-                                <td><textarea v-model="row.description" rows="1" class="doc-input h-[25px] resize-y py-[3px]" :readonly="!f.purchase && !row.item_id" /></td>
+                                <td><textarea v-model="row.description" rows="1" class="doc-input h-[25px] resize-y py-[3px]" :readonly="!f.purchase && !row.item_id && !row.free" /></td>
                                 <td>
                                     <NumInput v-model="row.quantity" :class="{ 'is-invalid': shortOf(row) }" :title="shortOf(row) ? `Producto sin saldo. Disponible: ${money(row.stock)}` : null" />
                                     <p v-if="shortOf(row)" class="whitespace-nowrap text-[10px] text-[#b26a00]">Sin saldo (disp. {{ money(row.stock) }})</p>
@@ -502,7 +589,10 @@ async function submit(action) {
                                 </td>
                                 <td><NumInput v-model="row.discount" /></td>
                                 <template v-if="f.item_taxes">
-                                    <td><select v-model="row.tax_id" class="doc-input px-[1px]" @change="retax(row, row.tax_id)"><option :value="null"></option><option v-for="t in itemCharges" :key="t.id" :value="t.id">{{ t.name }}</option></select></td>
+                                    <td>
+                                        <select v-model="row.tax_id" class="doc-input px-[1px]" :disabled="row.tax_code === 'ZZ'" @change="retax(row, row.tax_id)"><option :value="null"></option><option v-for="t in itemCharges" :key="t.id" :value="t.id">{{ t.name }}</option></select>
+                                        <label v-if="mandateDoc" class="mt-[2px] flex items-center gap-[2px] text-[10px]"><input type="checkbox" :checked="row.tax_code === 'ZZ'" @change="setZz(row, $event.target.checked)" /> No aplica (ZZ)</label>
+                                    </td>
                                     <td v-if="f.classic"><input :value="money(lineCalc(row).base + lineCalc(row).tax)" readonly class="doc-input doc-num bg-[#f2f2f2]" /></td>
                                     <td><select v-model="row.withholding_id" class="doc-input px-[1px]"><option :value="null"></option><option v-for="t in itemWithholdings" :key="t.id" :value="t.id">{{ t.name }}</option></select></td>
                                 </template>
@@ -510,9 +600,10 @@ async function submit(action) {
                                     <div class="flex items-center gap-[4px]">
                                         <input :value="taxLabel(row)" readonly class="doc-input bg-[#f2f2f2]" />
                                         <button type="button" class="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-[#555] text-[10px] text-[#555]" title="Impuestos" @click="openTaxes(row)"><Icon icon="plus" /></button>
+                                        <label v-if="mandateDoc" class="flex items-center gap-[2px] text-[10px]"><input type="checkbox" :checked="row.tax_code === 'ZZ'" @change="setZz(row, $event.target.checked)" /> ZZ</label>
                                     </div>
                                 </td>
-                                <td><input :value="row.item_id || !sale ? money(sale ? lineCalc(row).base + lineCalc(row).tax : lineCalc(row).base) : ''" readonly class="doc-input doc-num" /></td>
+                                <td><input :value="row.item_id || row.free || !sale ? money(sale ? lineCalc(row).base + lineCalc(row).tax : lineCalc(row).base) : ''" readonly class="doc-input doc-num" /></td>
                                 <td v-if="f.classic" class="pt-[3px] text-center"><button v-if="idx === doc.items.length - 1" type="button" class="h-[18px] w-[18px] border border-[#999] bg-[#f4f4f4] text-[9px]" title="Agregar línea" @click="doc.items.push(blankItem())"><Icon icon="plus" /></button>
                                     <button v-else type="button" class="text-[12px] text-[#e57373]" title="Eliminar" @click="removeItem(idx)"><Icon icon="trash-can" /></button></td>
                                 <td v-else class="pt-[5px] text-center"><button type="button" class="text-[12px] text-[#e57373]" title="Eliminar" @click="removeItem(idx)"><Icon icon="trash-can" /></button></td>
@@ -526,6 +617,7 @@ async function submit(action) {
                         <div v-for="m in shortages" :key="m">{{ m }}</div>
                     </div>
                 </div>
+                <button v-if="mandateDoc" type="button" class="doc-link mt-[6px]" @click="addFreeLine()">+ Línea libre</button>
                 <p v-if="doc.errors.items" class="mt-[4px] text-[11px] text-danger">{{ doc.errors.items }}</p>
             </div>
 
@@ -534,13 +626,17 @@ async function submit(action) {
                 <div class="min-w-0">
                     <template v-if="f.payments">
                         <p class="doc-section border-b border-[#ccc] pb-[10px]">Formas de pago</p>
+                        <div v-if="f.doc === 'FV'" class="flex items-center gap-[14px] border-b border-[#ccc] py-[6px] text-[11.5px]">
+                            <label class="flex items-center gap-[4px]"><input type="radio" :checked="doc.payment_form !== 'contado'" @change="doc.payment_form = ''" /> Formas de pago</label>
+                            <label class="flex items-center gap-[4px]"><input type="radio" :checked="doc.payment_form === 'contado'" @change="doc.payment_form = 'contado'; doc.credit = false" /> Contado, ya pagado</label>
+                        </div>
                         <div v-if="f.credit_toggle" class="flex items-center gap-[14px] border-b border-[#ccc] py-[6px] text-[11.5px]">
                             Método de pago:
                             <label class="flex items-center gap-[4px]"><input v-model="doc.credit" type="radio" :value="false" /> Contado</label>
                             <label class="flex items-center gap-[4px]"><input v-model="doc.credit" type="radio" :value="true" @change="doc.due_date ||= addDays(doc.date, 30)" /> Crédito</label>
                             <label v-if="doc.credit" class="ml-auto flex items-center gap-[6px]">Vence <input v-model="doc.due_date" type="date" class="doc-input w-[130px]" /></label>
                         </div>
-                        <div v-for="(p, idx) in (f.credit_toggle && doc.credit ? [] : doc.payments)" :key="idx" class="flex items-end justify-between gap-[10px] py-[8px]">
+                        <div v-for="(p, idx) in (doc.payment_form === 'contado' || (f.credit_toggle && doc.credit) ? [] : doc.payments)" :key="idx" class="flex items-end justify-between gap-[10px] py-[8px]">
                             <div class="flex items-end gap-[10px]">
                                 <DocSearch v-model="p.method_id" v-model:label="p.label" :options="paymentMethods" :columns="PAYMENT_COLUMNS" create-url="/configuracion/formas-pago/crear"
                                     placeholder="Selecciona forma de pago" class="w-[140px]" @pick="(m) => pickPayment(p, m)" />
@@ -559,7 +655,7 @@ async function submit(action) {
                                 <button type="button" class="text-[12px] text-[#e57373]" @click="doc.payments.length > 1 ? doc.payments.splice(idx, 1) : (doc.payments[0] = blankPayment())"><Icon icon="trash-can" /></button>
                             </div>
                         </div>
-                        <button v-if="!(f.credit_toggle && doc.credit)" type="button" class="doc-link border-t border-[#ccc] pt-[6px]" @click="doc.payments.push(blankPayment())">+Agregar otra forma de pago</button>
+                        <button v-if="doc.payment_form !== 'contado' && !(f.credit_toggle && doc.credit)" type="button" class="doc-link border-t border-[#ccc] pt-[6px]" @click="doc.payments.push(blankPayment())">+Agregar otra forma de pago</button>
                     </template>
                 </div>
                 <dl class="space-y-[9px] text-[12px]">

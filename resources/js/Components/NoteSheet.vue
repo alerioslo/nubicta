@@ -11,6 +11,11 @@ const money = (v) => Number(v || 0).toLocaleString('en-US', { minimumFractionDig
 const dots = (v) => String(v ?? '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 const nit = (id, dv) => (id ? dots(id) + (dv !== null && dv !== undefined && dv !== '' ? `-${dv}` : '') : '');
 const TITLES = { NC: ['Nota Crédito', 'Fecha Nota Crédito'], ND: ['Nota Débito', 'Fecha Nota Débito'] };
+const p = d.principal;
+const head = p ? {
+    logo: p.logo_url || c.logo, name: p.nombre, nit: p.identificacion, dv: p.dv, address: p.direccion, city: p.ciudad, phone: p.telefono,
+} : { logo: c.logo, name: c.trade_name || c.name, nit: c.nit_number, dv: c.dv, address: c.address, city: c.city, phone: c.phone };
+const roleLabel = (i) => (i.role === 'mandante' ? 'Mandante' : (i.role === 'mandatario' ? 'Mandatario' : ''));
 const [title, dateLabel] = TITLES[d.type] ?? [d.type_name, 'Fecha'];
 const due = (d.due_date ?? d.date ?? '').split('-').reverse().join('/');
 
@@ -23,13 +28,13 @@ onMounted(async () => {
     <article class="sheet">
         <p v-if="d.dian" class="side">{{ software }}</p>
         <header class="top">
-            <img v-if="c.logo" :src="c.logo" alt="" class="logo" />
+            <img v-if="head.logo" :src="head.logo" alt="" class="logo" />
             <div class="company">
-                <b>{{ c.trade_name || c.name }}</b>
-                <p>NIT {{ nit(c.nit_number, c.dv) }}</p>
-                <p>{{ c.address }}</p>
-                <p v-if="c.phone">Tel: ({{ c.phone }}) {{ c.phone2 || c.phone }}</p>
-                <p>{{ c.city }} - Colombia</p>
+                <b>{{ head.name }}</b>
+                <p>NIT {{ nit(head.nit, head.dv) }}</p>
+                <p>{{ head.address }}</p>
+                <p v-if="head.phone">Tel: ({{ head.phone }})</p>
+                <p v-if="head.city">{{ head.city }} - Colombia</p>
             </div>
             <img v-if="qr" :src="qr" alt="QR DIAN" class="qr" />
             <div class="numbox">
@@ -37,6 +42,7 @@ onMounted(async () => {
                 <p class="b">No. {{ d.type_code }}&nbsp; {{ d.name.split('-').pop() }}</p>
             </div>
         </header>
+        <p v-if="p" class="mandate">Mandatario: {{ c.trade_name || c.name }} · NIT {{ nit(c.nit_number, c.dv) }}</p>
 
         <section v-if="d.status === 'annulled'" class="annul">DOCUMENTO ANULADO</section>
 
@@ -58,7 +64,7 @@ onMounted(async () => {
         <table class="box items">
             <thead><tr><th class="w-i">Ítem</th><th>Descripción</th><th class="w-q">Cantidad</th><th class="w-t">Vr. Total</th></tr></thead>
             <tbody>
-                <tr v-for="(i, k) in d.items" :key="k"><td class="c">{{ k + 1 }}</td><td>{{ i.description }}</td><td class="r">{{ money(i.quantity) }}</td><td class="r">{{ money(i.total) }}</td></tr>
+                <tr v-for="(i, k) in d.items" :key="k"><td class="c">{{ k + 1 }}</td><td>{{ i.description }}<div v-if="roleLabel(i)" class="role">{{ roleLabel(i) }}</div></td><td class="r">{{ money(i.quantity) }}</td><td class="r">{{ money(i.total) }}</td></tr>
             </tbody>
         </table>
         <p class="count"><b>Total items:</b> {{ d.items.length }}</p>
@@ -79,6 +85,8 @@ onMounted(async () => {
             </table>
         </div>
 
+        <p v-if="p?.atencion" class="obs"><b>Atención:</b> {{ p.atencion }}</p>
+        <p v-for="(cta, k) in (p?.cuentas || [])" :key="k" class="obs">{{ [cta.banco, cta.tipo, cta.numero].filter(Boolean).join(' · ') }}</p>
         <p class="obs"><b>Observaciones:</b> {{ d.observations }}</p>
         <div class="codes">
             <p v-if="d.dian?.cufe"><b>CUDE:</b> {{ d.dian.cufe }}</p>
@@ -89,6 +97,8 @@ onMounted(async () => {
 
 <style scoped>
 .sheet { position: relative; width: 980px; margin: 0 auto 30px; background: #fff; padding: 22px 26px 26px 10px; font: 11px/1.4 Arial, Helvetica, sans-serif; color: #222; }
+.mandate { text-align: center; font-weight: bold; margin: 6px 0; }
+.role { font-size: 10px; color: #555; }
 .side { position: absolute; right: 2px; top: 40px; writing-mode: vertical-rl; transform: rotate(180deg); font-size: 8px; color: #333; white-space: nowrap; }
 .top { display: flex; align-items: flex-start; gap: 18px; padding-left: 90px; min-height: 120px; }
 .logo { max-height: 100px; max-width: 210px; object-fit: contain; margin-top: 18px; }

@@ -66,6 +66,9 @@ final class ApiPresenter
             'documento_relacionado' => $d->related_document_id ? ['id' => $d->related_document_id, 'numero' => $d->related_name] : null, 'motivo' => $d->reason,
             'subtotal' => (float) $d->subtotal, 'descuento' => (float) $d->discount, 'impuestos' => (float) $d->tax_total, 'retenciones' => (float) $d->withholding_total,
             'total' => (float) $d->total, 'saldo' => (float) $d->balance, 'observaciones' => $d->observations,
+            'referencia_externa' => $d->external_reference, 'forma_pago' => $d->payment_form === 'contado' ? 'contado' : null,
+            'mandante' => $d->principal ? ['identificacion' => $d->principal['identificacion'] ?? null, 'nombre' => $d->principal['nombre'] ?? null] : null,
+            'factura_externa' => $d->external_invoice,
             'estado' => $d->status === 'annulled' ? 'anulado' : 'emitido', 'cufe' => $d->cufe, 'estado_dian' => $d->dian_status, 'mensaje_dian' => $d->dian_message,
             'estado_correo' => $d->mail_status, 'creado' => $d->created_at?->toIso8601String(), 'actualizado' => $d->updated_at?->toIso8601String(),
         ];
@@ -74,6 +77,7 @@ final class ApiPresenter
                 'producto_id' => $i->product_id, 'codigo' => $i->code, 'descripcion' => $i->description, 'cantidad' => (float) $i->quantity, 'precio' => (float) $i->price,
                 'descuento' => (float) $i->discount, 'subtotal' => (float) $i->subtotal, 'impuestos' => (float) $i->tax_total, 'porcentaje_impuesto' => (float) $i->tax_percentage,
                 'total' => (float) $i->total, 'bodega_id' => $i->warehouse_id, 'vendedor_id' => $i->seller_id,
+                'rol' => $i->role, 'impuesto' => $i->tax_code === 'ZZ' ? 'ZZ' : null,
             ]);
             $out['pagos'] = DB::table('sales_document_payments')->where('sales_document_id', $d->id)->get()
                 ->map(fn ($p) => ['forma_pago_id' => $p->payment_method_id, 'nombre' => $p->name, 'valor' => (float) $p->value, 'vencimiento' => $p->due_date])->values();

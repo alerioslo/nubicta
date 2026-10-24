@@ -51,6 +51,16 @@ class TradeRegistrar
             ? (int) Warehouse::query()->where('active', true)->whereKey((int) $data['warehouse_id'])->value('id') ?: null
             : null;
         $calc = $this->calculate($data, $purchase);
+        if (! $purchase) {
+            if (! empty($data['principal'])) {
+                $data['principal'] = Mandate::principal($data['principal']);
+            }
+            if (! empty($data['external_invoice'])) {
+                $data['external_invoice'] = Mandate::externalInvoice($data['external_invoice']);
+                $data['related_name'] = $data['related_name'] ?? $data['external_invoice']['numero'];
+            }
+            Mandate::assertReady($kind, $type, $calc['lines'], $data);
+        }
         $related = $this->related($form, $data, $purchase);
 
         $payments = $this->payments($form, $data, $calc['total'], $purchase, $contact);
@@ -96,7 +106,15 @@ class TradeRegistrar
         $checks = (array) ($data['checks'] ?? []);
         $percent = ! $purchase || ! empty($checks['Descuento en porcentaje']);
         $included = ! empty($checks['IVA / Impoconsumo incluido']) || ! empty($checks['Impuestos cargo incluidos']);
-        $items = collect($data['items'] ?? [])->filter(fn ($i) => ($i['product_id'] ?? $i['account_id'] ?? $i['fixed_asset_id'] ?? null) && (float) ($i['quantity'] ?? 0) > 0)->values();
+        $items = collect($data['items'] ?? [])->filter(function ($i) {
+            if ((float) ($i['quantity'] ?? 0) <= 0) {
+                return false;
+            }
+
+            return ($i['product_id'] ?? $i['account_id'] ?? $i['fixed_asset_id'] ?? null)
+                || ! empty($i['free'])
+                || in_array($i['role'] ?? '', ['mandante', 'mandatario'], true);
+        })->values();
         $taxIds = $items->pluck('tax_id')->merge($items->pluck('withholding_id'))->merge(array_values((array) ($data['summary_retentions'] ?? [])))->filter()->unique();
         $taxes = Tax::query()->whereIn('id', $taxIds)->get()->keyBy('id');
         $products = Product::query()->with('accountGroup')->whereIn('id', $items->pluck('product_id')->filter())->get()->keyBy('id');
@@ -108,18 +126,33 @@ class TradeRegistrar
             $price = (float) ($item['price'] ?? 0);
             $gross = $qty * $price;
             $disc = $percent ? $gross * (float) ($item['discount'] ?? 0) / 100 : (float) ($item['discount'] ?? 0);
-            $charge = $taxes->get($item['tax_id'] ?? 0);
+            $zz = ($item['tax_code'] ?? null) === 'ZZ';
+            if ($zz && ! empty($item['tax_id'])) {
+                throw ValidationException::withMessages(['items' => 'Una línea con impuesto ZZ no lleva impuesto_id.']);
+            }
+            if ($price < 0 && ! $zz) {
+                throw ValidationException::withMessages(['items' => 'El precio negativo solo se permite en una línea con impuesto ZZ.']);
+            }
+            $charge = $zz ? null : $taxes->get($item['tax_id'] ?? 0);
             $rate = $charge ? (float) $charge->percentage / 100 : 0;
-            [$base, $total] = self::split($gross - $disc, $rate, $included);
-            $wh = $taxes->get($item['withholding_id'] ?? 0);
+            [$base, $total] = self::split($gross - $disc, $rate, $included && ! $zz);
+            $wh = $zz ? null : $taxes->get($item['withholding_id'] ?? 0);
             $product = $products->get($item['product_id'] ?? 0);
+            $type = ! empty($item['product_id']) ? 'Product' : (! empty($item['fixed_asset_id']) ? 'FixedAsset' : (! empty($item['account_id']) ? 'Account' : 'Free'));
+            $description = trim((string) ($item['description'] ?? '')) ?: ($product?->name ?? '');
+            if ($type === 'Free' && $description === '') {
+                throw ValidationException::withMessages(['items' => 'La línea libre necesita descripción, cantidad y precio.']);
+            }
             $lines[] = [
                 'position' => $i + 1,
-                'type' => ! empty($item['product_id']) ? 'Product' : (! empty($item['fixed_asset_id']) ? 'FixedAsset' : 'Account'),
+                'type' => $type,
+                'role' => in_array($item['role'] ?? '', ['mandante', 'mandatario'], true) ? $item['role'] : null,
+                'tax_code' => $zz ? 'ZZ' : null,
+                'code' => isset($item['code']) ? mb_substr((string) $item['code'], 0, 40) : null,
                 'product' => $product,
                 'account_id' => ! empty($item['account_id']) ? (int) $item['account_id'] : null,
                 'asset' => $assets->get($item['fixed_asset_id'] ?? 0),
-                'description' => trim((string) ($item['description'] ?? '')) ?: ($product?->name ?? ''),
+                'description' => $description,
                 'quantity' => $qty,
                 'price' => $price,
                 'discount' => round($disc, 2),
@@ -173,6 +206,9 @@ class TradeRegistrar
     /** @return list<array{method:?PaymentMethod, account_id:int, name:string, value:float, credit:bool, due_date:?string}> */
     private function payments(array $form, array $data, float $total, bool $purchase, Contact $contact): array
     {
+        if (($data['payment_form'] ?? null) === 'contado') {
+            return [['method' => null, 'account_id' => Mandate::id('bridge'), 'name' => 'Contado', 'value' => $total, 'credit' => false, 'due_date' => substr((string) $data['date'], 0, 10)]];
+        }
         if (empty($form['payments'])) {
             return [];
         }
@@ -223,7 +259,10 @@ class TradeRegistrar
             'contact_person_id' => $this->person($contact, $data['person_id'] ?? null),
             'price_list_id' => ! empty($data['price_list_id']) ? (int) $data['price_list_id'] : $contact->price_list_id,
             'seller_id' => $data['seller_id'] ?? null, 'cost_center_id' => $data['cost_center_id'] ?? null,
-            'related_document_id' => $related?->id, 'related_name' => $related?->name, 'reason' => $data['reason'] ?? null,
+            'related_document_id' => $related?->id, 'related_name' => $related?->name ?? ($data['related_name'] ?? null), 'reason' => $data['reason'] ?? null,
+            'external_reference' => $data['external_reference'] ?? null, 'request_hash' => $data['request_hash'] ?? null,
+            'payment_form' => ($data['payment_form'] ?? null) === 'contado' ? 'contado' : null,
+            'principal' => $data['principal'] ?? null, 'external_invoice' => $data['external_invoice'] ?? null,
             'currency' => 'COP', 'exchange_rate' => 1,
             'subtotal' => $calc['subtotal'], 'discount' => $calc['discount'], 'tax_total' => $calc['tax_total'],
             'withholding_total' => $calc['withholding_total'], 'total' => $calc['total'],
@@ -258,7 +297,7 @@ class TradeRegistrar
         foreach ($calc['lines'] as $l) {
             $common = [
                 'position' => $l['position'], 'product_id' => $l['product']?->id,
-                'code' => $l['product']?->code ?? ($l['asset']?->code ?? ($l['account_id'] ? $this->accounts->code($l['account_id']) : null)),
+                'code' => $l['product']?->code ?? ($l['asset']?->code ?? ($l['account_id'] ? $this->accounts->code($l['account_id']) : ($l['code'] ?: ($l['type'] === 'Free' ? 'LIBRE' : null)))),
                 'description' => $l['description'], 'warehouse_id' => $l['product'] ? $warehouse : null,
                 'quantity' => $l['quantity'], 'price' => $l['price'], 'discount' => $l['discount'], 'subtotal' => $l['base'],
                 'tax_total' => $l['tax'], 'total' => round($l['base'] + $l['tax'], 2), 'tax_percentage' => $l['charge']?->percentage,
@@ -270,7 +309,10 @@ class TradeRegistrar
                 $taxTable = 'purchase_document_item_taxes';
                 $fk = 'purchase_document_item_id';
             } else {
-                $item = $doc->items()->create($common + ['seller_id' => $data['seller_id'] ?? null, 'unit_cost' => (float) ($l['product']?->average_cost ?? 0)]);
+                $item = $doc->items()->create($common + [
+                    'seller_id' => $data['seller_id'] ?? null, 'unit_cost' => (float) ($l['product']?->average_cost ?? 0),
+                    'role' => $l['role'] ?? null, 'tax_code' => $l['tax_code'] ?? null,
+                ]);
                 $taxTable = 'sales_document_item_taxes';
                 $fk = 'sales_document_item_id';
             }
@@ -324,6 +366,9 @@ class TradeRegistrar
         }
         $concept = DocumentType::TYPES[$kind] ?? $kind;
         foreach ($calc['lines'] as $idx => $l) {
+            if (($l['role'] ?? null) === 'mandante' || ($l['type'] ?? null) === 'Free') {
+                continue;
+            }
             $p = $l['product'];
             if ($p?->type === 'Combo') {
                 $costs[$idx] = $this->moveCombo($p, $sign * $l['quantity'], $concept, $date, $doc, $kind);
@@ -385,6 +430,25 @@ class TradeRegistrar
                 }
                 if ($l['withholding']) {
                     $put($this->accounts->tax($l['withholding'], true), $l['withholding_value'], false);
+                }
+
+                continue;
+            }
+            if (($l['tax_code'] ?? null) === 'ZZ') {
+                $put(Mandate::id('adjustment'), $l['base'], false);
+
+                continue;
+            }
+            if (($l['role'] ?? null) === 'mandante') {
+                $put(Mandate::id('liability'), $l['base'] + $l['discount_base'], false);
+                if ($l['discount_base'] > 0) {
+                    $put($this->accounts->default('sales_discounts'), $l['discount_base'], true);
+                }
+                if ($l['charge']) {
+                    $put(Mandate::id('vat'), $l['tax'], false);
+                }
+                if ($l['withholding']) {
+                    $put($this->accounts->tax($l['withholding'], false), $l['withholding_value'], true);
                 }
 
                 continue;

@@ -10,6 +10,8 @@ use App\Services\Dian\DianService;
 use App\Services\Documents\DocumentMailer;
 use App\Services\Documents\DocumentReverser;
 use App\Services\Documents\DocumentShare;
+use App\Services\Documents\Mandate;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -49,7 +51,17 @@ class SalesApiController extends ApiBaseController
     public function store(Request $request, string $clase): JsonResponse
     {
         $this->authorizeApi('ventas.crear');
-        [$doc, $dian] = $this->save($request, $clase);
+        if ($replay = $this->replay($request, $clase)) {
+            return $replay;
+        }
+        try {
+            [$doc, $dian] = $this->save($request, $clase);
+        } catch (UniqueConstraintViolationException) {
+            if ($replay = $this->replay($request, $clase)) {
+                return $replay;
+            }
+            throw ValidationException::withMessages(['referencia_externa' => 'Ya existe un documento con esa referencia externa.']);
+        }
 
         return response()->json(['mensaje' => "Se creó {$doc->name}.", 'dian' => $dian, 'data' => ApiPresenter::sale($doc->fresh(['items', 'contact']), true)], 201);
     }
@@ -162,7 +174,13 @@ class SalesApiController extends ApiBaseController
         $data = $this->tradeData($input, $kind['doc'], false);
         $data['document_type'] = $current?->document_type_id ?? $this->documentType($input, $kind['doc']);
         if (in_array($kind['doc'], ['NC', 'ND'], true)) {
-            $data += $this->correction($input, $kind, $data['document_type']);
+            $data = array_merge($data, $this->correction($input, $kind, $data['document_type'], $data));
+        }
+        if (in_array($kind['doc'], ['FV', 'NC'], true) && filled($input['referencia_externa'] ?? null)) {
+            $data['external_reference'] = trim((string) $input['referencia_externa']);
+            $data['request_hash'] = Mandate::requestHash($input);
+        } elseif (filled($input['referencia_externa'] ?? null)) {
+            throw ValidationException::withMessages(['referencia_externa' => 'La referencia externa solo aplica a facturas y notas crédito.']);
         }
         $doc = $this->registerTrade($kind['form'], $data, $current);
         if ($request->boolean('enviar_correo') && ! DocumentType::query()->find($doc->document_type_id)?->isElectronic() && DocumentMailer::configured() && $doc->contact?->email) {
@@ -173,28 +191,85 @@ class SalesApiController extends ApiBaseController
     }
 
     /** Factura que corrige la nota y motivo DIAN, con las mismas reglas de la pantalla. */
-    private function correction(array $input, array $kind, int|string|null $typeId): array
+    private function correction(array $input, array $kind, int|string|null $typeId, array $data): array
     {
         $reasons = $kind['doc'] === 'NC' ? CorrectionConcepts::NC : CorrectionConcepts::ND;
         $motivo = (string) ($input['motivo'] ?? '');
         if (! array_key_exists($motivo, $reasons)) {
             throw ValidationException::withMessages(['motivo' => 'Indica el motivo DIAN: '.collect($reasons)->map(fn ($v, $k) => "$k = $v")->implode('; ').'.']);
         }
+        $external = is_array($input['factura_externa'] ?? null) ? $input['factura_externa'] : null;
+        if ($external && $kind['doc'] !== 'NC') {
+            throw ValidationException::withMessages(['factura_externa' => 'La factura externa solo aplica a la nota crédito.']);
+        }
+        if ($external && (! empty($input['factura_id']) || ! empty($input['factura']))) {
+            throw ValidationException::withMessages(['factura_externa' => 'Indica la factura del sistema o una factura externa, no las dos.']);
+        }
         $invoice = null;
         if (! empty($input['factura_id']) || ! empty($input['factura'])) {
-            $invoice = SalesDocument::query()->where('type', 'FV')
+            $invoice = SalesDocument::query()->where('type', 'FV')->with('items')
                 ->when(! empty($input['factura_id']), fn ($q) => $q->whereKey((int) $input['factura_id']), fn ($q) => $q->where('name', $input['factura']))->first()
                 ?? throw ValidationException::withMessages(['factura_id' => 'No existe la factura indicada.']);
         }
         $type = is_int($typeId) ? DocumentType::query()->find($typeId) : null;
-        if ($type?->isElectronic() && ! $invoice) {
-            throw ValidationException::withMessages(['factura_id' => "La {$kind['label']} electrónica debe indicar la factura que corrige (\"factura_id\" o \"factura\": \"FV-1-25\")."]);
+        if ($type?->isElectronic() && ! $invoice && ! $external) {
+            throw ValidationException::withMessages(['factura_id' => "La {$kind['label']} electrónica debe indicar la factura que corrige (\"factura_id\" o \"factura\": \"FV-1-25\"), o \"factura_externa\" con número, CUFE y fecha."]);
         }
         if ($type && ! $type->isElectronic() && $invoice && filled($invoice->cufe)) {
             throw ValidationException::withMessages(['tipo_documento_id' => "La factura {$invoice->name} es electrónica: usa un tipo de {$kind['label']} electrónico."]);
         }
+        if ($invoice) {
+            $this->inheritMandate($data, $invoice, ! array_key_exists('mandante', $input));
+        }
 
-        return ['related_id' => $invoice?->id, 'reason' => $motivo];
+        return ['related_id' => $invoice?->id, 'reason' => $motivo, 'external_invoice' => $external, 'items' => $data['items'], 'principal' => $data['principal'] ?? null];
+    }
+
+    /** Si la nota no trae mandante ni roles, los toma de la factura guardada aquí. */
+    private function inheritMandate(array &$data, SalesDocument $invoice, bool $copyPrincipal): void
+    {
+        if ($copyPrincipal && empty($data['principal']) && $invoice->principal) {
+            $data['principal'] = $invoice->principal;
+        }
+        $source = $invoice->items->sortBy('position')->values();
+        foreach ($data['items'] as $i => &$item) {
+            if (! empty($item['role_given'])) {
+                continue;
+            }
+            $match = $source[$i] ?? $source->first(fn ($s) => $s->description === ($item['description'] ?? ''));
+            if ($match?->role) {
+                $item['role'] = $match->role;
+            }
+        }
+        unset($item);
+    }
+
+    /** La misma referencia externa devuelve el documento ya guardado, o 409 si el cuerpo cambió. */
+    private function replay(Request $request, string $clase): ?JsonResponse
+    {
+        $kind = self::KINDS[$clase]['doc'];
+        $ref = trim((string) $request->input('referencia_externa', ''));
+        if ($ref === '' || ! in_array($kind, ['FV', 'NC'], true)) {
+            return null;
+        }
+        $existing = SalesDocument::query()->where('type', $kind)->where('external_reference', $ref)->first();
+        if (! $existing) {
+            return null;
+        }
+        if (! hash_equals((string) $existing->request_hash, Mandate::requestHash($request->all()))) {
+            return response()->json(['message' => 'Ya existe un documento con esa referencia externa y otro contenido.'], 409);
+        }
+        $dian = null;
+        if ($existing->dian_status && $existing->dian_status !== 'Accepted') {
+            $dian = app(DocumentFormController::class)->emit($existing);
+            $existing->refresh();
+        }
+
+        return response()->json([
+            'mensaje' => "El documento {$existing->name} ya estaba registrado.",
+            'dian' => $dian,
+            'data' => ApiPresenter::sale($existing->fresh(['items', 'contact']), true),
+        ]);
     }
 
     private function dianState(SalesDocument $doc): array
@@ -230,6 +305,7 @@ class SalesApiController extends ApiBaseController
             ->when($request->filled('estado_dian'), fn ($q) => $q->where('dian_status', $request->input('estado_dian')))
             ->when($request->boolean('con_saldo'), fn ($q) => $q->where('balance', '>', 0)->where('status', '!=', 'annulled'))
             ->when($request->filled('creado_desde'), fn ($q) => $q->where('created_at', '>=', $request->input('creado_desde')))
-            ->when($request->filled('actualizado_desde'), fn ($q) => $q->where('updated_at', '>=', $request->input('actualizado_desde')));
+            ->when($request->filled('actualizado_desde'), fn ($q) => $q->where('updated_at', '>=', $request->input('actualizado_desde')))
+            ->when($request->filled('referencia_externa'), fn ($q) => $q->where('external_reference', $request->input('referencia_externa')));
     }
 }

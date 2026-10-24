@@ -36,6 +36,9 @@ class UblBuilder
     public function build(array $d): array
     {
         [$root, $profile, $customization, $typeCode] = self::PROFILES[$d['kind']];
+        if (! empty($d['customization'])) {
+            $customization = $d['customization'];
+        }
         $key = $this->documentKey($d);
         $qr = $this->qr($d, $key);
         $isDs = in_array($d['kind'], ['DS', 'NA'], true);
@@ -92,7 +95,7 @@ class UblBuilder
         $x .= '<cac:AccountingCustomerParty>'.$this->party($d['customer'], false, ! $isDs).'</cac:AccountingCustomerParty>';
         $p = $d['payment'];
         $x .= '<cac:PaymentMeans>'.$this->el('cbc:ID', $p['id']).$this->el('cbc:PaymentMeansCode', $p['code'])
-            .($p['id'] === '2' && ! empty($p['due_date']) ? $this->el('cbc:PaymentDueDate', $p['due_date']) : '').'</cac:PaymentMeans>';
+            .((($p['id'] === '2' || ! empty($p['show_due'])) && ! empty($p['due_date'])) ? $this->el('cbc:PaymentDueDate', $p['due_date']) : '').'</cac:PaymentMeans>';
 
         $x .= $this->taxTotals($d['taxes'], 'TaxTotal', $d['currency']);
         $x .= $this->taxTotals($d['withholdings'], 'WithholdingTaxTotal', $d['currency']);
@@ -107,7 +110,7 @@ class UblBuilder
             .$this->amount('cbc:PayableAmount', $t['payable'], $d['currency']).'</cac:'.$totalTag.'>';
 
         foreach ($d['lines'] as $i => $l) {
-            $x .= '<cac:'.$lineTag.'>'.$this->el('cbc:ID', $i + 1)
+            $x .= '<cac:'.$lineTag.'>'.'<cbc:ID'.(isset($l['scheme_id']) ? ' schemeID="'.$l['scheme_id'].'"' : '').'>'.($i + 1).'</cbc:ID>'
                 .'<cbc:'.$qtyTag.' unitCode="'.($l['unit'] ?? '94').'">'.$this->num($l['quantity'], 6).'</cbc:'.$qtyTag.'>'
                 .$this->amount('cbc:LineExtensionAmount', $l['base'], $d['currency']);
             if ($isDs && $d['kind'] === 'DS') {
@@ -120,6 +123,7 @@ class UblBuilder
             }
             $x .= $this->taxTotals($l['taxes'], 'TaxTotal', $d['currency']);
             $x .= '<cac:Item>'.$this->el('cbc:Description', $l['description'])
+                .(! empty($l['provider']) ? $this->providerParty($l['provider']) : '')
                 .'<cac:StandardItemIdentification><cbc:ID schemeID="999" schemeName="Estándar de adopción del contribuyente">'.$this->e($l['code']).'</cbc:ID></cac:StandardItemIdentification></cac:Item>';
             $x .= '<cac:Price>'.$this->amount('cbc:PriceAmount', $l['price'], $d['currency']).'<cbc:BaseQuantity unitCode="'.($l['unit'] ?? '94').'">'.$this->num($l['quantity'], 6).'</cbc:BaseQuantity></cac:Price>';
             $x .= '</cac:'.$lineTag.'>';
@@ -165,6 +169,19 @@ class UblBuilder
     {
         return $prefix.str_pad(preg_replace('/\D/', '', $nit), 10, '0', STR_PAD_LEFT).'000'.substr((string) ($year ?? now()->year), -2)
             .str_pad(strtolower(dechex($sequence % 0xFFFFFFFF)), 8, '0', STR_PAD_LEFT);
+    }
+
+    /** Mandante dentro del ítem: NIT con DV, otro documento sin schemeID. */
+    private function providerParty(array $p): string
+    {
+        $attrs = ' '.self::DIAN.' schemeName="'.$this->e($p['id_type']).'"';
+        if (($p['id_type'] ?? '') === '31' && filled($p['dv'] ?? null)) {
+            $attrs .= ' schemeID="'.$this->e((string) $p['dv']).'"';
+        }
+        $id = '<cbc:ID'.$attrs.'>'.$this->e($p['id']).'</cbc:ID>';
+
+        return '<cac:InformationContentProviderParty><cac:PowerOfAttorney><cac:AgentParty><cac:PartyIdentification>'.$id
+            .'</cac:PartyIdentification></cac:AgentParty></cac:PowerOfAttorney></cac:InformationContentProviderParty>';
     }
 
     private function party(array $p, bool $isDsSupplier, bool $withLocation): string

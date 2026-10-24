@@ -322,12 +322,19 @@ MD;
                     $this->q('numero', 'Número completo.', $example['numero']), $this->q('tipo_documento_id', 'Tipo de documento.', null, 'integer'),
                     $this->q('cliente_id', 'Id del cliente.', null, 'integer'), $this->q('identificacion', 'Identificación del cliente.', '900555123'),
                     $this->q('estado', 'emitido o anulado.', 'emitido'), $this->q('estado_dian', 'Draft, Pending, Accepted o Rejected.', 'Accepted'),
-                    $this->q('con_saldo', 'Solo con saldo pendiente por cobrar.', null, 'boolean'), ...$this->syncParams()],
+                    $this->q('con_saldo', 'Solo con saldo pendiente por cobrar.', null, 'boolean'),
+                    ...($slug === 'facturas' || $slug === 'notas-credito' ? [$this->q('referencia_externa', 'Referencia de quien llama la API.', 'pedido-10045')] : []),
+                    ...$this->syncParams()],
                 'responses' => ['200' => $this->json($this->paged('Venta'), ['data' => [array_diff_key($example, array_flip(['items', 'pagos', 'retenciones_detalle']))], 'pagina' => 1, 'por_pagina' => 50, 'total' => 1, 'paginas' => 1])],
             ]);
+            $createdResponses = ['201' => $this->json($this->ref('VentaCreada'), $created, ucfirst($label).' creada'), '422' => $this->r('Validacion')];
+            if (in_array($kind['doc'], ['FV', 'NC'], true)) {
+                $createdResponses['200'] = $this->json($this->ref('VentaCreada'), ['mensaje' => "El documento {$example['numero']} ya estaba registrado.", 'dian' => null, 'data' => $example], 'La misma referencia externa y el mismo cuerpo. No crea otro consecutivo ni reenvía si la DIAN ya aceptó.');
+                $createdResponses['409'] = $this->r('Conflicto');
+            }
             $this->op('post', $base, $tag, 'Crear '.$label, $this->saleCreateText($kind['doc']), [
                 'requestBody' => $this->body($note ? 'NotaEntrada' : 'VentaEntrada', $input),
-                'responses' => ['201' => $this->json($this->ref('VentaCreada'), $created, ucfirst($label).' creada'), '422' => $this->r('Validacion')],
+                'responses' => $createdResponses,
             ]);
             $this->op('get', "$base/{id}", $tag, 'Ver '.$label, 'Detalle con ítems, formas de pago y retenciones.', [
                 'parameters' => [$this->id()], 'responses' => ['200' => $this->json($this->ref('Venta'), $example), '404' => $this->r('NoEncontrado')],
@@ -558,9 +565,15 @@ MD;
         return match ($doc) {
             'FV' => "Crea una factura de venta con la misma lógica de la pantalla: calcula impuestos y retenciones, contabiliza, descuenta inventario y registra la cartera.\n\n"
                 ."* **Cliente:** `cliente_id` o `cliente: {\"identificacion\": \"900555123\"}`.\n* **Ítems:** por `producto_id` o `codigo`. Si no envías `precio` se toma el de la lista de precios del cliente; si no envías `impuesto_id`, el IVA del producto. `descuento` es porcentaje.\n"
-                ."* **Pago:** `pagos` con las formas de pago (deben sumar el total) o `credito: true`. Sin pagos la factura queda a crédito con el plazo del cliente.\n"
+                ."* Una línea puede ir sin producto: envía `descripcion`, `cantidad` y `precio`. No mueve inventario ni costo.\n"
+                ."* **Mandato:** `mandante` (identificación y nombre; ciudad, régimen, correo y dirección si los tienes) y en cada ítem `rol`: `mandante` o `mandatario`. Si alguna línea es del mandante, la factura usa el perfil 11. Si todas son del mandatario, no envíes mandante: sigue en el perfil 10. Logo, teléfono, WhatsApp, sitio, atención y cuentas del mandante solo salen en el PDF.\n"
+                ."* **Impuesto ZZ:** `\"impuesto\": \"ZZ\"` sin `impuesto_id`. El precio puede ser de centavos y negativo. No se combina con otro impuesto.\n"
+                ."* **Pago:** `pagos` (deben sumar el total) o `credito: true`. Sin pagos queda a crédito. `\"forma_pago\": \"contado\"` es contado ya pagado: medio electrónico 1, vencimiento igual a la fecha, saldo cero y débito a la cuenta puente. No crea recibo de caja.\n"
+                ."* **Referencia externa:** `referencia_externa` (1 a 120 caracteres, única por empresa y tipo). La primera vez responde 201. La misma clave y el mismo cuerpo responde 200, sin otro consecutivo y sin reenviar si la DIAN ya aceptó. La misma clave con otro cuerpo responde 409. Si quedó rechazado o pendiente, la repetición reenvía con el mismo número. El listado acepta `?referencia_externa=`.\n"
+                ."* Si hay líneas de mandante y faltan las cuentas de mandato, responde 422 y no envía nada a la DIAN.\n"
                 .'* **DIAN:** si el tipo es electrónico se envía de inmediato; la respuesta trae el resultado en `dian`. Envía `"enviar_dian": false` para dejarla como borrador y enviarla luego con `POST /facturas/{id}/dian`.',
-            'NC' => 'Crea una nota crédito sobre una factura. Si es electrónica debe indicar la factura (`factura_id` o `factura` con el número, por ejemplo `FV-1-1201`) y el `motivo` DIAN. Los ítems devueltos vuelven al inventario.',
+            'NC' => "Crea una nota crédito. Si es electrónica indica la factura de este sistema (`factura_id` o `factura`, por ejemplo `FV-1-1201`) o `factura_externa` con `numero`, `cufe` y `fecha`. Las dos opciones no se combinan. Lleva `motivo` DIAN y puede ser parcial. Si la factura está aquí y el cuerpo no trae mandante, se copian el mandante y los roles. El perfil de la nota sigue en 20.\n\n"
+                ."Si el tipo electrónico no tiene resolución, rango o clave técnica, responde 422 y no consume consecutivo. `referencia_externa` y `forma_pago` se comportan como en la factura. El aviso `nota_credito.dian` se envía cuando la nota queda aceptada o rechazada.",
             'ND' => 'Crea una nota débito sobre una factura (intereses, gastos o mayor valor). Lleva `motivo` DIAN y, si es electrónica, la factura (`factura_id` o `factura`).',
             default => 'Crea una cotización. Usa los mismos campos que la factura, sin pagos; no mueve contabilidad ni inventario.',
         };
@@ -595,6 +608,8 @@ MD;
             'producto_id' => $s('integer', 'Id del producto (o usa `codigo`).', 15), 'codigo' => $s('string', 'Código del producto.', 'CAF-500'),
             'descripcion' => $s('string', 'Por defecto el nombre del producto.'), 'cantidad' => $s('number', '', 2), 'precio' => $s('number', 'Precio unitario; por defecto el de la lista de precios.', 18000),
             'descuento' => $s('number', 'Porcentaje de descuento.', 0), 'impuesto_id' => $s('integer', 'IVA o impoconsumo; por defecto el del producto. `null` sin impuesto.', 1, ['nullable' => true]),
+            'impuesto' => $s('string', 'ZZ cuando la línea no causa impuesto. No se combina con impuesto_id. El precio puede ser negativo.', 'ZZ', ['enum' => ['ZZ']]),
+            'rol' => $s('string', 'En factura por mandato: mandante (del ISP) o mandatario (de la empresa).', 'mandatario', ['enum' => ['mandante', 'mandatario']]),
             'retencion_id' => $s('integer', 'Retención en la fuente del ítem.', null),
         ]];
         $sale = $common;
@@ -602,6 +617,15 @@ MD;
         $sale = ['cliente_id' => $s('integer', 'Id del cliente (o usa `cliente`).', 42), 'cliente' => $party('cliente')] + $sale + [
             'vendedor_id' => $s('integer', '', 2), 'lista_precio_id' => $s('integer', 'Lista para los precios por defecto; por defecto la del cliente.', 1),
             'enviar_dian' => $s('boolean', 'Enviar a la DIAN al crear si el tipo es electrónico.', true), 'enviar_correo' => $s('boolean', 'Enviar por correo al cliente (los electrónicos se envían al ser aceptados).', false),
+            'referencia_externa' => $s('string', 'Clave de idempotencia, única por empresa y tipo (factura o nota crédito).', 'pedido-10045'),
+            'forma_pago' => $s('string', 'contado: ya pagado, saldo cero, sin recibo de caja. Si se omite, queda el crédito de hoy.', 'contado', ['enum' => ['contado']]),
+            'mandante' => ['type' => 'object', 'description' => 'Obligatorio si hay una línea con rol mandante. Logo, teléfonos, sitio, atención y cuentas solo van al PDF.', 'properties' => [
+                'identificacion' => $s('string', 'NIT sin DV.', '900111222'), 'dv' => $s('string', '', '1'), 'tipo_documento' => $s('string', '31 si es NIT.', '31'),
+                'nombre' => $s('string', '', 'ISP Ejemplo S.A.S.'), 'ciudad' => $s('string', '', 'Bogotá, D.C.'), 'regimen' => $s('string', '', 'Responsable de IVA'),
+                'correo' => $s('string', '', 'facturacion@ispejemplo.test'), 'direccion' => $s('string', '', 'Calle 10 # 20-30'),
+                'logo_url' => $s('string'), 'telefono' => $s('string'), 'whatsapp' => $s('string'), 'sitio' => $s('string'), 'atencion' => $s('string', 'Texto de atención al cliente, solo en el PDF.'),
+                'cuentas' => ['type' => 'array', 'items' => $this->props(['banco' => 'string', 'tipo' => 'string', 'numero' => 'string'])],
+            ]],
         ];
         $purchaseItem = ['type' => 'object', 'required' => ['cantidad'], 'properties' => [
             'producto_id' => $s('integer', 'Producto (entra al inventario).', 15), 'codigo' => $s('string', 'Código del producto.', 'CAF-500'),
@@ -710,15 +734,21 @@ MD;
 
             'VentaEntrada' => ['type' => 'object', 'required' => ['fecha', 'items'], 'properties' => $sale],
             'NotaEntrada' => ['type' => 'object', 'required' => ['fecha', 'items', 'motivo'], 'properties' => [
-                'factura_id' => $s('integer', 'Factura que corrige (obligatoria si la nota es electrónica).', 1201), 'factura' => $s('string', 'Alternativa: número de la factura.', 'FV-1-1201'),
+                'factura_id' => $s('integer', 'Factura de este sistema. Excluyente con factura_externa.', 1201), 'factura' => $s('string', 'Alternativa: número de la factura.', 'FV-1-1201'),
+                'factura_externa' => ['type' => 'object', 'description' => 'Factura que no está en Nubicta. Excluyente con factura_id. Solo nota crédito.', 'properties' => [
+                    'numero' => $s('string', '', 'FE123'), 'cufe' => $s('string', '', 'a1b2c3d4e5f6'), 'fecha' => $s('string', '', '2026-10-01', ['format' => 'date']),
+                ]],
                 'motivo' => $s('string', 'Código del motivo DIAN (ver la tabla de motivos).', '1'),
             ] + $sale],
             'Venta' => $documentOut('cliente', [
                 'vendedor_id' => $s('integer'), 'centro_costo_id' => $s('integer'), 'lista_precio_id' => $s('integer'),
                 'documento_relacionado' => ['type' => 'object', 'nullable' => true, 'properties' => ['id' => $s('integer'), 'numero' => $s('string')]], 'motivo' => $s('string', '', null, ['nullable' => true]),
+                'referencia_externa' => $s('string', '', null, ['nullable' => true]), 'forma_pago' => $s('string', '', null, ['nullable' => true]),
+                'mandante' => ['type' => 'object', 'nullable' => true, 'properties' => ['identificacion' => $s('string'), 'nombre' => $s('string')]],
+                'factura_externa' => ['type' => 'object', 'nullable' => true, 'properties' => ['numero' => $s('string'), 'cufe' => $s('string'), 'fecha' => $s('string')]],
                 'cufe' => $s('string', '', null, ['nullable' => true]), 'estado_correo' => $s('string', '', null, ['nullable' => true]),
                 'items' => ['type' => 'array', 'items' => $this->props(['producto_id' => 'integer', 'codigo' => 'string', 'descripcion' => 'string', 'cantidad' => 'number', 'precio' => 'number', 'descuento' => 'number',
-                    'subtotal' => 'number', 'impuestos' => 'number', 'porcentaje_impuesto' => 'number', 'total' => 'number', 'bodega_id' => 'integer', 'vendedor_id' => 'integer'])],
+                    'subtotal' => 'number', 'impuestos' => 'number', 'porcentaje_impuesto' => 'number', 'total' => 'number', 'bodega_id' => 'integer', 'vendedor_id' => 'integer', 'rol' => 'string', 'impuesto' => 'string'])],
                 'pagos' => ['type' => 'array', 'items' => $this->props(['forma_pago_id' => 'integer', 'nombre' => 'string', 'valor' => 'number', 'vencimiento' => 'string'])],
                 'retenciones_detalle' => ['type' => 'array', 'items' => $this->props(['impuesto_id' => 'integer', 'nombre' => 'string', 'tipo' => 'string', 'porcentaje' => 'number', 'base' => 'number', 'valor' => 'number'])],
             ]),
