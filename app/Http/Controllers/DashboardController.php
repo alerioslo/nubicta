@@ -9,8 +9,14 @@ class DashboardController extends Controller
 {
     public function index(): Response
     {
+        $shortcuts = config('erp.shortcuts');
+        $electronic = \App\Models\DocumentType::query()->where('type', 'FV')->where('active', true)->where('electronic_type', '!=', 'NoElectronic')->exists();
+        if (! $electronic && isset($shortcuts[0])) {
+            $shortcuts[0]['label'] = 'Crea una factura de venta';
+        }
+
         return Inertia::render('Dashboard', [
-            'shortcuts' => config('erp.shortcuts'),
+            'shortcuts' => $shortcuts,
             'tabs' => IndicatorsController::homeTabs(),
         ]);
     }

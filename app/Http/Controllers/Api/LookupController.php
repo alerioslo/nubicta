@@ -57,7 +57,8 @@ class LookupController extends Controller
                     'id' => $p->id, 'code' => $p->code, 'name' => $p->name, 'label' => "{$p->code} - {$p->name}", 'kind' => $p->type,
                     'price' => $p->priceFor($list), 'prices' => $p->prices->mapWithKeys(fn ($x) => [$x->price_list_id => (float) $x->value]),
                     'stock' => (float) $p->stock, 'stock_control' => (bool) $p->stock_control, 'unit' => $p->unit_label, 'reference' => $p->reference ?? null,
-                    'status' => 'Activo', 'tax_included' => (bool) $p->tax_included, 'cost' => (float) $p->average_cost,
+                    'status' => 'Activo', 'tax_included' => (bool) $p->tax_included,
+                    'cost' => $request->user()?->can('inventario.ver_costos') ? (float) $p->average_cost : null,
                     'tax_id' => $p->taxes->first(fn ($t) => ! in_array($t->type, Tax::WITHHOLDINGS, true))?->id,
                     'withholding_id' => $p->taxes->first(fn ($t) => in_array($t->type, Tax::WITHHOLDINGS, true))?->id,
                     'components' => $p->comboItems->filter(fn ($c) => $c->product)->map(fn ($c) => [
@@ -84,6 +85,7 @@ class LookupController extends Controller
     public function documents(Request $request): JsonResponse
     {
         $purchases = $request->input('modulo') === 'compras';
+        \Illuminate\Support\Facades\Gate::authorize($purchases ? 'compras.ver' : 'ventas.ver');
         $model = $purchases ? PurchaseDocument::class : SalesDocument::class;
         $types = $purchases ? ['FC', 'DS'] : ['FV'];
         $term = trim((string) $request->input('q'));
@@ -106,6 +108,7 @@ class LookupController extends Controller
     public function documentHeader(Request $request, int $id): JsonResponse
     {
         $purchases = $request->input('modulo') === 'compras';
+        \Illuminate\Support\Facades\Gate::authorize($purchases ? 'compras.ver' : 'ventas.ver');
         $doc = ($purchases ? PurchaseDocument::class : SalesDocument::class)::query()->findOrFail($id);
 
         return response()->json(collect(\App\Services\Documents\DocumentLocator::payload($doc))
@@ -116,6 +119,7 @@ class LookupController extends Controller
     public function documentItems(Request $request, int $id): JsonResponse
     {
         $purchases = $request->input('modulo') === 'compras';
+        \Illuminate\Support\Facades\Gate::authorize($purchases ? 'compras.ver' : 'ventas.ver');
         $doc = ($purchases ? PurchaseDocument::class : SalesDocument::class)::query()->with('items')->findOrFail($id);
         $taxes = Tax::query()->where('active', true)->where('type', 'IVA')->get(['id', 'percentage']);
         $types = ['Product' => 'Producto', 'Account' => 'Cuenta contable', 'FixedAsset' => 'Activo fijo'];
@@ -134,6 +138,7 @@ class LookupController extends Controller
     public function pending(Request $request): JsonResponse
     {
         $purchases = $request->input('modulo') === 'compras';
+        \Illuminate\Support\Facades\Gate::authorize($purchases ? 'compras.ver' : 'ventas.ver');
         $model = $purchases ? PurchaseDocument::class : SalesDocument::class;
 
         return response()->json(

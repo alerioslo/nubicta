@@ -118,7 +118,7 @@ return [
         'ventas' => ['label' => 'Ventas', 'actions' => ['ver', 'crear', 'editar', 'anular', 'imprimir', 'exportar']],
         'compras' => ['label' => 'Compras y gastos', 'actions' => ['ver', 'crear', 'editar', 'anular', 'imprimir', 'exportar']],
         'terceros' => ['label' => 'Clientes, proveedores y otros', 'actions' => ['ver', 'crear', 'editar', 'eliminar', 'exportar']],
-        'inventario' => ['label' => 'Productos e inventario', 'actions' => ['ver', 'crear', 'editar', 'eliminar', 'exportar']],
+        'inventario' => ['label' => 'Productos e inventario', 'actions' => ['ver', 'ver_costos', 'crear', 'editar', 'eliminar', 'exportar']],
         'bancos' => ['label' => 'Cajas y bancos', 'actions' => ['ver', 'crear', 'editar', 'anular']],
         'nomina' => ['label' => 'Nómina', 'actions' => ['ver', 'crear', 'editar', 'liquidar', 'enviar_dian']],
         'contabilidad' => ['label' => 'Contabilidad', 'actions' => ['ver', 'crear', 'editar', 'anular', 'cerrar_periodo']],
@@ -128,7 +128,7 @@ return [
     ],
 
     'action_labels' => [
-        'ver' => 'Ver', 'crear' => 'Crear', 'editar' => 'Editar', 'anular' => 'Anular', 'eliminar' => 'Eliminar',
+        'ver' => 'Ver', 'ver_costos' => 'Ver costos', 'crear' => 'Crear', 'editar' => 'Editar', 'anular' => 'Anular', 'eliminar' => 'Eliminar',
         'imprimir' => 'Imprimir', 'exportar' => 'Exportar', 'liquidar' => 'Liquidar', 'enviar_dian' => 'Enviar a DIAN',
         'cerrar_periodo' => 'Cerrar periodo', 'empresa' => 'Datos de la empresa', 'usuarios' => 'Usuarios y perfiles',
         'parametros' => 'Parámetros', 'facturacion_electronica' => 'Facturación electrónica', 'auditoria' => 'Auditoría',

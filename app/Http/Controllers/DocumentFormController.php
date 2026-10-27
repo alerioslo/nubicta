@@ -218,6 +218,16 @@ class DocumentFormController extends Controller
     private function render(string $key, array $override = [], ?array $initial = null): Response
     {
         $form = self::FORMS[$key];
+        if (($form['doc'] ?? null) === 'FV') {
+            $types = DocumentType::query()->where('type', 'FV')->where('active', true)->get();
+            if ($types->isNotEmpty() && ! $types->contains(fn ($t) => $t->isElectronic())) {
+                $form['dian_banner'] = false;
+                $label = $types->first()->title ?: $types->first()->name;
+                if ($label && ! isset($override['title'])) {
+                    $form['title'] = 'Nuevo '.$label;
+                }
+            }
+        }
         if (($form['purchase'] ?? false) && ! ($form['classic'] ?? false)) {
             $form += [
                 'item_types' => ['Producto' => 'Producto', 'Activo fijo' => 'Activo fijo', 'Cuenta contable' => 'Gasto / Cuenta contable'],

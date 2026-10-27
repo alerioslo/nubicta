@@ -9,6 +9,7 @@ const props = defineProps({
     costYears: { type: Array, required: true },
     costs: { type: Array, required: true },
     showCosts: { type: Boolean, default: false },
+    canSeeCosts: { type: Boolean, default: false },
 });
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -42,7 +43,7 @@ const remove = async () => {
             <button type="button" class="s-btn border border-[#e5484d] bg-white text-[12px] text-[#e5484d]" @click="remove"><Icon icon="trash-can" /> Eliminar</button>
             <Link :href="`/productos/crear?copiar=${product.id}`" class="s-btn s-btn-outline text-[12px]"><Icon icon="copy" /> Duplicar</Link>
             <Link :href="`${base}/editar`" class="s-btn s-btn-outline text-[12px]"><Icon icon="pen" /> Editar</Link>
-            <button type="button" class="s-btn s-btn-outline text-[12px]" @click="drawer = true">Costo promedio</button>
+            <button v-if="canSeeCosts" type="button" class="s-btn s-btn-outline text-[12px]" @click="drawer = true">Costo promedio</button>
         </div>
     </div>
 

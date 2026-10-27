@@ -132,7 +132,7 @@ function logout() {
         </button>
         <Link href="/" class="mr-3 flex shrink-0 items-center md:mr-[36px]">
             <img v-if="company?.logo" :src="company.logo" alt="" class="h-[26px] max-w-[90px] object-contain md:h-[30px] md:max-w-[110px]" />
-            <span v-else class="text-[20px] font-extrabold tracking-tight text-primary md:text-[22px]">{{ (company?.name ?? company?.business_name)?.split(' ')[0] ?? 'ERP' }}</span>
+            <span v-else class="max-w-[180px] truncate text-[20px] font-extrabold tracking-tight text-primary md:max-w-[240px] md:text-[22px]">{{ company?.brand || (company?.name ?? company?.business_name)?.split(' ')[0] || 'ERP' }}</span>
         </Link>
         <span class="hidden truncate text-[15px] font-semibold sm:inline">{{ user?.name }}</span>
 

@@ -55,7 +55,7 @@ function upload(e) {
                         <span v-else class="item off" :title="d.blocker || 'Este comprobante no se puede editar'">Editar</span>
                         <button type="button" class="item" :class="{ off: d.blocker }" :disabled="!!d.blocker" :title="d.blocker" @click="annul">Anular</button>
                         <button type="button" class="item" :class="{ off: d.blocker }" :disabled="!!d.blocker" :title="d.blocker" @click="remove">Borrar</button>
-                        <button type="button" class="item" @click="showLedger = !showLedger; menu = false">{{ showLedger ? 'Ocultar contabilización' : 'Ver contabilización' }}</button>
+                        <button v-if="d.show_ledger !== false" type="button" class="item" @click="showLedger = !showLedger; menu = false">{{ showLedger ? 'Ocultar contabilización' : 'Ver contabilización' }}</button>
                         <Link v-if="d.copy_url" :href="d.copy_url" class="item">Copiar</Link>
                         <button v-if="d.favorite !== null" type="button" class="item" @click="favorite"><Icon v-if="d.favorite" icon="check" class="mr-[6px] text-[#43a047]" />Comprobante favorito</button>
                     </template>
@@ -73,7 +73,7 @@ function upload(e) {
 
         <div class="mt-[14px] border-y border-[#ddd] bg-white py-[10px]"><JournalSheet :doc="d" :company="company" /></div>
 
-        <section v-if="showLedger" class="s-card mt-[14px]">
+        <section v-if="showLedger && d.show_ledger !== false" class="s-card mt-[14px]">
             <h2 class="px-4 pt-3 text-[13px] font-bold">Contabilización</h2>
             <p v-if="!d.ledger.length" class="p-4 text-[12px] text-muted">Este comprobante no tiene movimientos en el libro auxiliar.</p>
             <table v-else class="s-table">
@@ -88,8 +88,8 @@ function upload(e) {
         <section v-if="d.movements?.length" class="s-card mt-[14px]">
             <h2 class="px-4 pt-3 text-[13px] font-bold">Movimientos de inventario</h2>
             <table class="s-table">
-                <thead><tr><th>Fecha</th><th>Producto</th><th>Bodega</th><th>Concepto</th><th class="text-right">Cantidad</th><th class="text-right">Costo unitario</th><th class="text-right">Saldo</th></tr></thead>
-                <tbody><tr v-for="(m, k) in d.movements" :key="k"><td>{{ m.date }}</td><td>{{ m.product }}</td><td>{{ m.warehouse }}</td><td>{{ m.concept }}</td><td class="text-right">{{ qty(m.quantity) }}</td><td class="text-right">{{ money(m.unit_cost) }}</td><td class="text-right">{{ qty(m.balance) }}</td></tr></tbody>
+                <thead><tr><th>Fecha</th><th>Producto</th><th>Bodega</th><th>Concepto</th><th class="text-right">Cantidad</th><th v-if="d.show_costs" class="text-right">Costo unitario</th><th class="text-right">Saldo</th></tr></thead>
+                <tbody><tr v-for="(m, k) in d.movements" :key="k"><td>{{ m.date }}</td><td>{{ m.product }}</td><td>{{ m.warehouse }}</td><td>{{ m.concept }}</td><td class="text-right">{{ qty(m.quantity) }}</td><td v-if="d.show_costs" class="text-right">{{ money(m.unit_cost) }}</td><td class="text-right">{{ qty(m.balance) }}</td></tr></tbody>
             </table>
         </section>
 

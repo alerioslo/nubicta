@@ -32,10 +32,11 @@ const upload = (e) => {
 };
 const showLedger = ref(false);
 const mailed = ['sent', 'read'].includes(d.mail_status);
+const simulated = !!d.dian?.simulated;
 const steps = computed(() => d.dian ? [
     { label: 'Documento guardado', ok: true },
-    { label: 'Enviado a la DIAN', ok: ['Sent', 'Accepted', 'Rejected'].includes(d.dian.status) },
-    { label: d.dian.status === 'Rejected' ? 'Rechazado por la DIAN' : 'Aprobado por la DIAN', ok: d.dian.status === 'Accepted', error: d.dian.status === 'Rejected' },
+    { label: simulated ? 'Simulado, no enviado a la DIAN' : 'Enviado a la DIAN', ok: simulated || ['Sent', 'Accepted', 'Rejected'].includes(d.dian.status) },
+    { label: simulated ? 'SIMULADO — no enviado a la DIAN' : (d.dian.status === 'Rejected' ? 'Rechazado por la DIAN' : 'Aprobado por la DIAN'), ok: d.dian.status === 'Accepted', error: d.dian.status === 'Rejected' && !simulated },
     { label: classic ? 'Enviado por email' : 'Enviado por Mail', ok: mailed, warn: !mailed },
 ] : []);
 const page = usePage();
@@ -88,7 +89,7 @@ const more = computed(() => [
     invoice && { label: 'Aplicar nota crédito', href: `/ventas/notas-credito/crear?factura=${d.id}` },
     invoice && { label: 'Aplicar nota débito', href: `/ventas/notas-debito/crear?factura=${d.id}` },
     electronic && !annulled && { label: 'Actualizar documento electrónico', run: refreshDian },
-    { label: showLedger.value ? 'Ocultar contabilización' : 'Ver contabilización', run: () => { showLedger.value = !showLedger.value; menu.value = ''; } },
+    d.show_ledger !== false && { label: showLedger.value ? 'Ocultar contabilización' : 'Ver contabilización', run: () => { showLedger.value = !showLedger.value; menu.value = ''; } },
     !annulled && { label: 'Anular', run: annul },
     { label: 'Eliminar', run: remove },
     !annulled && { label: 'Copiar enlace', run: copyLink },
@@ -226,6 +227,9 @@ async function sendMail() {
             </div>
         </div>
         <div v-if="annulled" class="mt-[10px] rounded-[2px] border border-[#e57373] bg-[#fdecea] px-4 py-2 text-[12px] text-[#c62828]">Documento anulado<span v-if="d.annulled_at"> el {{ d.annulled_at }}</span>.</div>
+        <div v-else-if="d.dian?.simulated" class="mt-[10px] flex items-center gap-[8px] rounded-[2px] border border-[#e6c200] bg-[#fff8e1] px-[14px] py-[8px] text-[12px] text-ink">
+            <Icon icon="triangle-exclamation" class="text-[#a86b00]" /> SIMULADO — no enviado a la DIAN. Este documento no existe ante la DIAN.
+        </div>
         <div v-else-if="d.dian?.status === 'Accepted' && mailed" class="mt-[10px] flex items-center gap-[8px] rounded-[2px] border border-[#7cb342] bg-[#f1f8e9] px-[14px] py-[8px] text-[12px] text-ink">
             <Icon icon="circle-check" class="text-[#43a047]" /> El documento electrónico fue aprobado por la DIAN y se envió con CUFE y QR a tu cliente de forma exitosa.
         </div>
@@ -291,7 +295,7 @@ async function sendMail() {
             </div>
         </template>
 
-        <section v-if="showLedger" class="s-card mt-[14px]">
+        <section v-if="showLedger && d.show_ledger !== false" class="s-card mt-[14px]">
             <h2 class="px-4 pt-3 text-[13px] font-bold">Contabilización</h2>
             <p v-if="!d.ledger.length" class="p-4 text-[12px] text-muted">{{ annulled ? 'El documento anulado no tiene contabilización.' : 'Este documento no genera contabilización.' }}</p>
             <table v-else class="s-table">
@@ -393,7 +397,7 @@ async function sendMail() {
         </table>
     </section>
 
-    <section class="s-card mt-[14px]">
+    <section v-if="d.show_ledger !== false" class="s-card mt-[14px]">
         <h2 class="px-4 pt-3 text-[13px] font-bold">Contabilización</h2>
         <p v-if="!d.ledger.length" class="p-4 text-[12px] text-muted">{{ annulled ? 'El documento anulado no tiene contabilización.' : 'Este documento no genera contabilización.' }}</p>
         <table v-else class="s-table">
@@ -408,8 +412,8 @@ async function sendMail() {
     <section v-if="d.movements.length" class="s-card mt-[14px]">
         <h2 class="px-4 pt-3 text-[13px] font-bold">Movimientos de inventario</h2>
         <table class="s-table">
-            <thead><tr><th>Fecha</th><th>Producto</th><th>Bodega</th><th>Concepto</th><th class="text-right">Cantidad</th><th class="text-right">Costo unitario</th><th class="text-right">Saldo</th></tr></thead>
-            <tbody><tr v-for="(m, k) in d.movements" :key="k"><td>{{ m.date }}</td><td>{{ m.product }}</td><td>{{ m.warehouse }}</td><td>{{ m.concept }}</td><td class="text-right">{{ qty(m.quantity) }}</td><td class="text-right">{{ money(m.unit_cost) }}</td><td class="text-right">{{ qty(m.balance) }}</td></tr></tbody>
+            <thead><tr><th>Fecha</th><th>Producto</th><th>Bodega</th><th>Concepto</th><th class="text-right">Cantidad</th><th v-if="d.show_costs" class="text-right">Costo unitario</th><th class="text-right">Saldo</th></tr></thead>
+            <tbody><tr v-for="(m, k) in d.movements" :key="k"><td>{{ m.date }}</td><td>{{ m.product }}</td><td>{{ m.warehouse }}</td><td>{{ m.concept }}</td><td class="text-right">{{ qty(m.quantity) }}</td><td v-if="d.show_costs" class="text-right">{{ money(m.unit_cost) }}</td><td class="text-right">{{ qty(m.balance) }}</td></tr></tbody>
         </table>
     </section>
     </template>

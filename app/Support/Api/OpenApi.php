@@ -573,7 +573,7 @@ MD;
                 ."* Si hay líneas de mandante y faltan las cuentas de mandato, responde 422 y no envía nada a la DIAN.\n"
                 .'* **DIAN:** si el tipo es electrónico se envía de inmediato; la respuesta trae el resultado en `dian`. Envía `"enviar_dian": false` para dejarla como borrador y enviarla luego con `POST /facturas/{id}/dian`.',
             'NC' => "Crea una nota crédito. Si es electrónica indica la factura de este sistema (`factura_id` o `factura`, por ejemplo `FV-1-1201`) o `factura_externa` con `numero`, `cufe` y `fecha`. Las dos opciones no se combinan. Lleva `motivo` DIAN y puede ser parcial. Si la factura está aquí y el cuerpo no trae mandante, se copian el mandante y los roles. El perfil de la nota sigue en 20.\n\n"
-                ."Si el tipo electrónico no tiene resolución, rango o clave técnica, responde 422 y no consume consecutivo. `referencia_externa` y `forma_pago` se comportan como en la factura. El aviso `nota_credito.dian` se envía cuando la nota queda aceptada o rechazada.",
+                ."`referencia_externa` y `forma_pago` se comportan como en la factura. El aviso `nota_credito.dian` se envía cuando la nota queda aceptada o rechazada.",
             'ND' => 'Crea una nota débito sobre una factura (intereses, gastos o mayor valor). Lleva `motivo` DIAN y, si es electrónica, la factura (`factura_id` o `factura`).',
             default => 'Crea una cotización. Usa los mismos campos que la factura, sin pagos; no mueve contabilidad ni inventario.',
         };

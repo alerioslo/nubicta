@@ -85,7 +85,8 @@ class DocumentLocator
             'date' => substr((string) $doc->date, 0, 10), 'due_date' => isset($doc->due_date) ? substr((string) $doc->due_date, 0, 10) : null,
             'contact' => $contact ? ['identification' => $contact->identification, 'dv' => $contact->dv, 'name' => $contact->name, 'address' => $contact->address, 'phone' => $contact->phone, 'email' => $contact->email] : null,
             'observations' => $doc->observations,
-            'type_name' => DB::table('document_types')->where('id', $doc->document_type_id)->value(DB::raw('coalesce(title, name)')),
+            'type_name' => ($typeRow = $doc->document_type_id ? DB::table('document_types')->where('id', $doc->document_type_id)->first(['title', 'name', 'print_format']) : null) ? ($typeRow->title ?: $typeRow->name) : null,
+            'print_format' => $typeRow?->print_format,
             'annulled_at' => $doc->annulled_at ? substr((string) $doc->annulled_at, 0, 16) : null,
             'attachments' => \App\Models\Attachment::listFor($doc),
         ];
@@ -108,9 +109,14 @@ class DocumentLocator
                 'concept' => $m->concept, 'quantity' => (float) $m->quantity, 'unit_cost' => (float) $m->unit_cost, 'balance' => (float) $m->balance_quantity]);
 
         $reverser = app(DocumentReverser::class);
+        $seeLedger = (bool) auth()->user()?->can('contabilidad.ver');
+        $seeCosts = (bool) auth()->user()?->can('inventario.ver_costos');
+        if (! $seeCosts) {
+            $movements = $movements->map(fn ($m) => [...$m, 'unit_cost' => null]);
+        }
 
         return $header + $body + [
-            'ledger' => $ledger, 'movements' => $movements,
+            'ledger' => $seeLedger ? $ledger : [], 'show_ledger' => $seeLedger, 'show_costs' => $seeCosts, 'movements' => $movements,
             'blocker' => $reverser->blocker($doc),
             'editable' => DocumentReverser::formKey($doc) !== null,
             'copy_url' => ($key = DocumentReverser::formKey($doc)) ? '/'.$key.'?copiar='.self::kind($doc).':'.$doc->id : null,
@@ -167,7 +173,7 @@ class DocumentLocator
             'retentions' => $retentions->map(fn ($r) => ['name' => $r->name, 'value' => (float) $r->value]),
             'totals' => ['subtotal' => (float) $doc->subtotal, 'discount' => (float) $doc->discount, 'tax' => (float) $doc->tax_total,
                 'withholding' => (float) $doc->withholding_total, 'total' => (float) $doc->total, 'balance' => (float) $doc->balance],
-            'dian' => $doc->dian_status ? ['status' => $doc->dian_status, 'cufe' => $sales ? $doc->cufe : ($doc->cuds ?? null), 'message' => $doc->dian_message,
+            'dian' => $doc->dian_status ? ['status' => $doc->dian_status, 'simulated' => (bool) DB::table('dian_transmissions')->where('company_id', $doc->company_id)->where($sales ? 'sales_document_id' : 'purchase_document_id', $doc->id)->orderByDesc('id')->value('simulated'), 'cufe' => $sales ? $doc->cufe : ($doc->cuds ?? null), 'message' => $doc->dian_message,
                 'xml' => $doc->xml_path ? true : false, 'response' => (bool) $doc->dian_response_path, 'attached' => (bool) $doc->attached_path,
                 'qr' => $sales ? ($doc->qr_data ?: ($doc->cufe ? 'https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey='.$doc->cufe : null)) : null] : null,
             'printable' => true,

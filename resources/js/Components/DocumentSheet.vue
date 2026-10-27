@@ -14,7 +14,9 @@ const qty = (v) => Number(v || 0).toLocaleString('en-US', { minimumFractionDigit
 const dots = (v) => String(v ?? '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 const nit = (id, dv) => (id ? dots(id) + (dv !== null && dv !== undefined && dv !== '' ? `-${dv}` : '') : '');
 const TITLES = { FV: 'Factura electrónica de venta', NC: 'Nota crédito electrónica', ND: 'Nota débito electrónica', CT: 'Cotización', RM: 'Remisión' };
-const title = (d.dian ? TITLES[d.type] : TITLES[d.type]?.replace(' electrónica', '')) ?? d.type_name;
+const title = d.dian ? (TITLES[d.type] ?? d.type_name) : (d.type_name || TITLES[d.type]?.replace(' electrónica', '') || d.type);
+const tirilla = d.print_format === 'Tirilla';
+const showTax = (d.items ?? []).some((i) => Number(i.tax_total) > 0);
 const paid = d.type === 'FV' && d.status !== 'annulled' && Number(d.totals.balance) === 0;
 const r = props.resolution;
 const ymd = (v) => String(v ?? '').slice(0, 10).replaceAll('-', '');
@@ -41,7 +43,7 @@ onMounted(async () => {
 <template>
     <NoteSheet v-if="d.type === 'NC'" :doc="d" :company="company" :software="software" />
     <QuoteSheet v-else-if="d.type === 'CT' || d.type === 'RM'" :doc="d" :company="company" />
-    <article v-else class="sheet">
+    <article v-else class="sheet" :class="{ tirilla }">
         <div v-if="paid" class="ribbon"><span>Pagada</span></div>
         <p v-if="d.dian" class="side">{{ software }}</p>
 
@@ -62,6 +64,7 @@ onMounted(async () => {
         <section class="title">
             <p>{{ title }}</p>
             <p>No. {{ d.number_label ?? d.name }}</p>
+            <p v-if="d.dian?.simulated" class="sim">SIMULADO — no enviado a la DIAN</p>
         </section>
         <section v-if="d.status === 'annulled'" class="annul">DOCUMENTO ANULADO</section>
 
@@ -77,12 +80,12 @@ onMounted(async () => {
 
         <table class="items">
             <thead>
-                <tr><th>Descripción</th><th class="w-um">Unidad de medida</th><th class="r w-n">Cant.</th><th class="r w-vu">Vr. Unitario</th><th class="r w-n">Valor Impto.Cargo</th><th class="r w-n">Vr. Total</th></tr>
+                <tr><th>Descripción</th><th class="w-um col-um">Unidad de medida</th><th class="r w-n">Cant.</th><th class="r w-vu">Vr. Unitario</th><th v-if="showTax" class="r w-n">Valor Impto.Cargo</th><th class="r w-n">Vr. Total</th></tr>
             </thead>
             <tbody>
                 <tr v-for="(i, k) in d.items" :key="k">
-                    <td>{{ i.description }}<div v-if="roleLabel(i)" class="role">{{ roleLabel(i) }}</div></td><td>{{ i.unit }}</td><td class="r">{{ qty(i.quantity) }}</td>
-                    <td class="r">{{ money(i.price) }}</td><td class="r">{{ money(i.tax_total) }}</td><td class="r">{{ money(i.total) }}</td>
+                    <td>{{ i.description }}<div v-if="roleLabel(i)" class="role">{{ roleLabel(i) }}</div></td><td class="col-um">{{ i.unit }}</td><td class="r">{{ qty(i.quantity) }}</td>
+                    <td class="r">{{ money(i.price) }}</td><td v-if="showTax" class="r">{{ money(i.tax_total) }}</td><td class="r">{{ money(i.total) }}</td>
                 </tr>
             </tbody>
         </table>
@@ -114,7 +117,7 @@ onMounted(async () => {
         <section class="block legal">
             <p v-if="d.observations" class="obs">{{ d.observations }}</p>
             <p>
-                <template v-if="d.type === 'FV'">A esta factura de venta aplican las normas relativas a la letra de cambio (artículo 5 Ley 1231 de 2008). Con esta el Comprador declara haber recibido real y materialmente las mercancías o prestación de servicios descritos en este título - Valor. </template>
+                <template v-if="d.dian && d.type === 'FV'">A esta factura de venta aplican las normas relativas a la letra de cambio (artículo 5 Ley 1231 de 2008). Con esta el Comprador declara haber recibido real y materialmente las mercancías o prestación de servicios descritos en este título - Valor. </template>
                 <b v-if="r?.resolution_number && d.dian">Número Autorización Electrónica {{ r.resolution_number }} aprobado en {{ ymd(r.resolution_date) }} prefijo {{ r.prefix }} desde el número {{ r.range_from }} al {{ r.range_to }}<template v-if="months"> Vigencia: {{ months }} Meses</template></b>
             </p>
             <p v-if="d.dian">{{ c.iva_responsible ? 'Responsable de IVA' : 'No responsable de IVA' }}<template v-if="c.ciiu"> - Actividad Económica {{ c.ciiu }}&nbsp; {{ c.ciiu_name }}</template> Tarifa</p>
@@ -180,10 +183,26 @@ onMounted(async () => {
     .info tr:last-child td { padding-bottom: 4px; }
     .items th { padding: 4px 1px 2px; font-size: 10px; line-height: 1.15; }
     .items td { padding: 1px; }
-    .w-um { width: 38px; } .w-n { width: 48px; } .w-vu { width: 52px; }
+    .col-um { display: none; }
+    .w-n { width: 48px; } .w-vu { width: 52px; }
     .sums { margin: 6px 0 8px; }
     .sums td:first-child { width: 30%; }
     .block { padding: 6px 0; }
     .legal { padding-bottom: 10px; }
 }
+.sheet.tirilla { width: 302px; margin: 0 auto 12px; padding: 2px 6px 10px 8px; font: 11px/1.3 Arial, Helvetica, sans-serif; color: #000; }
+.sheet.tirilla .ribbon, .sheet.tirilla .side, .sheet.tirilla .logo, .sheet.tirilla .col-um { display: none; }
+.sheet.tirilla .top { justify-content: space-between; min-height: 0; gap: 4px; }
+.sheet.tirilla .company { flex: 1; padding-top: 4px; text-align: left; }
+.sheet.tirilla .company b { font-size: 12px; }
+.sheet.tirilla .company p { margin: 0; }
+.sheet.tirilla .qr { position: static; width: 96px; height: 96px; }
+.sheet.tirilla .title { margin: 12px 0 6px; }
+.sheet.tirilla .info td:first-child { width: 36%; }
+.sheet.tirilla .items th { padding: 4px 1px 2px; font-size: 10px; }
+.sheet.tirilla .w-n { width: 48px; } .sheet.tirilla .w-vu { width: 52px; }
+.sheet.tirilla .sums { margin: 6px 0 8px; }
+.sheet.tirilla .sums td:first-child { width: 30%; }
+.sheet.tirilla .block { padding: 6px 0; }
+.sim { color: #a86b00; font-size: 12px; }
 </style>

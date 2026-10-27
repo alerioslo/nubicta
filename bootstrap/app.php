@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\HandleInertiaRequests;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -23,4 +24,18 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+        $exceptions->render(function (QueryException $e, Request $request) {
+            if (config('app.debug')) {
+                return null;
+            }
+            $message = 'No se pudo completar la operación. Revisa la configuración de la empresa.';
+            if ($request->header('X-Inertia')) {
+                return back()->with('error', $message);
+            }
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json(['message' => $message], 500);
+            }
+
+            return response($message, 500);
+        });
     })->create();

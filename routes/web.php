@@ -180,7 +180,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{product}', [ProductController::class, 'show'])->whereNumber('product');
         Route::get('/{product}/editar', [ProductController::class, 'edit'])->whereNumber('product');
         Route::put('/{product}', [ProductController::class, 'update'])->whereNumber('product')->middleware('can:inventario.editar');
-        Route::get('/{product}/kardex', [ProductController::class, 'kardex'])->whereNumber('product');
+        Route::get('/{product}/kardex', [ProductController::class, 'kardex'])->whereNumber('product')->middleware('can:inventario.ver_costos');
         Route::get('/siguiente-codigo/{line}', [ProductController::class, 'nextCode'])->whereNumber('line');
         Route::get('/combos', [ProductController::class, 'combos']);
         Route::post('/{product}/estado', [ProductController::class, 'toggle'])->whereNumber('product')->middleware('can:inventario.editar');
@@ -461,7 +461,7 @@ Route::middleware('auth')->group(function () {
     foreach (\App\Http\Controllers\ModuleViewController::processRoutes() as $uri) {
         Route::get('/'.$uri, [\App\Http\Controllers\ModuleViewController::class, 'processes'])->middleware('can:'.explode('/', $uri)[0].'.ver');
     }
-    Route::get('/productos/documentos/excel', [\App\Http\Controllers\ModuleViewController::class, 'excel'])->middleware('can:inventario.ver');
+    Route::get('/productos/documentos/excel', [\App\Http\Controllers\ModuleViewController::class, 'excel'])->middleware('can:inventario.ver_costos');
     Route::get('/ventas/remisiones/excel', [\App\Http\Controllers\ModuleViewController::class, 'excel'])->middleware('can:ventas.ver');
     Route::get('/ventas/cotizaciones/excel', [\App\Http\Controllers\ModuleViewController::class, 'excel'])->middleware('can:ventas.ver');
     foreach (\App\Http\Controllers\ModuleViewController::routes() as $uri) {

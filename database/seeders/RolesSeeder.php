@@ -22,16 +22,16 @@ class RolesSeeder extends Seeder
         Role::findOrCreate('Administrador', 'web');
 
         $profiles = [
-            'Vendedor' => ['ventas.ver', 'ventas.crear', 'ventas.imprimir', 'terceros.ver', 'terceros.crear', 'inventario.ver', 'movimientos.ver'],
+            'Vendedor' => ['ventas.ver', 'ventas.crear', 'ventas.imprimir', 'terceros.ver', 'terceros.crear', 'inventario.ver'],
             'Cajero' => ['ventas.ver', 'ventas.crear', 'ventas.imprimir', 'terceros.ver', 'terceros.crear', 'bancos.ver', 'inventario.ver'],
             'Contador' => [
                 'ventas.ver', 'ventas.exportar', 'compras.ver', 'compras.crear', 'compras.editar', 'compras.exportar',
-                'terceros.ver', 'terceros.crear', 'terceros.editar', 'inventario.ver', 'bancos.ver', 'bancos.crear',
+                'terceros.ver', 'terceros.crear', 'terceros.editar', 'inventario.ver', 'inventario.ver_costos', 'bancos.ver', 'bancos.crear',
                 'nomina.ver', 'nomina.crear', 'nomina.liquidar', 'nomina.enviar_dian',
                 'contabilidad.ver', 'contabilidad.crear', 'contabilidad.editar', 'contabilidad.anular', 'contabilidad.cerrar_periodo',
                 'reportes.ver', 'reportes.exportar', 'movimientos.ver', 'movimientos.exportar', 'configuracion.parametros',
             ],
-            'Bodega' => ['inventario.ver', 'inventario.crear', 'inventario.editar', 'compras.ver', 'movimientos.ver'],
+            'Bodega' => ['inventario.ver', 'inventario.ver_costos', 'inventario.crear', 'inventario.editar', 'compras.ver', 'movimientos.ver'],
         ];
 
         foreach ($profiles as $name => $permissions) {

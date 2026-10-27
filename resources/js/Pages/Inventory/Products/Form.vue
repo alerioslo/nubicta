@@ -14,13 +14,14 @@ const props = defineProps({
     withholdingTaxes: { type: Array, required: true },
     priceLists: { type: Array, required: true },
     copy: { type: Object, default: null },
+    ivaResponsible: { type: Boolean, default: true },
 });
 
 const p = props.product ?? props.copy ?? {};
 const taxIds = (p.tax_ids ?? []).map(Number);
 const charge = props.chargeTaxes.find((t) => taxIds.includes(t.id));
 const withholding = props.withholdingTaxes.find((t) => taxIds.includes(t.id));
-const defaultIva = props.chargeTaxes.find((t) => t.type === 'IVA' && Number(t.percentage) === 19);
+const defaultIva = props.ivaResponsible ? props.chargeTaxes.find((t) => t.type === 'IVA' && Number(t.percentage) === 19) : null;
 
 const form = useForm({
     type: p.type ?? props.type,

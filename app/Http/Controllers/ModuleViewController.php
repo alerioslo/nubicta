@@ -103,6 +103,9 @@ class ModuleViewController extends Controller
     public function show(Request $request): Response
     {
         $key = trim($request->route()->uri(), '/');
+        if (in_array($key, ['productos/costeo', 'productos/documentos'], true) && ! $request->user()?->can('inventario.ver_costos')) {
+            abort(403);
+        }
         $view = self::VIEWS[$key] ?? abort(404);
         if (isset($view['default_days']) && ! $request->hasAny(['desde', 'hasta', 'q', 'page', 'todos'])) {
             $request->merge(['desde' => now()->subDays($view['default_days'])->toDateString()]);

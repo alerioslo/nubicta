@@ -46,25 +46,6 @@ class Mandate
      */
     public static function assertReady(string $kind, DocumentType $type, array $lines, array $data): void
     {
-        if ($kind === 'NC' && $type->isElectronic()) {
-            $missing = [];
-            if (! filled($type->resolution_number)) {
-                $missing[] = 'el número de resolución';
-            }
-            if (! $type->range_from || ! $type->range_to) {
-                $missing[] = 'el rango autorizado';
-            }
-            if (! $type->valid_from || ! $type->valid_to) {
-                $missing[] = 'la vigencia';
-            }
-            if (! filled($type->technical_key)) {
-                $missing[] = 'la clave técnica';
-            }
-            if ($missing) {
-                throw ValidationException::withMessages(['document_type' => 'La nota crédito electrónica no tiene '.implode(', ', $missing).'. Complétalos en el tipo de documento. No se consumió consecutivo.']);
-            }
-        }
-
         $mandante = collect($lines)->contains(fn ($l) => ($l['role'] ?? null) === 'mandante');
         $zz = collect($lines)->contains(fn ($l) => ($l['tax_code'] ?? null) === 'ZZ');
         $settled = ($data['payment_form'] ?? null) === 'contado';

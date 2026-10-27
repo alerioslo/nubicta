@@ -37,6 +37,7 @@ class HandleInertiaRequests extends Middleware
             'company' => fn () => $user?->company ? [
                 'id' => $user->company->id,
                 'name' => $user->company->business_name,
+                'brand' => $user->company->show_trade_name && filled($user->company->trade_name) ? $user->company->trade_name : null,
                 'nit' => $user->company->fullNit(),
                 'email' => $user->company->email,
                 'logo' => $user->company->logo_path ? '/storage/'.$user->company->logo_path : null,

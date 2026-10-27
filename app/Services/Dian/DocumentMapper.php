@@ -70,6 +70,10 @@ class DocumentMapper
             $supplier['id_type'] = '31';
             $supplier['dv'] = ColombianNit::resolveVerificationDigit($supplier['id'], $supplier['dv']);
         }
+        if (! filled($supplier['postal'])) {
+            // DSAJ08a: el vendedor residente exige código postal. Sin uno, la DIAN acepta 000000.
+            $supplier['postal'] = '000000';
+        }
         $d = $this->document($doc->type, $doc, $type, 'ds', $supplier, $this->companyParty(), $items, $taxes, $related, 'purchase_document_item_id');
 
         return $this->withholdings($d, $withholdings);

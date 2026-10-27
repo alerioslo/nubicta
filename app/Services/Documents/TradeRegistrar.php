@@ -293,7 +293,11 @@ class TradeRegistrar
 
     private function saveItems(Model $doc, array $calc, bool $purchase, array $data): void
     {
-        $warehouse = $this->warehouse();
+        $needsWarehouse = collect($calc['lines'])->contains(fn ($l) => $l['product']);
+        $warehouse = $needsWarehouse ? $this->warehouse() : null;
+        if ($needsWarehouse && ! $warehouse) {
+            throw ValidationException::withMessages(['items' => 'No hay una bodega activa. Crea la bodega Principal antes de guardar un producto inventariable.']);
+        }
         foreach ($calc['lines'] as $l) {
             $common = [
                 'position' => $l['position'], 'product_id' => $l['product']?->id,
@@ -485,7 +489,7 @@ class TradeRegistrar
 
     private function warehouse(): int
     {
-        return $this->warehouseId ??= (int) (Warehouse::query()->where('active', true)->orderByDesc('is_default')->orderBy('id')->value('id'));
+        return $this->warehouseId ??= (int) (Warehouse::query()->where('active', true)->orderByDesc('is_default')->orderBy('id')->value('id') ?: 0);
     }
 
     private function person(Contact $contact, mixed $id): ?int

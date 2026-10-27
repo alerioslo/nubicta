@@ -167,8 +167,9 @@ class ProductController extends Controller
             ],
             'costYear' => $year,
             'costYears' => range((int) now()->year, max(2000, (int) ($snap->min('year') ?? now()->year))),
-            'costs' => $months,
-            'showCosts' => $request->has('anio'),
+            'costs' => $request->user()?->can('inventario.ver_costos') ? $months : [],
+            'showCosts' => $request->user()?->can('inventario.ver_costos') && $request->has('anio'),
+            'canSeeCosts' => (bool) $request->user()?->can('inventario.ver_costos'),
         ]);
     }
 
@@ -286,6 +287,7 @@ class ProductController extends Controller
             'chargeTaxes' => $taxes->whereIn('type', ['IVA', 'Impoconsumo'])->values(),
             'withholdingTaxes' => $taxes->whereIn('type', ['Retefuente', 'ReteIVA', 'ReteICA'])->values(),
             'priceLists' => PriceList::where('active', true)->orderBy('position')->get(['id', 'name']),
+            'ivaResponsible' => $this->ivaResponsible(),
         ]);
     }
 
@@ -364,5 +366,12 @@ class ProductController extends Controller
                 $product->prices()->create(['price_list_id' => $listId, 'value' => $value]);
             }
         }
+    }
+
+    private function ivaResponsible(): bool
+    {
+        $company = auth()->user()?->company;
+
+        return (string) $company?->tax_regime === '48' || in_array('O-48', (array) ($company?->fiscal_responsibilities ?? []), true);
     }
 }

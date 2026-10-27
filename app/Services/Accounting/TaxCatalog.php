@@ -35,7 +35,7 @@ class TaxCatalog
         [23, 'Retefuente 1.5%', 'Retefuente', 1.5, false, '13551519', '23654006', '13551520', '23654007'],
     ];
 
-    /** Crea los impuestos que falten y alinea código, tarifa y cuentas con el catálogo. @return array{created: int, updated: int} */
+    /** Crea los impuestos que falten. No toca los que la empresa ya tiene. @return array{created: int, updated: int} */
     public function install(int $companyId): array
     {
         return DB::transaction(function () use ($companyId) {
@@ -45,12 +45,11 @@ class TaxCatalog
 
             foreach (self::TAXES as [$code, $name, $type, $pct, $fixed, $sales, $purchases, $salesReturn, $purchasesReturn]) {
                 $tax = $existing->first(fn (Tax $t) => mb_strtolower($t->name) === mb_strtolower($name));
-                if (! $tax) {
-                    $tax = new Tax(['company_id' => $companyId, 'name' => $name, 'type' => $type, 'active' => true]);
-                    $created++;
-                } else {
-                    $updated++;
+                if ($tax) {
+                    continue;
                 }
+                $tax = new Tax(['company_id' => $companyId, 'name' => $name, 'type' => $type, 'active' => true]);
+                $created++;
                 $tax->forceFill(['company_id' => $companyId, 'code' => $code, 'type' => $type, 'percentage' => $pct, 'fixed_value' => $fixed, 'base_minimum' => 0]);
                 foreach (['sales_account_id' => $sales, 'purchases_account_id' => $purchases, 'sales_return_account_id' => $salesReturn, 'purchases_return_account_id' => $purchasesReturn] as $col => $acc) {
                     if (isset($accounts[$acc])) {

@@ -13,9 +13,14 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([GeoSeeder::class, RolesSeeder::class]);
 
+        $municipality = (string) env('ERP_COMPANY_MUNICIPALITY', '11001');
         $company = Company::firstOrCreate(
             ['nit' => env('ERP_COMPANY_NIT', '000000000')],
-            ['business_name' => env('ERP_COMPANY_NAME', 'Mi empresa'), 'municipality_code' => '11001', 'department_code' => '11'],
+            [
+                'business_name' => env('ERP_COMPANY_NAME', 'Mi empresa'),
+                'municipality_code' => $municipality,
+                'department_code' => (string) env('ERP_COMPANY_DEPARTMENT', substr($municipality, 0, 2)),
+            ],
         );
 
         $email = env('ERP_ADMIN_EMAIL', 'admin@example.com');
@@ -37,5 +42,38 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->call(TaxSeeder::class);
+        $this->operation($company->id);
+    }
+
+    /** Bodega y formas de pago mínimas para poder guardar el primer documento. */
+    private function operation(int $companyId): void
+    {
+        $now = now();
+        if (! \Illuminate\Support\Facades\DB::table('warehouses')->where('company_id', $companyId)->exists()) {
+            \Illuminate\Support\Facades\DB::table('warehouses')->insert([
+                'company_id' => $companyId, 'name' => 'Principal', 'is_default' => true, 'active' => true,
+                'created_at' => $now, 'updated_at' => $now,
+            ]);
+        }
+        if (\Illuminate\Support\Facades\DB::table('payment_methods')->where('company_id', $companyId)->exists()) {
+            return;
+        }
+        $accounts = \Illuminate\Support\Facades\DB::table('accounts')->where('company_id', $companyId)->pluck('id', 'code');
+        $rows = [
+            ['Efectivo', 'CarteraProveedor', '10', '11050501', false, ['FV', 'FC', 'RC']],
+            ['Banco', 'CarteraProveedor', '47', '11100501', false, ['FV', 'FC', 'RC']],
+            ['Crédito a clientes', 'Cartera', 'ZZZ', '13050501', true, ['FV']],
+            ['Crédito de proveedores', 'Cartera', 'ZZZ', '22050501', true, ['FC']],
+        ];
+        foreach ($rows as [$name, $type, $means, $code, $due, $docs]) {
+            if (! isset($accounts[$code])) {
+                continue;
+            }
+            \Illuminate\Support\Facades\DB::table('payment_methods')->insert([
+                'company_id' => $companyId, 'name' => $name, 'type' => $type, 'means_code' => $means,
+                'account_id' => $accounts[$code], 'due_date' => $due, 'document_types' => json_encode($docs),
+                'active' => true, 'created_at' => $now, 'updated_at' => $now,
+            ]);
+        }
     }
 }
