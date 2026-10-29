@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [HandleInertiaRequests::class, \App\Http\Middleware\LogoutAfterRestore::class]);
         $middleware->redirectGuestsTo('/login');
         $middleware->redirectUsersTo('/');
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
