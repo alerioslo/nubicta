@@ -153,7 +153,8 @@ function submit() {
             <div class="mt-[24px] grid grid-cols-3 gap-x-[16px] gap-y-[16px]">
                 <label class="block">
                     <span class="text-[12px] text-ink">Fecha elaboración *</span>
-                    <input v-model="doc.date" type="date" class="s-input mt-[6px] w-full" />
+                    <input v-model="doc.date" type="date" class="s-input mt-[6px] w-full" :class="{ 'is-invalid': doc.errors.date }" />
+                    <p v-if="doc.errors.date" class="s-error">{{ doc.errors.date }}</p>
                 </label>
                 <label class="block">
                     <span class="text-[12px] text-ink">Tipo de documento *</span>

@@ -31,7 +31,7 @@ class Mandate
     {
         $code = self::codes()[$key] ?? '';
         if ($code === '') {
-            throw ValidationException::withMessages(['cuentas' => 'Falta configurar '.self::ACCOUNTS[$key].' en Configuración, Cuentas de mandato. No se envió nada a la DIAN.']);
+            throw ValidationException::withMessages(['cuentas' => 'Falta configurar '.self::ACCOUNTS[$key].' en Configuración, Cuentas puente y de mandato. No se envió nada a la DIAN.']);
         }
         $id = DB::table('accounts')->where('company_id', CurrentCompany::id())->where('code', $code)->value('id');
         if (! $id) {
@@ -75,7 +75,7 @@ class Mandate
             }
         }
         if ($missing) {
-            throw ValidationException::withMessages(['cuentas' => 'Falta configurar '.implode(', ', $missing).' en Configuración, Cuentas de mandato. No se envió nada a la DIAN.']);
+            throw ValidationException::withMessages(['cuentas' => 'Falta configurar '.implode(', ', $missing).' en Configuración, Cuentas puente y de mandato. No se envió nada a la DIAN.']);
         }
         foreach ($need as $key) {
             self::id($key);

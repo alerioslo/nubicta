@@ -65,7 +65,7 @@ return [
     'Ventas' => [
         ['title' => 'Documentos', 'column' => 0, 'items' => $sales],
         ['title' => 'Procesos', 'column' => 0, 'items' => [
-            $item('Cuentas de mandato', '/configuracion/ajustes/mandato'),
+            $item('Cuentas puente y de mandato', '/configuracion/ajustes/mandato'),
             $item('Renovación de numeración agotada o próxima a agotarse', '/configuracion/facturacion-electronica?tab=resoluciones'),
             $item('Habilitación de numeración vencida o próxima a vencerse', '/configuracion/facturacion-electronica?tab=resoluciones'),
         ]],

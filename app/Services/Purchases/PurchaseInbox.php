@@ -138,7 +138,8 @@ class PurchaseInbox
             $contact = Contact::create([
                 'is_supplier' => true, 'person_type' => $s['person_type'], 'identification_type' => $s['id_type'] ?: '31',
                 'identification' => $s['nit'], 'dv' => $s['dv'] !== '' ? substr($s['dv'], 0, 1) : null,
-                'name' => $s['name'], 'business_name' => $s['person_type'] === 'juridica' ? $s['name'] : null,
+                'first_name' => $s['person_type'] === 'natural' ? $s['name'] : null,
+                'business_name' => $s['person_type'] === 'juridica' ? $s['name'] : null,
                 'email' => $s['email'] ?: null, 'phone' => $s['phone'] ?: null, 'address' => $s['address'] ?: null,
                 'municipality_code' => strlen($s['municipality_code']) === 5 ? $s['municipality_code'] : null,
                 'department_code' => strlen($s['municipality_code']) === 5 ? substr($s['municipality_code'], 0, 2) : null,
