@@ -416,6 +416,9 @@ class TradeRegistrar
         $reverse = in_array($kind, ['NC', 'NA'], true);
         // $side true = debito en el documento normal (FV para ventas, FC para compras)
         $put = fn (int $account, float $value, bool $debit) => ($debit xor $reverse) ? $entry->debit($account, $value) : $entry->credit($account, $value);
+        $taxAccount = fn (Tax $tax, bool $forPurchases) => $reverse
+            ? $this->accounts->taxReturn($tax, $forPurchases)
+            : $this->accounts->tax($tax, $forPurchases);
 
         foreach ($payments as $p) {
             $put($p['account_id'], $p['value'], ! $purchase);
@@ -430,10 +433,10 @@ class TradeRegistrar
                 };
                 $put($account, $l['base'], true);
                 if ($l['charge']) {
-                    $put($this->accounts->tax($l['charge'], true), $l['tax'], true);
+                    $put($taxAccount($l['charge'], true), $l['tax'], true);
                 }
                 if ($l['withholding']) {
-                    $put($this->accounts->tax($l['withholding'], true), $l['withholding_value'], false);
+                    $put($taxAccount($l['withholding'], true), $l['withholding_value'], false);
                 }
 
                 continue;
@@ -452,7 +455,7 @@ class TradeRegistrar
                     $put(Mandate::id('vat'), $l['tax'], false);
                 }
                 if ($l['withholding']) {
-                    $put($this->accounts->tax($l['withholding'], false), $l['withholding_value'], true);
+                    $put($taxAccount($l['withholding'], false), $l['withholding_value'], true);
                 }
 
                 continue;
@@ -463,10 +466,10 @@ class TradeRegistrar
                 $put($this->accounts->default('sales_discounts'), $l['discount_base'], true);
             }
             if ($l['charge']) {
-                $put($this->accounts->tax($l['charge'], false), $l['tax'], false);
+                $put($taxAccount($l['charge'], false), $l['tax'], false);
             }
             if ($l['withholding']) {
-                $put($this->accounts->tax($l['withholding'], false), $l['withholding_value'], true);
+                $put($taxAccount($l['withholding'], false), $l['withholding_value'], true);
             }
             if (! empty($costs[$idx])) {
                 $put($this->accounts->group($group, 'cost'), $costs[$idx], true);
@@ -476,12 +479,12 @@ class TradeRegistrar
         foreach ($calc['summary'] as $s) {
             if ($s['self']) {
                 // Autorretencion: anticipo (debito) contra la retencion por pagar (credito); no cambia la cartera del cliente.
-                $put($this->accounts->tax($s['tax'], false), $s['value'], true);
-                $put($this->accounts->tax($s['tax'], true), $s['value'], false);
+                $put($taxAccount($s['tax'], false), $s['value'], true);
+                $put($taxAccount($s['tax'], true), $s['value'], false);
 
                 continue;
             }
-            $put($this->accounts->tax($s['tax'], $purchase), $s['value'], ! $purchase);
+            $put($taxAccount($s['tax'], $purchase), $s['value'], ! $purchase);
         }
 
         $entry->post($doc->date, $doc->name, $kind);

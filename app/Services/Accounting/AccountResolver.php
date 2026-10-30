@@ -7,6 +7,7 @@ use App\Models\PaymentMethod;
 use App\Models\Tax;
 use App\Support\CurrentCompany;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 /** Resuelve la cuenta contable de cada parametro, con las cuentas por defecto de config/accounting.php. */
@@ -73,6 +74,19 @@ class AccountResolver
         $id = $purchases ? $tax->purchases_account_id : $tax->sales_account_id;
         if (! $id) {
             throw new RuntimeException("El impuesto {$tax->name} no tiene cuenta contable de ".($purchases ? 'compras' : 'ventas').'.');
+        }
+
+        return $id;
+    }
+
+    public function taxReturn(Tax $tax, bool $purchases): int
+    {
+        $id = $purchases ? $tax->purchases_return_account_id : $tax->sales_return_account_id;
+        if (! $id) {
+            $side = $purchases ? 'compras' : 'ventas';
+            throw ValidationException::withMessages([
+                'cuentas' => "No se puede contabilizar la devolución: el impuesto {$tax->name} no tiene configurada la cuenta de devolución en {$side}. Configúrala en Configuración > Contabilidad > Impuestos.",
+            ]);
         }
 
         return $id;

@@ -17,14 +17,16 @@ class AdvanceCrossing
 {
     public function __construct(private readonly AccountResolver $accounts) {}
 
-    /** @return array{debt:float, advance:float, types:list<array{id:int, label:string}>} */
+    /** @return array{debt:float, advance:float, advance_balance:float, types:list<array{id:int, label:string}>} */
     public function summary(string $module, int $contactId): array
     {
         $contact = Contact::query()->find($contactId);
+        $advance = $contact ? $this->advance($module, $contact) : null;
 
         return [
             'debt' => $contact ? round((float) $this->pending($module, $contact)->sum('balance'), 2) : 0.0,
-            'advance' => $contact ? $this->advance($module, $contact)['balance'] : 0.0,
+            'advance' => $advance['balance'] ?? 0.0,
+            'advance_balance' => $advance['signed_balance'] ?? 0.0,
             'types' => DocumentType::query()->where('type', 'CC')->where('active', true)->orderBy('code')->get()
                 ->map(fn ($t) => ['id' => $t->id, 'label' => "CC-{$t->code} - {$t->name}"])->values()->all(),
         ];
@@ -86,6 +88,6 @@ class AdvanceCrossing
         $last = (clone $q)->where($module === 'ventas' ? 'credit' : 'debit', '>', 0)->orderByDesc('date')->orderByDesc('id')->value('document');
         $document = $last && preg_match('/^([A-Z]+)-(?:\d+-)?(\d+)$/', $last, $m) ? [$m[1], (int) $m[2]] : [$module === 'ventas' ? 'RC' : 'RP', 1];
 
-        return ['balance' => max(0.0, $balance), 'account_id' => $accountId, 'document' => $document];
+        return ['balance' => max(0.0, $balance), 'signed_balance' => $balance, 'account_id' => $accountId, 'document' => $document];
     }
 }

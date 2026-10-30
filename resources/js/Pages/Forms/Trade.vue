@@ -53,6 +53,10 @@ const doc = useForm({
     checks: { ...Object.fromEntries((f.checks ?? []).map((c) => [c, false])), ...(props.initial?.checks ?? {}) },
     summary_retentions: { ...Object.fromEntries((f.retentions ?? []).map((r) => [r, null])), ...(props.initial?.summary_retentions ?? {}) },
 });
+const inlineErrorFields = ['related_id', 'document_type', 'date', 'contact_id', 'reason', 'items'];
+const unhandledErrors = computed(() => Object.entries(doc.errors)
+    .filter(([field]) => !inlineErrorFields.includes(field))
+    .map(([field, message]) => ({ field, message })));
 if (props.initial) {
     doc.items.push(blankItem());
     if (!doc.payments.length) doc.payments.push(blankPayment());
@@ -61,6 +65,8 @@ const methodById = (id) => props.paymentMethods.find((m) => m.id === id);
 doc.payments.forEach((p) => { p.label ||= methodById(p.method_id)?.label ?? ''; p.range ??= '0'; });
 
 const people = ref([]);
+const advanceBalance = ref(null);
+const advanceBalanceError = ref('');
 const editNumber = ref(false);
 const attachment = ref(null);
 const editing = ref(0);
@@ -149,6 +155,29 @@ watch(() => totals.value.net, (net) => {
 });
 
 watch(() => doc.date, () => doc.payments.forEach((p) => { if (methodById(p.method_id)?.credit) p.due_date = addDays(doc.date, p.range); }));
+
+watch(() => sale && f.doc === 'FV' ? doc.contact_id : null, async (contactId, _, onCleanup) => {
+    advanceBalance.value = null;
+    advanceBalanceError.value = '';
+    if (!contactId) return;
+
+    const controller = new AbortController();
+    onCleanup(() => controller.abort());
+    try {
+        const response = await fetch(`/api/buscar/anticipos?modulo=ventas&contact=${contactId}`, {
+            headers: { Accept: 'application/json' },
+            signal: controller.signal,
+        });
+        if (!response.ok) throw new Error('No fue posible consultar el saldo de anticipos.');
+        const result = await response.json();
+        const balance = Number(result.advance_balance);
+        if (!Number.isFinite(balance)) throw new Error('La respuesta del saldo de anticipos no es válida.');
+        advanceBalance.value = round(balance);
+    } catch (error) {
+        if (error.name === 'AbortError') return;
+        advanceBalanceError.value = 'No se pudo consultar el saldo de anticipos. Intenta de nuevo.';
+    }
+}, { immediate: true });
 
 async function loadPeople() {
     if (!doc.contact_id) return;
@@ -362,6 +391,10 @@ async function submit(action) {
                 <label v-if="mandateDoc" class="flex items-center gap-[6px] text-[12px]"><input v-model="doc.mandate" type="checkbox" /> Facturar por mandato</label>
                 <a v-if="f.logo || f.doc === 'NC'" href="/ayuda#ventas" target="_blank" class="rounded-[2px] border border-[#ccc] px-[8px] py-[1px] text-[10px] text-primary hover:underline">Ver tutoriales</a>
             </div>
+            <div v-if="unhandledErrors.length" class="mt-[12px] rounded-[2px] border border-[#e5b6b6] bg-[#fdecec] px-[12px] py-[8px] text-[12px] text-[#c62828]" role="alert">
+                <p class="mb-[4px] font-semibold">No se pudo guardar el documento:</p>
+                <p v-for="error in unhandledErrors" :key="error.field">{{ error.message }}</p>
+            </div>
             <div v-if="f.classic" class="mt-[14px] flex justify-end gap-[8px]">
                 <button v-for="b in f.buttons" :key="b" type="button" class="doc-btn doc-btn-green" :disabled="doc.processing" @click="submit(b)">{{ b }}</button>
                 <Link :href="f.back" class="doc-btn doc-btn-blue inline-flex items-center">Cancelar</Link>
@@ -397,7 +430,10 @@ async function submit(action) {
                     </div>
                     <div v-if="!f.seller_left" class="grid grid-cols-[76px_1fr] items-start gap-[8px]" :class="{ 'order-1': !f.purchase }">
                         <span class="doc-label">Fecha de elaboración</span>
-                        <input v-model="doc.date" type="date" class="doc-input req w-[150px]" />
+                        <div>
+                            <input v-model="doc.date" type="date" class="doc-input req w-[150px]" :class="{ 'is-invalid': doc.errors.date }" />
+                            <p v-if="doc.errors.date" class="text-[10px] text-danger">{{ doc.errors.date }}</p>
+                        </div>
                     </div>
                     <div class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
                         <span class="doc-label">{{ partyLabel }}</span>
@@ -408,6 +444,10 @@ async function submit(action) {
                                 <a v-if="sale && doc.contact_id" :href="`/terceros/${doc.contact_id}/editar`" target="_blank" class="whitespace-nowrap text-[11px] text-[#7cb342] underline">Ver perfil</a>
                             </div>
                             <p v-if="doc.errors.contact_id" class="text-[10px] text-danger">{{ doc.errors.contact_id }}</p>
+                            <p v-if="advanceBalance !== null && advanceBalance !== 0" class="text-[11px]" :class="advanceBalance > 0 ? 'text-[#2e7d32]' : 'text-[#c62828]'">
+                                Saldo Anticipos: {{ money(advanceBalance) }}
+                            </p>
+                            <p v-if="advanceBalanceError" class="text-[10px] text-danger" role="alert">{{ advanceBalanceError }}</p>
                         </div>
                     </div>
                     <div v-if="!f.classic && (!f.related || f.party === 'cliente')" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
@@ -467,7 +507,10 @@ async function submit(action) {
                     </div>
                     <div v-if="f.seller_left" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
                         <span class="doc-label">Fecha de elaboración</span>
-                        <input v-model="doc.date" type="date" class="doc-input req w-[150px]" />
+                        <div>
+                            <input v-model="doc.date" type="date" class="doc-input req w-[150px]" :class="{ 'is-invalid': doc.errors.date }" />
+                            <p v-if="doc.errors.date" class="text-[10px] text-danger">{{ doc.errors.date }}</p>
+                        </div>
                     </div>
                     <div v-if="f.seller && !f.related && !f.seller_left" class="grid grid-cols-[76px_1fr] items-start gap-[8px]">
                         <span class="doc-label">{{ f.seller_label ?? 'Vendedor' }} <Icon icon="circle-info" class="text-[9px] text-primary" /></span>
