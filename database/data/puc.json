@@ -122,7 +122,7 @@
 },
 {
 "code": "11100501",
-"name": "Banco cuenta de ahorros",
+"name": "Banco cuenta corriente",
 "category": "Caja - Bancos",
 "nature_class": "Activo",
 "relation": "Formas de pago",
@@ -166,7 +166,7 @@
 },
 {
 "code": "11200501",
-"name": "Bancos",
+"name": "Banco cuenta de ahorros",
 "category": "Caja - Bancos",
 "nature_class": "Activo",
 "relation": "Sin asignar",
