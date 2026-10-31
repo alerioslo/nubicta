@@ -100,7 +100,7 @@
 },
 {
 "code": "1110",
-"name": "Bancos",
+"name": "Cuentas corrientes",
 "category": null,
 "nature_class": null,
 "relation": null,
@@ -155,7 +155,7 @@
 },
 {
 "code": "112005",
-"name": "Bancos",
+"name": "Moneda nacional",
 "category": null,
 "nature_class": null,
 "relation": null,
@@ -1672,6 +1672,39 @@
 "transactional": true
 },
 {
+"code": "1520",
+"name": "Maquinaria y equipo",
+"category": null,
+"nature_class": null,
+"relation": null,
+"due_type": null,
+"fiscal_difference": false,
+"active": true,
+"transactional": false
+},
+{
+"code": "152005",
+"name": "Maquinaria y equipo",
+"category": null,
+"nature_class": null,
+"relation": null,
+"due_type": null,
+"fiscal_difference": false,
+"active": true,
+"transactional": false
+},
+{
+"code": "15200501",
+"name": "Maquinaria y Equipo",
+"category": "Activos fijos",
+"nature_class": "Activo",
+"relation": "Grupo de activo fijo - Valor de compra",
+"due_type": null,
+"fiscal_difference": false,
+"active": true,
+"transactional": true
+},
+{
 "code": "1524",
 "name": "Equipo de oficina",
 "category": null,
@@ -1877,6 +1910,28 @@
 "relation": "Sin asignar",
 "due_type": null,
 "fiscal_difference": true,
+"active": true,
+"transactional": true
+},
+{
+"code": "159210",
+"name": "Maquinaria y equipo",
+"category": null,
+"nature_class": null,
+"relation": null,
+"due_type": null,
+"fiscal_difference": false,
+"active": true,
+"transactional": false
+},
+{
+"code": "15921001",
+"name": "Maquinaria y Equipo",
+"category": "Activos fijos",
+"nature_class": "Activo",
+"relation": "Grupo de activo fijo - Depreciación",
+"due_type": null,
+"fiscal_difference": false,
 "active": true,
 "transactional": true
 },
@@ -8368,6 +8423,28 @@
 "due_type": null,
 "fiscal_difference": true,
 "active": false,
+"transactional": true
+},
+{
+"code": "516010",
+"name": "Maquinaria y equipo",
+"category": null,
+"nature_class": null,
+"relation": null,
+"due_type": null,
+"fiscal_difference": false,
+"active": true,
+"transactional": false
+},
+{
+"code": "51601001",
+"name": "Maquinaria y Equipo",
+"category": "Gastos",
+"nature_class": "Gastos",
+"relation": "Grupo de activo fijo - Gastos de Depreciación",
+"due_type": null,
+"fiscal_difference": false,
+"active": true,
 "transactional": true
 },
 {
